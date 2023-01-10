@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=coppwr
+GenericName=Low level PipeWire control GUI
+Comment=Low level control GUI for the PipeWire multimedia server
+Keywords=PipeWire;Debug;
+Categories=AudioVideo;System;
+Icon=xyz.dimtpap.coppwr
+Exec=coppwr
+Terminal=false

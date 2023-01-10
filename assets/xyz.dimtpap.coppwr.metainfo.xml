@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>xyz.dimtpap.coppwr</id>
+  
+  <name>coppwr</name>
+  <summary>Low level control GUI for PipeWire</summary>
+  
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  
+  <description>
+    <p>
+      coppwr is a tool that provides low level control over the PipeWire multimedia server.
+      It aims to expose and provide as many ways to inspect and control the many components
+      of the PipeWire multimedia server as possible. It can be used as a diagnostic tool for PipeWire
+      and to help develop software that interacts with it.
+    </p>
+  </description>
+  
+  <provides>
+    <binary>coppwr</binary>
+  </provides>
+
+  <launchable type="desktop-id">xyz.dimtpap.coppwr.desktop</launchable>
+
+  <url type="homepage">https://dimtpap.xyz/coppwr</url>
+  <url type="vcs-browser">https://github.com/dimtpap/coppwr</url>
+  <url type="bugtracker">https://github.com/dimtpap/coppwr/issues</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/dimtpap/coppwr/raw/main/assets/sc.png</image>
+    </screenshot>
+  </screenshots>
+  <keywords>
+    <keyword>AudioVideo</keyword>
+    <keyword>Audio</keyword>
+    <keyword>Video</keyword>
+    <keyword>Utility</keyword>
+    <keyword>PipeWire</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.0" />
+
+  <developer_name>Dimitris Papaioannou</developer_name>
+  <update_contact>dimtpap@protonmail.com</update_contact>
+</component>
