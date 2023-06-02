@@ -40,6 +40,10 @@
     <keyword>PipeWire</keyword>
   </keywords>
 
+  <releases>
+    <release version="1.0.0" date="2023-06-02"/>
+  </releases>
+
   <content_rating type="oars-1.0" />
 
   <developer_name>Dimitris Papaioannou</developer_name>
