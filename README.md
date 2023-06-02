@@ -29,8 +29,8 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 `coppwr-bin` is available from the [AUR](https://aur.archlinux.org/packages/coppwr-bin) (use `coppwr` for the non-prebuilt package).  
 Use your AUR helper of choice or install it manually
 ```sh
-git clone https://aur.archlinux.org/coppwr-bin.git  
-cd coppwr 
+git clone https://aur.archlinux.org/coppwr-bin.git
+cd coppwr-bin
 makepkg -i
 ```
 ### Debian/RPM
@@ -52,8 +52,8 @@ cargo build --release
 ### Arch
 `coppwr` is available from the [AUR](https://aur.archlinux.org/packages?O=0&K=coppwr)  
 ```sh
-git clone https://aur.archlinux.org/coppwr.git  
-cd coppwr 
+git clone https://aur.archlinux.org/coppwr.git
+cd coppwr
 makepkg
 ```
 ### Debian, RPM
