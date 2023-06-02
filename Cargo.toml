@@ -6,6 +6,7 @@ edition = "2021"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
+homepage = "https://dimtpap.xyz/coppwr"
 readme = "README.md"
 keywords =  ["pipewire", "egui", "gui", "utility"]
 categories = ["gui", "multimedia"]
