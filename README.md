@@ -24,7 +24,28 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 - Module loading  
 [More to be added...](https://github.com/dimtpap/coppwr/issues/1)
 
-### Credits
+## Installing
+Debian, RPM and Arch packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest)
+as well as the binary executable itself. Using distro packages is preferred as they integrate coppwr with the desktop.  
+### **Note**
+coppwr does **not** self-update
+
+## Building
+### Requirements
+- Rust and Cargo from your distribution packages or see https://www.rust-lang.org/tools/install
+- bindgen [requirements](https://rust-lang.github.io/rust-bindgen/requirements.html)
+- PipeWire library headers/PipeWire development packages
+### Build
+In the repository's root directory
+```sh
+cargo build --release
+```
+### Debian, RPM
+Debian and RPM packages can be created using [cargo-deb](https://github.com/kornelski/cargo-deb#readme)
+and [cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm#cargo-generate-rpm) respectively.
+See their usage instructions.
+
+## Credits
 - [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe)
 - [egui_dock](https://crates.io/crates/egui_dock)
-- [A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr) of [pipewire-rs](https://crates.io/crates/pipewire)
+- ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr) of) [pipewire-rs](https://crates.io/crates/pipewire)
