@@ -1,0 +1,72 @@
+name: Build
+
+on:
+  push:
+    paths:
+      - .github/workflows/main.yml
+      - 'src/**'
+    tags:
+      - '*'
+    branches:
+      - '**'
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  Build:
+    name: 'Build'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout
+      - name: Check formatting
+        run: cargo fmt --check --verbose
+      - name: Install system dependencies
+        run: |
+          sudo apt install libpipewire-0.3-dev llvm-dev libclang-dev clang
+      - uses: actions/cache@v3
+        name: Restore Cargo cache
+        id: cargo-cache
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Cargo tools
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-deb cargo-generate-rpm
+      - name: Build
+        run: cargo build --release --verbose
+      - uses: actions/upload-artifact@v3
+        name: Upload binary
+        with:
+          name: coppwr
+          path: target/release/coppwr
+      - name: Package
+        run: |
+          NAME=coppwr-$GITHUB_REF_NAME
+          mkdir out/
+          cargo deb --output out/$NAME.deb
+          cargo generate-rpm -o out/$NAME.rpm
+          mkdir .cargo
+          cargo vendor > .cargo/config.toml
+          tar --exclude='out' --exclude='.git*' --exclude='target' --transform "s/coppwr/$NAME/" -zcvf out/$NAME-vendor.tar.gz ../coppwr/
+      - uses: actions/upload-artifact@v3
+        name: Upload packages
+        with:
+          name: coppwr-deb-rpm
+          path: |
+            out/*.deb
+            out/*.rpm
+      - uses: actions/upload-artifact@v3
+        name: Upload vendor archive
+        with:
+          name: coppwr-vendor
+          path: |
+            out/*-vendor.tar.gz
