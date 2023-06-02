@@ -25,7 +25,16 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 [More to be added...](https://github.com/dimtpap/coppwr/issues/1)
 
 ## Installing
-Debian, RPM and Arch packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest)
+### Arch
+`coppwr-bin` is available from the [AUR](https://aur.archlinux.org/packages/coppwr-bin) (use `coppwr` for the non-prebuilt package).  
+Use your AUR helper of choice or install it manually
+```sh
+git clone https://aur.archlinux.org/coppwr-bin.git  
+cd coppwr 
+makepkg -i
+```
+### Debian/RPM
+Debian and RPM packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest)
 as well as the binary executable itself. Using distro packages is preferred as they integrate coppwr with the desktop.  
 ### **Note**
 coppwr does **not** self-update
@@ -39,6 +48,13 @@ coppwr does **not** self-update
 In the repository's root directory
 ```sh
 cargo build --release
+```
+### Arch
+`coppwr` is available from the [AUR](https://aur.archlinux.org/packages?O=0&K=coppwr)  
+```sh
+git clone https://aur.archlinux.org/coppwr.git  
+cd coppwr 
+makepkg
 ```
 ### Debian, RPM
 Debian and RPM packages can be created using [cargo-deb](https://github.com/kornelski/cargo-deb#readme)
