@@ -116,6 +116,7 @@ pub struct NodeBlock {
     pub finish: i64,
     pub status: i32,
     pub latency: Fraction,
+    pub xrun_count: Option<i32>,
 }
 
 impl<'de> PodDeserialize<'de> for NodeBlock {
@@ -144,6 +145,7 @@ impl<'de> PodDeserialize<'de> for NodeBlock {
                     finish: struct_deserializer.deserialize_field()?.unwrap(),
                     status: struct_deserializer.deserialize_field()?.unwrap(),
                     latency: struct_deserializer.deserialize_field()?.unwrap(),
+                    xrun_count: struct_deserializer.deserialize_field()?,
                 })
             }
         }
