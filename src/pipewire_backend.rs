@@ -163,7 +163,9 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
     };
 
     let core = context
-        .connect(None)
+        .connect(Some(pw::properties! {
+            "media.category" => "Manager" // Needed to get full permissions in Flatpak runtime
+        }))
         .expect("Failed to connect to PipeWire remote");
 
     let registry = Rc::new(
