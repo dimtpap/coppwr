@@ -19,7 +19,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use eframe::egui;
 use pipewire::{self, types::ObjectType};
 
-use crate::{pipewire_backend::PipeWireRequest, ui::Global};
+use crate::{backend::PipeWireRequest, ui::Global};
 
 pub(super) struct GlobalsStore {
     globals: BTreeMap<u32, Rc<RefCell<Global>>>,

@@ -24,7 +24,7 @@ use eframe::egui;
 use pipewire as pw;
 use pw::{permissions::Permissions, registry::Permission, types::ObjectType};
 
-use crate::pipewire_backend::{ObjectMethod, PipeWireRequest};
+use crate::backend::{ObjectMethod, PipeWireRequest};
 
 fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
     egui::ScrollArea::vertical()

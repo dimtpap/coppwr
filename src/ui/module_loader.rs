@@ -16,7 +16,7 @@
 
 use eframe::egui;
 
-use crate::pipewire_backend::PipeWireRequest;
+use crate::backend::PipeWireRequest;
 use crate::ui::Tool;
 
 pub(super) struct ModuleLoader {

@@ -24,7 +24,7 @@ use super::{
     global::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
     WindowedTool,
 };
-use crate::pipewire_backend::{PipeWireEvent, PipeWireRequest};
+use crate::backend::{PipeWireEvent, PipeWireRequest};
 
 #[derive(Clone, Copy)]
 enum View {

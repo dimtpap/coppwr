@@ -14,17 +14,17 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-mod pipewire_backend;
+mod backend;
 mod profiler_deserialize;
 mod ui;
 
-use crate::pipewire_backend::PipeWireRequest;
+use crate::backend::PipeWireRequest;
 use crate::ui::CoppwrApp;
 
 fn main() {
     pipewire::init();
 
-    let (pt, erx, rsx) = crate::pipewire_backend::run();
+    let (pt, erx, rsx) = crate::backend::run();
 
     if let Err(e) = eframe::run_native(
         env!("CARGO_PKG_NAME"),

@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use eframe::egui;
 use pipewire::types::ObjectType;
 
-use crate::pipewire_backend::PipeWireRequest;
+use crate::backend::PipeWireRequest;
 use crate::ui::Tool;
 
 struct Factory {

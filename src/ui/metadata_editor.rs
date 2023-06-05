@@ -18,7 +18,7 @@ use std::collections::{btree_map::Entry, BTreeMap};
 
 use eframe::egui;
 
-use crate::pipewire_backend::{ObjectMethod, PipeWireRequest};
+use crate::backend::{ObjectMethod, PipeWireRequest};
 use crate::ui::Tool;
 
 struct Property {

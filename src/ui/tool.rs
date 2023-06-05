@@ -16,7 +16,7 @@
 
 use eframe::egui;
 
-use crate::pipewire_backend::PipeWireRequest;
+use crate::backend::PipeWireRequest;
 
 pub(super) trait Tool {
     fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>);

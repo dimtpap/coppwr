@@ -712,22 +712,22 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                     ObjectType::Metadata => {
                         if let Ok(metadata) = registry.bind::<pw::metadata::Metadata, _>(global) {
                             let listener = metadata
-                                .add_listener_local()
-                                .property({
-                                    let sx = sx.clone();
-                                    move |subject, key, type_, value| {
-                                        sx.send(PipeWireEvent::MetadataProperty {
-                                            id,
-                                            subject,
-                                            key: key.map(str::to_string),
-                                            type_: type_.map(str::to_string),
-                                            value: value.map(str::to_string),
-                                        })
-                                        .ok();
-                                        0
-                                    }
-                                })
-                                .register();
+                            .add_listener_local()
+                            .property({
+                                let sx = sx.clone();
+                                move |subject, key, type_, value| {
+                                    sx.send(PipeWireEvent::MetadataProperty {
+                                        id,
+                                        subject,
+                                        key: key.map(str::to_string),
+                                        type_: type_.map(str::to_string),
+                                        value: value.map(str::to_string),
+                                    })
+                                    .ok();
+                                    0
+                                }
+                            })
+                            .register();
                             (Global::Metadata(metadata), Box::new(listener))
                         } else {
                             eprintln!("Failed to bind to Metadata {id}");
