@@ -32,7 +32,7 @@ use pw::{
     types::ObjectType,
 };
 
-use crate::profiler_deserialize::{Profiling, Profilings};
+use crate::backend::profiler::{Profiling, Profilings};
 
 pub enum ObjectMethod {
     ClientGetPermissions {

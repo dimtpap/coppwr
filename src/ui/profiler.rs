@@ -21,7 +21,7 @@ use eframe::egui::{
     plot::{self, Plot, PlotPoints},
 };
 
-use crate::profiler_deserialize::{Clock, NodeBlock, Profiling};
+use crate::backend::profiler::{Clock, NodeBlock, Profiling};
 
 pub(super) struct Profiler {
     max_profilings: usize,

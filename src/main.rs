@@ -15,7 +15,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod backend;
-mod profiler_deserialize;
 mod ui;
 
 use crate::backend::Request;
