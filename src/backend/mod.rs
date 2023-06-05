@@ -14,8 +14,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+mod bind;
 mod pipewire;
 #[path = "profiler_deserialize.rs"]
 pub mod profiler;
+mod util;
 
 pub use self::pipewire::*;

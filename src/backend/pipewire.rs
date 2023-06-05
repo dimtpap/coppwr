@@ -17,22 +17,18 @@
 use std::{
     cell::RefCell,
     collections::{BTreeMap, HashMap},
-    ffi::CString,
-    ptr::NonNull,
     rc::Rc,
     sync::mpsc,
 };
 
 use pipewire as pw;
-use pw::{
-    permissions::Permissions,
-    prelude::*,
-    proxy::{Proxy, ProxyT},
-    spa::pod::deserialize::PodDeserializer,
-    types::ObjectType,
-};
+use pw::{permissions::Permissions, proxy::ProxyT, types::ObjectType};
 
-use crate::backend::profiler::{Profiling, Profilings};
+use super::{
+    bind::{BindError, BoundGlobal, Global},
+    profiler::Profiling,
+    util,
+};
 
 pub enum ObjectMethod {
     ClientGetPermissions {
@@ -94,59 +90,8 @@ pub fn run() -> (
     )
 }
 
-// Any object whose methods aren't used gets upcasted to a proxy
-enum Global {
-    Client(pw::client::Client),
-    Metadata(pw::metadata::Metadata),
-    Other(pw::proxy::Proxy),
-}
-
-impl Global {
-    fn other(proxy: impl ProxyT) -> Self {
-        Self::Other(proxy.upcast())
-    }
-
-    fn proxy(&self) -> &Proxy {
-        match self {
-            Self::Metadata(m) => m.upcast_ref(),
-            Self::Client(c) => c.upcast_ref(),
-            Self::Other(p) => p,
-        }
-    }
-}
-
 // Proxies created by core.create_object
 struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
-struct BoundGlobal {
-    global: Global,
-    _object_listener: Box<dyn pw::proxy::Listener>,
-    _proxy_listener: pw::proxy::ProxyListener,
-}
-
-fn dict_to_map(dict: &pw::spa::ForeignDict) -> BTreeMap<String, String> {
-    let mut map = BTreeMap::new();
-    for (k, v) in dict.iter() {
-        map.insert(k.to_string(), v.to_string());
-    }
-    map
-}
-
-fn key_val_to_props(
-    kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
-) -> pw::Properties {
-    unsafe {
-        let raw = NonNull::new(pw::sys::pw_properties_new(std::ptr::null())).unwrap();
-        for (k, v) in kv
-            .map(|(k, v)| (k.into(), v.into()))
-            .filter(|(k, _)| !k.is_empty())
-        {
-            let k = CString::new(k).unwrap();
-            let v = CString::new(v).unwrap();
-            pw::sys::pw_properties_set(raw.as_ptr(), k.as_ptr(), v.as_ptr());
-        }
-        pw::Properties::from_ptr(raw)
-    }
-}
 
 fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>) {
     let mainloop = pw::MainLoop::new().expect("Failed to create PipeWire mainloop");
@@ -192,7 +137,7 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
                 mainloop.quit();
             }
             Request::CreateObject(object_type, factory, props) => {
-                let props = key_val_to_props(props.into_iter());
+                let props = util::key_val_to_props(props.into_iter());
 
                 let proxy = match object_type {
                     ObjectType::Link => core
@@ -260,7 +205,7 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
                 args,
                 props,
             } => {
-                let props = props.map(|props| key_val_to_props(props.into_iter()));
+                let props = props.map(|props| util::key_val_to_props(props.into_iter()));
 
                 let prev = std::env::var("PIPEWIRE_MODULE_DIR").ok();
                 if let Some(ref module_dir) = module_dir {
@@ -313,7 +258,7 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
                             ..
                         } = object
                         {
-                            client.update_properties(&key_val_to_props(props.into_iter()));
+                            client.update_properties(&util::key_val_to_props(props.into_iter()));
                         }
                     }
                     ObjectMethod::MetadataSetProperty {
@@ -370,7 +315,8 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
                     info.change_mask().contains(pw::ChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(0, dict_to_map(props))).ok();
+                    sx.send(Event::GlobalProperties(0, util::dict_to_map(props)))
+                        .ok();
                 }
             }
         })
@@ -391,371 +337,29 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
                 sx.send(Event::GlobalAdded(
                     global.id,
                     global.type_.clone(),
-                    global.props.as_ref().map(dict_to_map),
+                    global.props.as_ref().map(util::dict_to_map),
                 ))
                 .ok();
 
                 let id = global.id;
-                let (bind, object_listener): (_, Box<dyn pw::proxy::Listener>) = match global.type_
-                {
-                    ObjectType::Module => {
-                        if let Ok(module) = registry.bind::<pw::module::Module, _>(global) {
-                            let listener = module
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        let name = ("Name", info.name().to_string());
-                                        let filename = ("Filename", info.filename().to_string());
-
-                                        let infos: Box<[(&str, String)]> =
-                                            if let Some(args) = info.args() {
-                                                Box::new([
-                                                    name,
-                                                    filename,
-                                                    ("Arguments", args.to_string()),
-                                                ])
-                                            } else {
-                                                Box::new([name, filename])
-                                            };
-
-                                        sx.send(Event::GlobalInfo(id, infos)).ok();
-
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::module::ModuleChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(module), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Module {id}");
-                            return;
-                        }
+                match BoundGlobal::bind_to(&registry, global, &sx, {
+                    let binds = binds.clone();
+                    move || {
+                        binds.borrow_mut().remove(&id);
                     }
-                    ObjectType::Factory => {
-                        if let Ok(factory) = registry.bind::<pw::factory::Factory, _>(global) {
-                            let listener = factory
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        let infos = Box::new([
-                                            ("Type", info.type_().to_string()),
-                                            ("Version", info.version().to_string()),
-                                        ]);
-
-                                        sx.send(Event::GlobalInfo(id, infos)).ok();
-
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::factory::FactoryChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(factory), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Factory {id}");
-                            return;
-                        }
+                }) {
+                    Ok(bound_global) => {
+                        binds.borrow_mut().insert(id, bound_global);
                     }
-                    ObjectType::Device => {
-                        if let Ok(device) = registry.bind::<pw::device::Device, _>(global) {
-                            let listener = device
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::device::DeviceChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(device), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Device {id}");
-                            return;
+                    Err(e) => match e {
+                        BindError::Unimplemented => {
+                            eprintln!("Unsupported object type {}", global.type_);
                         }
-                    }
-                    ObjectType::Client => {
-                        if let Ok(client) = registry.bind::<pw::client::Client, _>(global) {
-                            let listener = client
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::client::ClientChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .permissions({
-                                    let sx = sx.clone();
-                                    move |idx, permissions| {
-                                        sx.send(Event::ClientPermissions(
-                                            id,
-                                            idx,
-                                            permissions.into(),
-                                        ))
-                                        .ok();
-                                    }
-                                })
-                                .register();
-                            (Global::Client(client), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Client {id}");
-                            return;
+                        BindError::PipeWireError(e) => {
+                            eprintln!("Error binding object {id}: {e}");
                         }
-                    }
-                    ObjectType::Node => {
-                        if let Ok(node) = registry.bind::<pw::node::Node, _>(global) {
-                            let listener = node
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        let state = match info.state() {
-                                            pw::node::NodeState::Creating => "Creating",
-                                            pw::node::NodeState::Idle => "Idle",
-                                            pw::node::NodeState::Suspended => "Suspended",
-                                            pw::node::NodeState::Running => "Running",
-                                            pw::node::NodeState::Error(e) => e,
-                                        }
-                                        .to_string();
-                                        let infos = Box::new([
-                                            ("Max Input Ports", info.max_input_ports().to_string()),
-                                            (
-                                                "Max Output Ports",
-                                                info.max_output_ports().to_string(),
-                                            ),
-                                            ("Input Ports", info.n_input_ports().to_string()),
-                                            ("Output Ports", info.n_output_ports().to_string()),
-                                            ("State", state),
-                                        ]);
-
-                                        sx.send(Event::GlobalInfo(id, infos)).ok();
-
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::node::NodeChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(node), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Node {id}");
-                            return;
-                        }
-                    }
-                    ObjectType::Port => {
-                        if let Ok(port) = registry.bind::<pw::port::Port, _>(global) {
-                            let listener = port
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        let direction = match info.direction() {
-                                            pw::spa::Direction::Input => "Input",
-                                            pw::spa::Direction::Output => "Output",
-                                        }
-                                        .to_string();
-
-                                        sx.send(Event::GlobalInfo(
-                                            id,
-                                            Box::new([("Direction", direction)]),
-                                        ))
-                                        .ok();
-
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::port::PortChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(port), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Port {id}");
-                            return;
-                        }
-                    }
-                    ObjectType::Link => {
-                        if let Ok(link) = registry.bind::<pw::link::Link, _>(global) {
-                            let listener = link
-                                .add_listener_local()
-                                .info({
-                                    let sx = sx.clone();
-                                    move |info| {
-                                        let state = match info.state() {
-                                            pw::link::LinkState::Init => "Init",
-                                            pw::link::LinkState::Allocating => "Allocating",
-                                            pw::link::LinkState::Negotiating => "Negotiating",
-                                            pw::link::LinkState::Active => "Active",
-                                            pw::link::LinkState::Paused => "Paused",
-                                            pw::link::LinkState::Unlinked => "Unlinked",
-                                            pw::link::LinkState::Error(e) => e,
-                                        }
-                                        .to_string();
-                                        let infos = Box::new([
-                                            ("Input Node ID", info.input_node_id().to_string()),
-                                            ("Intput Port ID", info.input_port_id().to_string()),
-                                            ("Output Node ID", info.output_node_id().to_string()),
-                                            ("Output Port ID", info.output_port_id().to_string()),
-                                            ("State", state),
-                                        ]);
-
-                                        sx.send(Event::GlobalInfo(id, infos)).ok();
-
-                                        if let (true, Some(props)) = (
-                                            info.change_mask()
-                                                .contains(pw::link::LinkChangeMask::PROPS),
-                                            info.props(),
-                                        ) {
-                                            sx.send(Event::GlobalProperties(
-                                                id,
-                                                dict_to_map(props),
-                                            ))
-                                            .ok();
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(link), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Link {id}");
-                            return;
-                        }
-                    }
-                    ObjectType::Profiler => {
-                        if let Ok(profiler) = registry.bind::<pw::profiler::Profiler, _>(global) {
-                            let listener = profiler
-                                .add_listener_local()
-                                .profile({
-                                    let sx = sx.clone();
-                                    move |pod| {
-                                        if let Some(pod) = NonNull::new(pod.cast_mut()) {
-                                            match unsafe {
-                                                PodDeserializer::deserialize_ptr::<Profilings>(pod)
-                                            } {
-                                                Ok(profilings) => {
-                                                    sx.send(Event::ProfilerProfile(
-                                                        profilings.0,
-                                                    ))
-                                                    .ok();
-                                                }
-                                                Err(_) => {
-                                                    eprintln!(
-                                                        "Deserialization of profiler {id} statistics failed"
-                                                    );
-                                                }
-                                            }
-                                        }
-                                    }
-                                })
-                                .register();
-                            (Global::other(profiler), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Profiler {id}");
-                            return;
-                        }
-                    }
-                    ObjectType::Metadata => {
-                        if let Ok(metadata) = registry.bind::<pw::metadata::Metadata, _>(global) {
-                            let listener = metadata
-                            .add_listener_local()
-                            .property({
-                                let sx = sx.clone();
-                                move |subject, key, type_, value| {
-                                    sx.send(Event::MetadataProperty {
-                                        id,
-                                        subject,
-                                        key: key.map(str::to_string),
-                                        type_: type_.map(str::to_string),
-                                        value: value.map(str::to_string),
-                                    })
-                                    .ok();
-                                    0
-                                }
-                            })
-                            .register();
-                            (Global::Metadata(metadata), Box::new(listener))
-                        } else {
-                            eprintln!("Failed to bind to Metadata {id}");
-                            return;
-                        }
-                    }
-                    _ => {
-                        return;
-                    }
-                };
-
-                let proxy_listener = bind
-                    .proxy()
-                    .add_listener_local()
-                    .removed({
-                        let binds = Rc::clone(&binds);
-                        move || {
-                            binds.borrow_mut().remove(&id);
-                        }
-                    })
-                    .register();
-
-                binds.borrow_mut().insert(
-                    id,
-                    BoundGlobal {
-                        global: bind,
-                        _object_listener: object_listener,
-                        _proxy_listener: proxy_listener,
                     },
-                );
+                }
             }
         })
         .global_remove({
