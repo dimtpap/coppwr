@@ -50,7 +50,7 @@ pub enum ObjectMethod {
     MetadataClear,
 }
 
-pub enum PipeWireRequest {
+pub enum Request {
     Stop,
     CreateObject(ObjectType, String, Vec<(String, String)>),
     DestroyObject(u32),
@@ -63,7 +63,7 @@ pub enum PipeWireRequest {
     CallObjectMethod(u32, ObjectMethod),
 }
 
-pub enum PipeWireEvent {
+pub enum Event {
     GlobalAdded(u32, ObjectType, Option<BTreeMap<String, String>>),
     GlobalRemoved(u32),
     GlobalInfo(u32, Box<[(&'static str, String)]>),
@@ -81,11 +81,11 @@ pub enum PipeWireEvent {
 
 pub fn run() -> (
     std::thread::JoinHandle<()>,
-    mpsc::Receiver<PipeWireEvent>,
-    pw::channel::Sender<PipeWireRequest>,
+    mpsc::Receiver<Event>,
+    pw::channel::Sender<Request>,
 ) {
-    let (sx, rx) = mpsc::channel::<PipeWireEvent>();
-    let (pwsx, pwrx) = pw::channel::channel::<PipeWireRequest>();
+    let (sx, rx) = mpsc::channel::<Event>();
+    let (pwsx, pwrx) = pw::channel::channel::<Request>();
 
     (
         std::thread::spawn(move || pipewire_thread(sx, pwrx)),
@@ -148,7 +148,7 @@ fn key_val_to_props(
     }
 }
 
-fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<PipeWireRequest>) {
+fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>) {
     let mainloop = pw::MainLoop::new().expect("Failed to create PipeWire mainloop");
 
     // Although the context is only moved in one callback
@@ -188,10 +188,10 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
         let binds = Rc::clone(&binds);
 
         move |msg| match msg {
-            PipeWireRequest::Stop => {
+            Request::Stop => {
                 mainloop.quit();
             }
-            PipeWireRequest::CreateObject(object_type, factory, props) => {
+            Request::CreateObject(object_type, factory, props) => {
                 let props = key_val_to_props(props.into_iter());
 
                 let proxy = match object_type {
@@ -251,10 +251,10 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                     }
                 }
             }
-            PipeWireRequest::DestroyObject(id) => {
+            Request::DestroyObject(id) => {
                 registry.destroy_global(id);
             }
-            PipeWireRequest::LoadModule {
+            Request::LoadModule {
                 module_dir,
                 name,
                 args,
@@ -282,7 +282,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                     }
                 }
             }
-            PipeWireRequest::CallObjectMethod(id, method) => {
+            Request::CallObjectMethod(id, method) => {
                 let binds = binds.borrow();
                 let Some(object) = binds.get(&id) else {
                     return;
@@ -349,8 +349,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
         }
     });
 
-    sx.send(PipeWireEvent::GlobalAdded(0, ObjectType::Core, None))
-        .ok();
+    sx.send(Event::GlobalAdded(0, ObjectType::Core, None)).ok();
 
     let _core_listener = core
         .add_listener_local()
@@ -365,14 +364,13 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                     ("Cookie", info.cookie().to_string()),
                 ]);
 
-                sx.send(PipeWireEvent::GlobalInfo(0, infos)).ok();
+                sx.send(Event::GlobalInfo(0, infos)).ok();
 
                 if let (true, Some(props)) = (
                     info.change_mask().contains(pw::ChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(PipeWireEvent::GlobalProperties(0, dict_to_map(props)))
-                        .ok();
+                    sx.send(Event::GlobalProperties(0, dict_to_map(props))).ok();
                 }
             }
         })
@@ -390,7 +388,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                     return;
                 }
 
-                sx.send(PipeWireEvent::GlobalAdded(
+                sx.send(Event::GlobalAdded(
                     global.id,
                     global.type_.clone(),
                     global.props.as_ref().map(dict_to_map),
@@ -421,14 +419,14 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                                 Box::new([name, filename])
                                             };
 
-                                        sx.send(PipeWireEvent::GlobalInfo(id, infos)).ok();
+                                        sx.send(Event::GlobalInfo(id, infos)).ok();
 
                                         if let (true, Some(props)) = (
                                             info.change_mask()
                                                 .contains(pw::module::ModuleChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -455,14 +453,14 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                             ("Version", info.version().to_string()),
                                         ]);
 
-                                        sx.send(PipeWireEvent::GlobalInfo(id, infos)).ok();
+                                        sx.send(Event::GlobalInfo(id, infos)).ok();
 
                                         if let (true, Some(props)) = (
                                             info.change_mask()
                                                 .contains(pw::factory::FactoryChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -489,7 +487,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                                 .contains(pw::device::DeviceChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -516,7 +514,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                                 .contains(pw::client::ClientChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -527,7 +525,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                 .permissions({
                                     let sx = sx.clone();
                                     move |idx, permissions| {
-                                        sx.send(PipeWireEvent::ClientPermissions(
+                                        sx.send(Event::ClientPermissions(
                                             id,
                                             idx,
                                             permissions.into(),
@@ -568,14 +566,14 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                             ("State", state),
                                         ]);
 
-                                        sx.send(PipeWireEvent::GlobalInfo(id, infos)).ok();
+                                        sx.send(Event::GlobalInfo(id, infos)).ok();
 
                                         if let (true, Some(props)) = (
                                             info.change_mask()
                                                 .contains(pw::node::NodeChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -603,7 +601,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                         }
                                         .to_string();
 
-                                        sx.send(PipeWireEvent::GlobalInfo(
+                                        sx.send(Event::GlobalInfo(
                                             id,
                                             Box::new([("Direction", direction)]),
                                         ))
@@ -614,7 +612,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                                 .contains(pw::port::PortChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -654,14 +652,14 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                             ("State", state),
                                         ]);
 
-                                        sx.send(PipeWireEvent::GlobalInfo(id, infos)).ok();
+                                        sx.send(Event::GlobalInfo(id, infos)).ok();
 
                                         if let (true, Some(props)) = (
                                             info.change_mask()
                                                 .contains(pw::link::LinkChangeMask::PROPS),
                                             info.props(),
                                         ) {
-                                            sx.send(PipeWireEvent::GlobalProperties(
+                                            sx.send(Event::GlobalProperties(
                                                 id,
                                                 dict_to_map(props),
                                             ))
@@ -688,7 +686,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                                                 PodDeserializer::deserialize_ptr::<Profilings>(pod)
                                             } {
                                                 Ok(profilings) => {
-                                                    sx.send(PipeWireEvent::ProfilerProfile(
+                                                    sx.send(Event::ProfilerProfile(
                                                         profilings.0,
                                                     ))
                                                     .ok();
@@ -716,7 +714,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
                             .property({
                                 let sx = sx.clone();
                                 move |subject, key, type_, value| {
-                                    sx.send(PipeWireEvent::MetadataProperty {
+                                    sx.send(Event::MetadataProperty {
                                         id,
                                         subject,
                                         key: key.map(str::to_string),
@@ -763,7 +761,7 @@ fn pipewire_thread(sx: mpsc::Sender<PipeWireEvent>, pwrx: pw::channel::Receiver<
         .global_remove({
             let sx = sx.clone();
             move |id| {
-                sx.send(PipeWireEvent::GlobalRemoved(id)).ok();
+                sx.send(Event::GlobalRemoved(id)).ok();
             }
         })
         .register();

@@ -16,10 +16,10 @@
 
 use eframe::egui;
 
-use crate::backend::PipeWireRequest;
+use crate::backend::Request;
 
 pub(super) trait Tool {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>);
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>);
 }
 
 pub(super) struct WindowedTool<'a, T: Tool> {
@@ -37,11 +37,7 @@ impl<'a, T: Tool> WindowedTool<'a, T> {
         }
     }
 
-    pub fn window(
-        &mut self,
-        ctx: &egui::Context,
-        rsx: &pipewire::channel::Sender<PipeWireRequest>,
-    ) {
+    pub fn window(&mut self, ctx: &egui::Context, rsx: &pipewire::channel::Sender<Request>) {
         egui::Window::new(self.title)
             .vscroll(true)
             .open(&mut self.open)

@@ -24,7 +24,7 @@ use eframe::egui;
 use pipewire as pw;
 use pw::{permissions::Permissions, registry::Permission, types::ObjectType};
 
-use crate::backend::{ObjectMethod, PipeWireRequest};
+use crate::backend::{ObjectMethod, Request};
 
 fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
     egui::ScrollArea::vertical()
@@ -82,17 +82,12 @@ impl ObjectData {
         }
     }
 
-    fn draw_data(
-        &mut self,
-        ui: &mut egui::Ui,
-        rsx: &pw::channel::Sender<PipeWireRequest>,
-        id: u32,
-    ) {
+    fn draw_data(&mut self, ui: &mut egui::Ui, rsx: &pw::channel::Sender<Request>, id: u32) {
         match self {
             Self::Client { permissions, .. } => {
                 egui::CollapsingHeader::new("Permissions").show(ui, |ui| {
                     if ui.small_button("Get permissions").clicked() {
-                        rsx.send(PipeWireRequest::CallObjectMethod(
+                        rsx.send(Request::CallObjectMethod(
                             id,
                             ObjectMethod::ClientGetPermissions {
                                 index: 0,
@@ -145,7 +140,7 @@ impl ObjectData {
                     });
 
                     if ui.small_button("Update permissions").clicked() {
-                        rsx.send(PipeWireRequest::CallObjectMethod(
+                        rsx.send(Request::CallObjectMethod(
                             id,
                             ObjectMethod::ClientUpdatePermissions(permissions.clone()),
                         ))
@@ -262,7 +257,7 @@ impl Global {
         ui: &mut egui::Ui,
         draw_subobjects: bool,
         searched_property: &str,
-        rsx: &pw::channel::Sender<PipeWireRequest>,
+        rsx: &pw::channel::Sender<Request>,
     ) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
@@ -278,7 +273,7 @@ impl Global {
                 });
 
                 if ui.small_button("Destroy").clicked() {
-                    rsx.send(PipeWireRequest::DestroyObject(self.id)).ok();
+                    rsx.send(Request::DestroyObject(self.id)).ok();
                 }
 
                 ui.push_id(self.id, |ui| {
@@ -333,7 +328,7 @@ impl Global {
                             });
 
                             if ui.button("Update properties").clicked() {
-                                rsx.send(PipeWireRequest::CallObjectMethod(
+                                rsx.send(Request::CallObjectMethod(
                                     self.id,
                                     ObjectMethod::ClientUpdateProperties(self.props.clone()),
                                 ))

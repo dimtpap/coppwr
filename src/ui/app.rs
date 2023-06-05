@@ -24,7 +24,7 @@ use super::{
     global::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
     WindowedTool,
 };
-use crate::backend::{PipeWireEvent, PipeWireRequest};
+use crate::backend::{Event, Request};
 
 #[derive(Clone, Copy)]
 enum View {
@@ -46,8 +46,8 @@ impl View {
 struct CoppwrViewer {
     open_tabs: u8,
 
-    erx: mpsc::Receiver<PipeWireEvent>,
-    rsx: pw::channel::Sender<PipeWireRequest>,
+    erx: mpsc::Receiver<Event>,
+    rsx: pw::channel::Sender<Request>,
 
     globals: GlobalsStore,
     profiler: Profiler,
@@ -58,10 +58,7 @@ struct CoppwrViewer {
 }
 
 impl CoppwrViewer {
-    pub fn new(
-        erx: mpsc::Receiver<PipeWireEvent>,
-        rsx: pw::channel::Sender<PipeWireRequest>,
-    ) -> Self {
+    pub fn new(erx: mpsc::Receiver<Event>, rsx: pw::channel::Sender<Request>) -> Self {
         Self {
             open_tabs: View::GlobalTracker as u8,
 
@@ -146,7 +143,7 @@ impl CoppwrViewer {
     fn process_events(&mut self) {
         while let Ok(e) = self.erx.try_recv() {
             match e {
-                PipeWireEvent::GlobalAdded(id, object_type, props) => {
+                Event::GlobalAdded(id, object_type, props) => {
                     let global = self.globals.add_global(id, object_type, props);
 
                     if global.props().is_empty() {
@@ -193,7 +190,7 @@ impl CoppwrViewer {
                         _ => {}
                     }
                 }
-                PipeWireEvent::GlobalRemoved(id) => {
+                Event::GlobalRemoved(id) => {
                     if let Some(removed) = self.globals.remove_global(id) {
                         match *removed.borrow().object_type() {
                             ObjectType::Metadata => {
@@ -206,16 +203,16 @@ impl CoppwrViewer {
                         }
                     }
                 }
-                PipeWireEvent::GlobalInfo(id, info) => {
+                Event::GlobalInfo(id, info) => {
                     self.globals.set_global_info(id, Some(info));
                 }
-                PipeWireEvent::GlobalProperties(id, props) => {
+                Event::GlobalProperties(id, props) => {
                     self.globals.set_global_props(id, props);
                 }
-                PipeWireEvent::ProfilerProfile(samples) => {
+                Event::ProfilerProfile(samples) => {
                     self.profiler.add_profilings(samples);
                 }
-                PipeWireEvent::MetadataProperty {
+                Event::MetadataProperty {
                     id,
                     subject,
                     key,
@@ -248,7 +245,7 @@ impl CoppwrViewer {
                         self.metadata_editor.tool.clear_properties(id);
                     }
                 },
-                PipeWireEvent::ClientPermissions(id, _, perms) => {
+                Event::ClientPermissions(id, _, perms) => {
                     if let Some(global) = self.globals.get_global(id) {
                         if let ObjectData::Client { permissions, .. } =
                             global.borrow_mut().object_mut()
@@ -294,7 +291,7 @@ impl egui_dock::TabViewer for CoppwrViewer {
 }
 
 pub struct CoppwrApp {
-    rsx: pw::channel::Sender<PipeWireRequest>,
+    rsx: pw::channel::Sender<Request>,
 
     tree: egui_dock::Tree<View>,
     viewer: CoppwrViewer,
@@ -303,10 +300,7 @@ pub struct CoppwrApp {
 }
 
 impl CoppwrApp {
-    pub fn new(
-        erx: mpsc::Receiver<PipeWireEvent>,
-        rsx: pw::channel::Sender<PipeWireRequest>,
-    ) -> Self {
+    pub fn new(erx: mpsc::Receiver<Event>, rsx: pw::channel::Sender<Request>) -> Self {
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
@@ -321,7 +315,7 @@ impl CoppwrApp {
 
 impl eframe::App for CoppwrApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        if self.rsx.send(PipeWireRequest::Stop).is_err() {
+        if self.rsx.send(Request::Stop).is_err() {
             eprintln!("Error sending stop request to PipeWire");
         };
     }

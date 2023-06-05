@@ -18,7 +18,7 @@ use std::collections::{btree_map::Entry, BTreeMap};
 
 use eframe::egui;
 
-use crate::backend::{ObjectMethod, PipeWireRequest};
+use crate::backend::{ObjectMethod, Request};
 use crate::ui::Tool;
 
 struct Property {
@@ -58,7 +58,7 @@ pub(super) struct MetadataEditor {
 }
 
 impl Tool for MetadataEditor {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>) {
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         self.draw(ui, rsx);
     }
 }
@@ -131,17 +131,14 @@ impl MetadataEditor {
         });
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>) {
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         for (id, metadata) in &mut self.metadatas {
             ui.heading(&metadata.name);
             ui.horizontal(|ui| {
                 ui.label(format!("ID: {id}"));
                 if ui.small_button("Clear").clicked() {
-                    rsx.send(PipeWireRequest::CallObjectMethod(
-                        *id,
-                        ObjectMethod::MetadataClear,
-                    ))
-                    .ok();
+                    rsx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
+                        .ok();
                 }
             });
             egui::Grid::new(&metadata.name)
@@ -153,14 +150,14 @@ impl MetadataEditor {
 
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                             if ui.small_button("Clear").clicked() {
-                                rsx.send(PipeWireRequest::CallObjectMethod(
+                                rsx.send(Request::CallObjectMethod(
                                     *id,
                                     prop.clear_request(key.clone()),
                                 ))
                                 .ok();
                             }
                             if ui.small_button("Set").clicked() {
-                                rsx.send(PipeWireRequest::CallObjectMethod(
+                                rsx.send(Request::CallObjectMethod(
                                     *id,
                                     prop.set_request(key.clone()),
                                 ))
@@ -230,7 +227,7 @@ impl MetadataEditor {
                 });
                 ui.horizontal(|ui| {
                     if ui.button("Add").clicked() {
-                        rsx.send(PipeWireRequest::CallObjectMethod(
+                        rsx.send(Request::CallObjectMethod(
                             *id,
                             prop.set_request(key.clone()),
                         ))

@@ -18,7 +18,7 @@ mod backend;
 mod profiler_deserialize;
 mod ui;
 
-use crate::backend::PipeWireRequest;
+use crate::backend::Request;
 use crate::ui::CoppwrApp;
 
 fn main() {
@@ -42,7 +42,7 @@ fn main() {
         }),
     ) {
         eprintln!("Failed to start the GUI: {e}");
-        rsx.send(PipeWireRequest::Stop).ok();
+        rsx.send(Request::Stop).ok();
     }
 
     if let Err(e) = pt.join() {

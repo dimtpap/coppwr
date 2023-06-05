@@ -19,7 +19,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use eframe::egui;
 use pipewire::{self, types::ObjectType};
 
-use crate::{backend::PipeWireRequest, ui::Global};
+use crate::{backend::Request, ui::Global};
 
 pub(super) struct GlobalsStore {
     globals: BTreeMap<u32, Rc<RefCell<Global>>>,
@@ -130,7 +130,7 @@ impl GlobalsStore {
         true
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>) {
+    pub fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
 								.on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
 

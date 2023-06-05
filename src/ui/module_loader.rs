@@ -16,7 +16,7 @@
 
 use eframe::egui;
 
-use crate::backend::PipeWireRequest;
+use crate::backend::Request;
 use crate::ui::Tool;
 
 pub(super) struct ModuleLoader {
@@ -27,7 +27,7 @@ pub(super) struct ModuleLoader {
 }
 
 impl Tool for ModuleLoader {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>) {
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         self.draw(ui, rsx);
     }
 }
@@ -42,7 +42,7 @@ impl ModuleLoader {
         }
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<PipeWireRequest>) {
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         ui.add(
             egui::TextEdit::singleline(&mut self.module_dir)
                 .hint_text("Modules directory (Leave empty for default)")
@@ -113,7 +113,7 @@ impl ModuleLoader {
                         Some(self.props.clone())
                     };
 
-                    rsx.send(PipeWireRequest::LoadModule {
+                    rsx.send(Request::LoadModule {
                         module_dir,
                         name: self.name.clone(),
                         args,
