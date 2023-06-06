@@ -42,6 +42,14 @@
   </keywords>
 
   <releases>
+    <release version="1.0.1" date="2023-06-06">
+      <description>
+        <ul>
+          <li>Fix handling of future profiler data</li>
+          <li>Fix Flatpak client not having full permissions</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2023-06-02"/>
   </releases>
 
