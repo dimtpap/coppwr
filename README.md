@@ -25,6 +25,8 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 [More to be added...](https://github.com/dimtpap/coppwr/issues/1)
 
 ## Installing
+### Flatpak
+<a href='https://flathub.org/apps/xyz.dimtpap.coppwr'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
 ### Arch
 `coppwr-bin` is available from the [AUR](https://aur.archlinux.org/packages/coppwr-bin) (use `coppwr` for the non-prebuilt package).  
 Use your AUR helper of choice or install it manually
