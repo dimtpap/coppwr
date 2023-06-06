@@ -28,6 +28,8 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 ### Flatpak
 <a href='https://flathub.org/apps/xyz.dimtpap.coppwr'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
 ### Arch
+[![coppwr AUR version](https://img.shields.io/aur/version/coppwr?label=coppwr&logo=archlinux)](https://aur.archlinux.org/packages/coppwr)
+[![coppwr-bin AUR version](https://img.shields.io/aur/version/coppwr-bin?label=coppwr-bin&logo=archlinux)](https://aur.archlinux.org/packages/coppwr-bin)  
 `coppwr-bin` is available from the [AUR](https://aur.archlinux.org/packages/coppwr-bin) (use `coppwr` for the non-prebuilt package).  
 Use your AUR helper of choice or install it manually
 ```sh
@@ -35,11 +37,10 @@ git clone https://aur.archlinux.org/coppwr-bin.git
 cd coppwr-bin
 makepkg -i
 ```
-### Debian/RPM
-Debian and RPM packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest)
-as well as the binary executable itself. Using distro packages is preferred as they integrate coppwr with the desktop.  
+### Debian, RPM
+Debian and RPM packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest).
 ### **Note**
-coppwr does **not** self-update
+coppwr does **not** self-update.
 
 ## Building
 ### Requirements
@@ -52,7 +53,7 @@ In the repository's root directory
 cargo build --release
 ```
 ### Arch
-`coppwr` is available from the [AUR](https://aur.archlinux.org/packages?O=0&K=coppwr)  
+`coppwr` is available from the [AUR](https://aur.archlinux.org/packages/coppwr)
 ```sh
 git clone https://aur.archlinux.org/coppwr.git
 cd coppwr
