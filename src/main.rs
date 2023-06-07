@@ -17,13 +17,10 @@
 mod backend;
 mod ui;
 
-use crate::backend::Request;
 use crate::ui::CoppwrApp;
 
 fn main() {
     pipewire::init();
-
-    let (pt, erx, rsx) = crate::backend::run();
 
     if let Err(e) = eframe::run_native(
         env!("CARGO_PKG_NAME"),
@@ -35,17 +32,9 @@ fn main() {
             .ok(),
             ..Default::default()
         },
-        Box::new({
-            let rsx = rsx.clone();
-            |_| Box::new(CoppwrApp::new(erx, rsx))
-        }),
+        Box::new(|_| Box::new(CoppwrApp::new())),
     ) {
         eprintln!("Failed to start the GUI: {e}");
-        rsx.send(Request::Stop).ok();
-    }
-
-    if let Err(e) = pt.join() {
-        eprintln!("The PipeWire thread has paniced: {e:?}");
     }
 
     unsafe {

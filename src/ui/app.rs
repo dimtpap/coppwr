@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{sync::mpsc, time::Duration};
+use std::{sync::mpsc, thread::JoinHandle, time::Duration};
 
 use eframe::egui;
 use pipewire as pw;
@@ -46,7 +46,6 @@ impl View {
 struct CoppwrViewer {
     open_tabs: u8,
 
-    erx: mpsc::Receiver<Event>,
     rsx: pw::channel::Sender<Request>,
 
     globals: GlobalsStore,
@@ -58,11 +57,10 @@ struct CoppwrViewer {
 }
 
 impl CoppwrViewer {
-    pub fn new(erx: mpsc::Receiver<Event>, rsx: pw::channel::Sender<Request>) -> Self {
+    pub fn new(rsx: pw::channel::Sender<Request>) -> Self {
         Self {
             open_tabs: View::GlobalTracker as u8,
 
-            erx,
             rsx,
 
             globals: GlobalsStore::new(),
@@ -140,121 +138,115 @@ impl CoppwrViewer {
         self.module_loader.window(ctx, &self.rsx);
     }
 
-    fn process_events(&mut self) {
-        while let Ok(e) = self.erx.try_recv() {
-            match e {
-                Event::GlobalAdded(id, object_type, props) => {
-                    let global = self.globals.add_global(id, object_type, props);
+    fn process_event(&mut self, e: Event) {
+        match e {
+            Event::GlobalAdded(id, object_type, props) => {
+                let global = self.globals.add_global(id, object_type, props);
 
-                    if global.props().is_empty() {
-                        continue;
-                    }
+                if global.props().is_empty() {
+                    return;
+                }
 
-                    match *global.object_type() {
-                        ObjectType::Factory => {
-                            if let (Some(name), Some(object_type)) =
-                                (global.name(), global.props().get("factory.type.name"))
-                            {
-                                let object_type = match object_type.as_str() {
-                                    "PipeWire:Interface:Link" => ObjectType::Link,
-                                    "PipeWire:Interface:Port" => ObjectType::Port,
-                                    "PipeWire:Interface:Node" => ObjectType::Node,
-                                    "PipeWire:Interface:Client" => ObjectType::Client,
-                                    "PipeWire:Interface:Device" => ObjectType::Device,
-                                    "PipeWire:Interface:Registry" => ObjectType::Registry,
-                                    "PipeWire:Interface:Profiler" => ObjectType::Profiler,
-                                    "PipeWire:Interface:Metadata" => ObjectType::Metadata,
-                                    "PipeWire:Interface:Factory" => ObjectType::Factory,
-                                    "PipeWire:Interface:Module" => ObjectType::Module,
-                                    "PipeWire:Interface:Core" => ObjectType::Core,
-                                    "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
-                                    "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
-                                    "PipeWire:Interface:EndpointStream" => {
-                                        ObjectType::EndpointStream
-                                    }
-                                    "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
-                                    "PipeWire:Interface:ClientEndpoint" => {
-                                        ObjectType::ClientEndpoint
-                                    }
-                                    "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
-                                    _ => ObjectType::Other(object_type.clone()),
-                                };
-                                self.object_creator.tool.add_factory(id, name, object_type);
-                            }
+                match *global.object_type() {
+                    ObjectType::Factory => {
+                        if let (Some(name), Some(object_type)) =
+                            (global.name(), global.props().get("factory.type.name"))
+                        {
+                            let object_type = match object_type.as_str() {
+                                "PipeWire:Interface:Link" => ObjectType::Link,
+                                "PipeWire:Interface:Port" => ObjectType::Port,
+                                "PipeWire:Interface:Node" => ObjectType::Node,
+                                "PipeWire:Interface:Client" => ObjectType::Client,
+                                "PipeWire:Interface:Device" => ObjectType::Device,
+                                "PipeWire:Interface:Registry" => ObjectType::Registry,
+                                "PipeWire:Interface:Profiler" => ObjectType::Profiler,
+                                "PipeWire:Interface:Metadata" => ObjectType::Metadata,
+                                "PipeWire:Interface:Factory" => ObjectType::Factory,
+                                "PipeWire:Interface:Module" => ObjectType::Module,
+                                "PipeWire:Interface:Core" => ObjectType::Core,
+                                "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
+                                "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
+                                "PipeWire:Interface:EndpointStream" => ObjectType::EndpointStream,
+                                "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
+                                "PipeWire:Interface:ClientEndpoint" => ObjectType::ClientEndpoint,
+                                "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
+                                _ => ObjectType::Other(object_type.clone()),
+                            };
+                            self.object_creator.tool.add_factory(id, name, object_type);
                         }
+                    }
+                    ObjectType::Metadata => {
+                        if let Some(name) = global.props().get("metadata.name") {
+                            self.metadata_editor.tool.add_metadata(id, name);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Event::GlobalRemoved(id) => {
+                if let Some(removed) = self.globals.remove_global(id) {
+                    match *removed.borrow().object_type() {
                         ObjectType::Metadata => {
-                            if let Some(name) = global.props().get("metadata.name") {
-                                self.metadata_editor.tool.add_metadata(id, name);
-                            }
+                            self.metadata_editor.tool.remove_metadata(id);
+                        }
+                        ObjectType::Factory => {
+                            self.object_creator.tool.remove_factory(id);
                         }
                         _ => {}
                     }
                 }
-                Event::GlobalRemoved(id) => {
-                    if let Some(removed) = self.globals.remove_global(id) {
-                        match *removed.borrow().object_type() {
-                            ObjectType::Metadata => {
-                                self.metadata_editor.tool.remove_metadata(id);
-                            }
-                            ObjectType::Factory => {
-                                self.object_creator.tool.remove_factory(id);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                Event::GlobalInfo(id, info) => {
-                    self.globals.set_global_info(id, Some(info));
-                }
-                Event::GlobalProperties(id, props) => {
-                    self.globals.set_global_props(id, props);
-                }
-                Event::ProfilerProfile(samples) => {
-                    self.profiler.add_profilings(samples);
-                }
-                Event::MetadataProperty {
-                    id,
-                    subject,
-                    key,
-                    type_,
-                    value,
-                } => match key {
-                    Some(key) => match value {
-                        Some(value) => {
-                            let Some(metadata) = self.globals.get_global(id) else {
+            }
+            Event::GlobalInfo(id, info) => {
+                self.globals.set_global_info(id, Some(info));
+            }
+            Event::GlobalProperties(id, props) => {
+                self.globals.set_global_props(id, props);
+            }
+            Event::ProfilerProfile(samples) => {
+                self.profiler.add_profilings(samples);
+            }
+            Event::MetadataProperty {
+                id,
+                subject,
+                key,
+                type_,
+                value,
+            } => match key {
+                Some(key) => match value {
+                    Some(value) => {
+                        let Some(metadata) = self.globals.get_global(id) else {
                                 return;
                             };
-                            self.metadata_editor.tool.add_property(
-                                id,
-                                metadata
-                                    .borrow()
-                                    .name()
-                                    .cloned()
-                                    .unwrap_or_else(|| format!("Unnamed metadata {id}")),
-                                subject,
-                                key,
-                                type_,
-                                value,
-                            );
-                        }
-                        None => {
-                            self.metadata_editor.tool.remove_property(id, &key);
-                        }
-                    },
+                        self.metadata_editor.tool.add_property(
+                            id,
+                            metadata
+                                .borrow()
+                                .name()
+                                .cloned()
+                                .unwrap_or_else(|| format!("Unnamed metadata {id}")),
+                            subject,
+                            key,
+                            type_,
+                            value,
+                        );
+                    }
                     None => {
-                        self.metadata_editor.tool.clear_properties(id);
+                        self.metadata_editor.tool.remove_property(id, &key);
                     }
                 },
-                Event::ClientPermissions(id, _, perms) => {
-                    if let Some(global) = self.globals.get_global(id) {
-                        if let ObjectData::Client { permissions, .. } =
-                            global.borrow_mut().object_mut()
-                        {
-                            *permissions = Some(perms);
-                        }
+                None => {
+                    self.metadata_editor.tool.clear_properties(id);
+                }
+            },
+            Event::ClientPermissions(id, _, perms) => {
+                if let Some(global) = self.globals.get_global(id) {
+                    if let ObjectData::Client { permissions, .. } = global.borrow_mut().object_mut()
+                    {
+                        *permissions = Some(perms);
                     }
                 }
             }
+            Event::Stop => unreachable!(),
         }
     }
 }
@@ -290,90 +282,195 @@ impl egui_dock::TabViewer for CoppwrViewer {
     }
 }
 
-pub struct CoppwrApp {
-    rsx: pw::channel::Sender<Request>,
+enum State {
+    Connected {
+        // Calling .join() requires moving
+        thread: Option<JoinHandle<()>>,
+        erx: mpsc::Receiver<Event>,
+        rsx: pw::channel::Sender<Request>,
 
-    tree: egui_dock::Tree<View>,
-    viewer: CoppwrViewer,
+        tree: egui_dock::Tree<View>,
+        viewer: CoppwrViewer,
 
-    about_opened: bool,
+        about_opened: bool,
+    },
+    Unconnected(String), // user provided remote name
 }
 
-impl CoppwrApp {
-    pub fn new(erx: mpsc::Receiver<Event>, rsx: pw::channel::Sender<Request>) -> Self {
+impl State {
+    pub fn unconnected_from_env() -> Self {
+        let remote =
+            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0"));
+        Self::Unconnected(remote)
+    }
+
+    pub fn connect(remote: impl Into<String>) -> Self {
+        let (thread, erx, rsx) = crate::backend::run(remote.into());
+
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
-        Self {
+        Self::Connected {
+            erx,
             rsx: rsx.clone(),
+            thread: Some(thread),
             tree: egui_dock::Tree::new(tabs),
-            viewer: CoppwrViewer::new(erx, rsx),
+            viewer: CoppwrViewer::new(rsx),
             about_opened: false,
         }
     }
 }
 
+pub struct CoppwrApp(State);
+
+impl CoppwrApp {
+    pub fn new() -> Self {
+        Self(State::connect(
+            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
+        ))
+    }
+
+    fn disconnect(&mut self) {
+        self.0 = State::unconnected_from_env();
+    }
+}
+
 impl eframe::App for CoppwrApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        if self.rsx.send(Request::Stop).is_err() {
-            eprintln!("Error sending stop request to PipeWire");
+        if let State::Connected { ref rsx, .. } = self.0 {
+            if rsx.send(Request::Stop).is_err() {
+                eprintln!("Error sending stop request to PipeWire");
+            }
         };
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("❌ Quit").clicked() {
-                        frame.close();
+        match &mut self.0 {
+            State::Connected {
+                erx,
+                rsx,
+                tree,
+                viewer,
+                about_opened,
+                thread,
+            } => 'connected: {
+                while let Ok(e) = erx.try_recv() {
+                    match e {
+                        Event::Stop => {
+                            self.disconnect();
+                            break 'connected;
+                        }
+                        e => {
+                            viewer.process_event(e);
+                        }
                     }
+                }
+
+                let mut disconnect = false;
+                egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+                    egui::menu::bar(ui, |ui| {
+                        ui.menu_button("File", |ui| {
+                            disconnect = ui
+                                .button("🔌 Disconnect")
+                                .on_hover_text("Disconnect from the PipeWire remote")
+                                .clicked();
+
+                            ui.separator();
+
+                            if ui.button("❌ Quit").clicked() {
+                                frame.close();
+                            }
+                        });
+
+                        viewer.views_menu_buttons(ui, tree);
+                        viewer.tools_menu_buttons(ui);
+
+                        ui.menu_button("Help", |ui| {
+                            if ui.button("❓ About").clicked() {
+                                *about_opened = true;
+                            }
+                        })
+                    });
                 });
 
-                self.viewer.views_menu_buttons(ui, &mut self.tree);
-                self.viewer.tools_menu_buttons(ui);
-
-                ui.menu_button("Help", |ui| {
-                    if ui.button("❓ About").clicked() {
-                        self.about_opened = true;
+                if disconnect {
+                    if rsx.send(Request::Stop).is_err() {
+                        eprintln!("Error sending stop request to PipeWire");
                     }
-                })
-            });
-        });
+                    if let Some(handle) = thread.take() {
+                        if let Err(e) = handle.join() {
+                            eprintln!("The PipeWire thread has paniced: {e:?}");
+                        }
+                    }
 
-        egui::Window::new("About")
-			.collapsible(false)
-			.fixed_size([350f32, 150f32])
-			.default_pos([
-				(frame.info().window_info.size.x - 350f32) / 2f32,
-				(frame.info().window_info.size.y - 150f32) / 2f32,
-			])
-			.open(&mut self.about_opened)
-			.show(ctx, |ui| {
-				ui.vertical_centered(|ui| {
-					ui.heading(env!("CARGO_PKG_NAME"));
-					ui.label(env!("CARGO_PKG_VERSION"));
-					ui.label(env!("CARGO_PKG_DESCRIPTION"));
+                    self.disconnect();
+                    return;
+                }
 
-					ui.separator();
+                egui::Window::new("About")
+                    .collapsible(false)
+                    .fixed_size([350f32, 150f32])
+                    .default_pos([
+                        (frame.info().window_info.size.x - 350f32) / 2f32,
+                        (frame.info().window_info.size.y - 150f32) / 2f32,
+                    ])
+                    .open(about_opened)
+                    .show(ctx, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.heading(env!("CARGO_PKG_NAME"));
+                            ui.label(env!("CARGO_PKG_VERSION"));
+                            ui.label(env!("CARGO_PKG_DESCRIPTION"));
 
-					ui.label("2023 Dimitris Papaioannou");
-					ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
+                            ui.separator();
 
-					ui.separator();
+                            ui.label("2023 Dimitris Papaioannou");
+                            ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
 
-					ui.label("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.");
-				});
-			});
+                            ui.separator();
 
-        self.viewer.process_events();
+                            ui.label("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.");
+                        });
+                    });
 
-        self.viewer.tool_windows(ctx);
+                viewer.tool_windows(ctx);
 
-        let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
-        style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
-        egui_dock::DockArea::new(&mut self.tree)
-            .style(style)
-            .show(ctx, &mut self.viewer);
+                let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
+                style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
+                egui_dock::DockArea::new(tree)
+                    .style(style)
+                    .show(ctx, viewer);
+            }
+            State::Unconnected(remote) => {
+                let mut connect = false;
+                egui::CentralPanel::default().show(ctx, |_| {
+                    egui::Window::new("Connect to PipeWire")
+                        .fixed_size([300., 100.])
+                        .fixed_pos([
+                            (frame.info().window_info.size.x - 300.) / 2.,
+                            (frame.info().window_info.size.y - 100.) / 2.,
+                        ])
+                        .collapsible(false)
+                        .show(ctx, |ui| {
+                            ui.with_layout(
+                                egui::Layout {
+                                    cross_justify: true,
+                                    cross_align: egui::Align::Center,
+                                    ..Default::default()
+                                },
+                                |ui| {
+                                    egui::TextEdit::singleline(remote)
+                                        .hint_text("Remote name")
+                                        .show(ui);
+                                    connect = ui.button("Connect").clicked();
+                                },
+                            )
+                        })
+                });
+                if connect {
+                    self.0 = State::connect(std::mem::take(remote));
+                }
+            }
+        }
 
         // egui won't update until there is interaction so data shown may be out of date
         ctx.request_repaint_after(Duration::from_millis(500));

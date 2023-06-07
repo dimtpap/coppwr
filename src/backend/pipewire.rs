@@ -73,9 +73,12 @@ pub enum Event {
         type_: Option<String>,
         value: Option<String>,
     },
+    Stop,
 }
 
-pub fn run() -> (
+pub fn run(
+    remote: String,
+) -> (
     std::thread::JoinHandle<()>,
     mpsc::Receiver<Event>,
     pw::channel::Sender<Request>,
@@ -84,7 +87,7 @@ pub fn run() -> (
     let (pwsx, pwrx) = pw::channel::channel::<Request>();
 
     (
-        std::thread::spawn(move || pipewire_thread(sx, pwrx)),
+        std::thread::spawn(move || pipewire_thread(remote.as_str(), sx, pwrx)),
         rx,
         pwsx,
     )
@@ -93,7 +96,7 @@ pub fn run() -> (
 // Proxies created by core.create_object
 struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
-fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>) {
+fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>) {
     let mainloop = pw::MainLoop::new().expect("Failed to create PipeWire mainloop");
 
     // Although the context is only moved in one callback
@@ -107,11 +110,29 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
         eprintln!("Failed to load the profiler module. No profiler data will be available");
     };
 
-    let core = context
-        .connect(Some(pw::properties! {
-            "media.category" => "Manager" // Needed to get full permissions in Flatpak runtime
-        }))
-        .expect("Failed to connect to PipeWire remote");
+    let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
+    std::env::remove_var("PIPEWIRE_REMOTE");
+
+    let core = match context.connect(Some(util::key_val_to_props(
+        [("media.category", "Manager"), ("remote.name", remote)].into_iter(),
+    ))) {
+        Ok(core) => core,
+        Err(e) => {
+            eprintln!("Failed to connect to PipeWire remote: {e}");
+
+            if let Some(env_remote) = env_remote {
+                std::env::set_var("PIPEWIRE_REMOTE", env_remote);
+            }
+
+            sx.send(Event::Stop).ok();
+
+            return;
+        }
+    };
+
+    if let Some(env_remote) = env_remote {
+        std::env::set_var("PIPEWIRE_REMOTE", env_remote);
+    }
 
     let registry = Rc::new(
         core.get_registry()
@@ -371,4 +392,6 @@ fn pipewire_thread(sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>
         .register();
 
     mainloop.run();
+
+    sx.send(Event::Stop).ok();
 }
