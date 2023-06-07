@@ -27,7 +27,7 @@ struct Factory {
     object_type: ObjectType,
 }
 
-pub(super) struct ObjectCreator {
+pub struct ObjectCreator {
     factories: HashMap<u32, Factory>,
     selected_factory: Option<u32>,
 

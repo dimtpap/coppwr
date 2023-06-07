@@ -23,7 +23,7 @@ use eframe::egui::{
 
 use crate::backend::profiler::{Clock, NodeBlock, Profiling};
 
-pub(super) struct Profiler {
+pub struct Profiler {
     max_profilings: usize,
     drivers: HashMap<i32, VecDeque<Profiling>>,
     selected_driver: Option<(i32, String)>,

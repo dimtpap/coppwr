@@ -18,11 +18,11 @@ use eframe::egui;
 
 use crate::backend::Request;
 
-pub(super) trait Tool {
+pub trait Tool {
     fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>);
 }
 
-pub(super) struct WindowedTool<'a, T: Tool> {
+pub struct WindowedTool<'a, T: Tool> {
     pub open: bool,
     title: &'a str,
     pub tool: T,

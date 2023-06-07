@@ -19,7 +19,7 @@ use eframe::egui;
 use crate::backend::Request;
 use crate::ui::Tool;
 
-pub(super) struct ModuleLoader {
+pub struct ModuleLoader {
     module_dir: String,
     name: String,
     args: String,

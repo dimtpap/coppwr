@@ -54,7 +54,7 @@ fn key_val_display<'a>(
 }
 
 /// Object type specific data
-pub(super) enum ObjectData {
+pub enum ObjectData {
     Client {
         permissions: Option<Vec<Permissions>>,
         new_property: String,
@@ -154,7 +154,7 @@ impl ObjectData {
 }
 
 /// A PipeWire object
-pub(super) struct Global {
+pub struct Global {
     id: u32,
     name: Option<String>,
     parent: Option<u32>,

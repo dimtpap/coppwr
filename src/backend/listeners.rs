@@ -21,11 +21,7 @@ use crate::backend::{bind::Global, profiler, util::dict_to_map, Event};
 
 type Bind = (Global, Box<dyn pipewire::proxy::Listener>);
 
-pub(super) fn module(
-    module: pw::module::Module,
-    id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
-) -> Bind {
+pub fn module(module: pw::module::Module, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = module
         .add_listener_local()
         .info({
@@ -56,7 +52,7 @@ pub(super) fn module(
     (Global::other(module), Box::new(listener))
 }
 
-pub(super) fn factory(
+pub fn factory(
     factory: pw::factory::Factory,
     id: u32,
     sx: &std::sync::mpsc::Sender<Event>,
@@ -87,11 +83,7 @@ pub(super) fn factory(
     (Global::other(factory), Box::new(listener))
 }
 
-pub(super) fn device(
-    device: pw::device::Device,
-    id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
-) -> Bind {
+pub fn device(device: pw::device::Device, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = device
         .add_listener_local()
         .info({
@@ -111,11 +103,7 @@ pub(super) fn device(
     (Global::other(device), Box::new(listener))
 }
 
-pub(super) fn client(
-    client: pw::client::Client,
-    id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
-) -> Bind {
+pub fn client(client: pw::client::Client, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = client
         .add_listener_local()
         .info({
@@ -142,7 +130,7 @@ pub(super) fn client(
     (Global::Client(client), Box::new(listener))
 }
 
-pub(super) fn node(node: pw::node::Node, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn node(node: pw::node::Node, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = node
         .add_listener_local()
         .info({
@@ -179,7 +167,7 @@ pub(super) fn node(node: pw::node::Node, id: u32, sx: &std::sync::mpsc::Sender<E
     (Global::other(node), Box::new(listener))
 }
 
-pub(super) fn port(port: pw::port::Port, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn port(port: pw::port::Port, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = port
         .add_listener_local()
         .info({
@@ -207,7 +195,7 @@ pub(super) fn port(port: pw::port::Port, id: u32, sx: &std::sync::mpsc::Sender<E
     (Global::other(port), Box::new(listener))
 }
 
-pub(super) fn link(link: pw::link::Link, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn link(link: pw::link::Link, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = link
         .add_listener_local()
         .info({
@@ -246,7 +234,7 @@ pub(super) fn link(link: pw::link::Link, id: u32, sx: &std::sync::mpsc::Sender<E
     (Global::other(link), Box::new(listener))
 }
 
-pub(super) fn profiler(
+pub fn profiler(
     profiler: pw::profiler::Profiler,
     id: u32,
     sx: &std::sync::mpsc::Sender<Event>,
@@ -272,7 +260,7 @@ pub(super) fn profiler(
     (Global::other(profiler), Box::new(listener))
 }
 
-pub(super) fn metadata(
+pub fn metadata(
     metadata: pw::metadata::Metadata,
     id: u32,
     sx: &std::sync::mpsc::Sender<Event>,

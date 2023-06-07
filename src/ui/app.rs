@@ -21,7 +21,7 @@ use pipewire as pw;
 use pw::types::ObjectType;
 
 use super::{
-    global::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
+    globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
     WindowedTool,
 };
 use crate::backend::{Event, Request};

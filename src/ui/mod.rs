@@ -14,7 +14,6 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-mod global;
 mod globals_store;
 mod metadata_editor;
 mod module_loader;
@@ -22,7 +21,6 @@ mod object_creator;
 mod profiler;
 mod tool;
 
-use global::Global;
 use globals_store::GlobalsStore;
 use metadata_editor::MetadataEditor;
 use module_loader::ModuleLoader;

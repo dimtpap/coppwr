@@ -19,9 +19,12 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use eframe::egui;
 use pipewire::{self, types::ObjectType};
 
-use crate::{backend::Request, ui::Global};
+#[path = "global.rs"]
+mod global;
+use crate::backend::Request;
+pub use global::{Global, ObjectData};
 
-pub(super) struct GlobalsStore {
+pub struct GlobalsStore {
     globals: BTreeMap<u32, Rc<RefCell<Global>>>,
 
     group_subobjects: bool,

@@ -53,7 +53,7 @@ struct Metadata {
     user_properties: Vec<(String, Property)>,
 }
 
-pub(super) struct MetadataEditor {
+pub struct MetadataEditor {
     metadatas: BTreeMap<u32, Metadata>,
 }
 
