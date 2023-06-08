@@ -341,7 +341,19 @@ fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Rec
                 }
             }
         })
-        .error(move |id, _, res, msg| eprintln!("Core: Error on proxy {id}: {res} - {msg}"))
+        .error({
+            let sx = sx.clone();
+            let mainloop = mainloop.clone();
+            move |id, _, res, msg| {
+                eprintln!("Core: Error on proxy {id}: {res} - {msg}");
+
+                // -EPIPE on the core proxy usually means the remote has been closed
+                if id == 0 && res == -32 {
+                    mainloop.quit();
+                    sx.send(Event::Stop).ok();
+                }
+            }
+        })
         .register();
 
     let _registry_listener = registry
