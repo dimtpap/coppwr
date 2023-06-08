@@ -97,47 +97,38 @@ pub fn run(
 struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
 fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Receiver<Request>) {
-    let mainloop = pw::MainLoop::new().expect("Failed to create PipeWire mainloop");
+    let Ok((mainloop, context, core, registry))
+        : Result<(pw::MainLoop, Rc<pw::Context<pw::MainLoop>>, pw::Core, Rc<pw::registry::Registry>), pw::Error> = (|| {
+        let mainloop = pw::MainLoop::new()?;
 
-    // Although the context is only moved in one callback
-    // it must outlive the listener otherwise resource leaks occur.
-    let context = Rc::new(pw::Context::new(&mainloop).expect("Failed to create PipeWire context"));
+        let context = pw::Context::new(&mainloop)?;
+        if context
+            .load_module("libpipewire-module-profiler", None, None)
+            .is_err()
+        {
+            eprintln!("Failed to load the profiler module. No profiler data will be available");
+        };
 
-    if context
-        .load_module("libpipewire-module-profiler", None, None)
-        .is_err()
-    {
-        eprintln!("Failed to load the profiler module. No profiler data will be available");
-    };
+        let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
+        std::env::remove_var("PIPEWIRE_REMOTE");
 
-    let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
-    std::env::remove_var("PIPEWIRE_REMOTE");
+        let core = context.connect(Some(util::key_val_to_props(
+            [("media.category", "Manager"), ("remote.name", remote)].into_iter(),
+        )))?;
 
-    let core = match context.connect(Some(util::key_val_to_props(
-        [("media.category", "Manager"), ("remote.name", remote)].into_iter(),
-    ))) {
-        Ok(core) => core,
-        Err(e) => {
-            eprintln!("Failed to connect to PipeWire remote: {e}");
-
-            if let Some(env_remote) = env_remote {
-                std::env::set_var("PIPEWIRE_REMOTE", env_remote);
-            }
-
-            sx.send(Event::Stop).ok();
-
-            return;
+        if let Some(env_remote) = env_remote {
+            std::env::set_var("PIPEWIRE_REMOTE", env_remote);
         }
+
+        let registry = core.get_registry()?;
+
+        // Context needs to be moved to the loop listener
+        // but must outlive it to prevent resource leaks
+        Ok((mainloop, Rc::new(context), core, Rc::new(registry)))
+    })() else {
+        sx.send(Event::Stop).ok();
+        return;
     };
-
-    if let Some(env_remote) = env_remote {
-        std::env::set_var("PIPEWIRE_REMOTE", env_remote);
-    }
-
-    let registry = Rc::new(
-        core.get_registry()
-            .expect("Failed to get PipeWire registry"),
-    );
 
     let binds = Rc::new(RefCell::new(HashMap::new()));
 
