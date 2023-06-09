@@ -1302,7 +1302,7 @@ dependencies = [
 [[package]]
 name = "libspa"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?branch=coppwr#71b49603627cab8fbdc34ade0585988d61aac6fe"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
 dependencies = [
  "bitflags 2.3.1",
  "cc",
@@ -1317,7 +1317,7 @@ dependencies = [
 [[package]]
 name = "libspa-sys"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?branch=coppwr#71b49603627cab8fbdc34ade0585988d61aac6fe"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
 dependencies = [
  "bindgen",
  "cc",
@@ -1703,7 +1703,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pipewire"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?branch=coppwr#71b49603627cab8fbdc34ade0585988d61aac6fe"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
 dependencies = [
  "anyhow",
  "bitflags 2.3.1",
@@ -1720,7 +1720,7 @@ dependencies = [
 [[package]]
 name = "pipewire-sys"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?branch=coppwr#71b49603627cab8fbdc34ade0585988d61aac6fe"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
 dependencies = [
  "bindgen",
  "libspa-sys",

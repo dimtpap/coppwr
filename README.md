@@ -67,4 +67,4 @@ See their usage instructions.
 ## Credits
 - [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe)
 - [egui_dock](https://crates.io/crates/egui_dock)
-- ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr) of) [pipewire-rs](https://crates.io/crates/pipewire)
+- ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr-next) of) [pipewire-rs](https://crates.io/crates/pipewire)

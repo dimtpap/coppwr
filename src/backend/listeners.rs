@@ -243,16 +243,14 @@ pub fn profiler(
         .add_listener_local()
         .profile({
             let sx = sx.clone();
-            move |pod| {
-                if let Some(pod) = std::ptr::NonNull::new(pod.cast_mut()) {
-                    match unsafe { PodDeserializer::deserialize_ptr::<profiler::Profilings>(pod) } {
-                        Ok(profilings) => {
-                            sx.send(Event::ProfilerProfile(profilings.0)).ok();
-                        }
-                        Err(_) => {
-                            eprintln!("Deserialization of profiler {id} statistics failed");
-                        }
-                    }
+            move |pod| match PodDeserializer::deserialize_from::<profiler::Profilings>(pod)
+                .map(|(_, pod)| pod)
+            {
+                Ok(profilings) => {
+                    sx.send(Event::ProfilerProfile(profilings.0)).ok();
+                }
+                Err(_) => {
+                    eprintln!("Deserialization of profiler {id} statistics failed");
                 }
             }
         })
