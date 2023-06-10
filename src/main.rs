@@ -30,7 +30,7 @@ fn main() {
                 &include_bytes!("../assets/icon/256.png")[..],
             )
             .ok(),
-            ..Default::default()
+            ..eframe::NativeOptions::default()
         },
         Box::new(|_| Box::new(CoppwrApp::new())),
     ) {

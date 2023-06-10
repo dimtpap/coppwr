@@ -455,7 +455,7 @@ impl eframe::App for CoppwrApp {
                                 egui::Layout {
                                     cross_justify: true,
                                     cross_align: egui::Align::Center,
-                                    ..Default::default()
+                                    ..egui::Layout::default()
                                 },
                                 |ui| {
                                     egui::TextEdit::singleline(remote)
