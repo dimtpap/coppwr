@@ -215,8 +215,8 @@ impl CoppwrViewer {
                 Some(key) => match value {
                     Some(value) => {
                         let Some(metadata) = self.globals.get_global(id) else {
-                                return;
-                            };
+                            return;
+                        };
                         self.metadata_editor.tool.add_property(
                             id,
                             metadata

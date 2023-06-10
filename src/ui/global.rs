@@ -98,7 +98,7 @@ impl ObjectData {
                     }
 
                     let Some(permissions) = permissions else {
-                            return;
+                        return;
                     };
 
                     ui.group(|ui| {
