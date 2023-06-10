@@ -201,7 +201,6 @@ impl Global {
                     }
                 }
                 ObjectType::Port => ["node.id"].as_slice(),
-                ObjectType::Link => ["link.output.port", "link.input.port"].as_slice(),
                 _ => break 'find_parent_id None,
             };
 

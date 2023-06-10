@@ -72,8 +72,25 @@ impl GlobalsStore {
 
         let g = self.globals.get(&id).unwrap();
         let global = g.borrow();
-        if let Some(parent) = self.parent_of(&global) {
-            parent.borrow_mut().add_subobject(Rc::downgrade(g));
+        match *global.object_type() {
+            ObjectType::Node | ObjectType::Port => {
+                if let Some(parent) = self.parent_of(&global) {
+                    parent.borrow_mut().add_subobject(Rc::downgrade(g));
+                }
+            }
+            ObjectType::Link => {
+                for port in [
+                    global.props().get("link.input.port"),
+                    global.props().get("link.output.port"),
+                ]
+                .into_iter()
+                .filter_map(|entry| entry.and_then(|id_str| id_str.parse::<u32>().ok()))
+                .filter_map(|id| self.globals.get(&id))
+                {
+                    port.borrow_mut().add_subobject(Rc::downgrade(g));
+                }
+            }
+            _ => {}
         }
 
         global
@@ -107,7 +124,7 @@ impl GlobalsStore {
         if self.group_subobjects {
             match *global.object_type() {
                 // Reach the top parent to see if global has been drawn as a subobject
-                ObjectType::Node | ObjectType::Port | ObjectType::Link => {
+                ObjectType::Node | ObjectType::Port => {
                     let mut parent = self.parent_of(global);
                     while let Some(global) = parent.map(|g| g.borrow()) {
                         if self.satisfies_filters(&global) {
