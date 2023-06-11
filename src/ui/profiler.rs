@@ -370,12 +370,16 @@ impl Profiler {
             }
         }
 
-        for (id, profilings) in &self.drivers {
-            if let Some(p) = profilings.back() {
-                ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
-            } else {
-                ui.label(format!("Driver ID: {id}"));
-            }
+        self.drivers.retain(|id, profilings| {
+            let mut keep = true;
+            ui.horizontal(|ui| {
+                keep = !ui.small_button("Delete").clicked();
+                if let Some(p) = profilings.back() {
+                    ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
+                } else {
+                    ui.label(format!("Driver ID: {id}"));
+                }
+            });
             ui.push_id(id, |ui| {
 				egui::ScrollArea::horizontal().show(ui, |ui| {
 					egui::Grid::new("timings")
@@ -404,6 +408,8 @@ impl Profiler {
 				});
 			});
             ui.separator();
-        }
+
+            keep
+        });
     }
 }
