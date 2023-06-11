@@ -82,7 +82,7 @@ impl ObjectData {
         }
     }
 
-    fn draw_data(&mut self, ui: &mut egui::Ui, rsx: &pw::channel::Sender<Request>, id: u32) {
+    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pw::channel::Sender<Request>, id: u32) {
         match self {
             Self::Client { permissions, .. } => {
                 egui::CollapsingHeader::new("Permissions").show(ui, |ui| {
@@ -164,7 +164,7 @@ pub struct Global {
     info: Option<Box<[(&'static str, String)]>>,
     props: BTreeMap<String, String>,
 
-    object: ObjectData,
+    object_data: ObjectData,
 }
 
 impl Global {
@@ -180,7 +180,7 @@ impl Global {
             subobjects: Vec::new(),
             info: None,
             props: props.unwrap_or_default(),
-            object: ObjectData::from(object_type),
+            object_data: ObjectData::from(object_type),
         };
 
         if !this.props().is_empty() {
@@ -293,7 +293,7 @@ impl Global {
                     if let ObjectData::Client {
                         new_property: ref mut new_property_key,
                         ..
-                    } = self.object
+                    } = self.object_data
                     {
                         egui::CollapsingHeader::new("Properties").show(ui, |ui| {
                             key_val_table(ui, |ui| {
@@ -425,7 +425,7 @@ impl Global {
                         });
                     }
 
-                    self.object.draw_data(ui, rsx, self.id);
+                    self.object_data.draw(ui, rsx, self.id);
                 });
             });
         });
@@ -436,7 +436,7 @@ impl Global {
     }
 
     pub fn object_type(&self) -> &pw::types::ObjectType {
-        self.object.pipewire_type()
+        self.object_data.pipewire_type()
     }
 
     pub fn add_subobject(&mut self, subobject: Weak<RefCell<Global>>) {
@@ -460,8 +460,8 @@ impl Global {
         self.info = info;
     }
 
-    pub fn object_mut(&mut self) -> &mut ObjectData {
-        &mut self.object
+    pub fn object_data_mut(&mut self) -> &mut ObjectData {
+        &mut self.object_data
     }
 
     pub fn parent_id(&self) -> Option<u32> {

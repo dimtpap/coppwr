@@ -240,7 +240,8 @@ impl CoppwrViewer {
             },
             Event::ClientPermissions(id, _, perms) => {
                 if let Some(global) = self.globals.get_global(id) {
-                    if let ObjectData::Client { permissions, .. } = global.borrow_mut().object_mut()
+                    if let ObjectData::Client { permissions, .. } =
+                        global.borrow_mut().object_data_mut()
                     {
                         *permissions = Some(perms);
                     }
