@@ -25,7 +25,7 @@ use pw::{
     types::ObjectType,
 };
 
-use super::Event;
+use super::{util, Event, ObjectMethod};
 
 // Objects whose methods aren't used get upcasted to a proxy
 pub enum Global {
@@ -46,10 +46,26 @@ impl Global {
             Self::Other(p) => p,
         }
     }
+
+    pub fn as_client(&self) -> Option<&pw::client::Client> {
+        if let Global::Client(client) = self {
+            Some(client)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_metadata(&self) -> Option<&pw::metadata::Metadata> {
+        if let Global::Metadata(metadata) = self {
+            Some(metadata)
+        } else {
+            None
+        }
+    }
 }
 
 pub struct BoundGlobal {
-    pub global: Global,
+    global: Global,
     _object_listener: Box<dyn pw::proxy::Listener>,
     _proxy_listener: pw::proxy::ProxyListener,
 }
@@ -117,5 +133,45 @@ impl BoundGlobal {
             _object_listener,
             _proxy_listener,
         })
+    }
+
+    pub fn call(&self, method: ObjectMethod) {
+        match method {
+            ObjectMethod::ClientGetPermissions { index, num } => {
+                if let Some(client) = self.global.as_client() {
+                    client.get_permissions(index, num);
+                }
+            }
+            ObjectMethod::ClientUpdatePermissions(permissions) => {
+                if let Some(client) = self.global.as_client() {
+                    client.update_permissions(&permissions);
+                }
+            }
+            ObjectMethod::ClientUpdateProperties(props) => {
+                if let Some(client) = self.global.as_client() {
+                    client.update_properties(&util::key_val_to_props(props.into_iter()));
+                }
+            }
+            ObjectMethod::MetadataSetProperty {
+                subject,
+                key,
+                type_,
+                value,
+            } => {
+                if let Some(metadata) = self.global.as_metadata() {
+                    metadata.set_property(
+                        subject,
+                        key.as_str(),
+                        type_.as_deref(),
+                        value.as_deref(),
+                    );
+                }
+            }
+            ObjectMethod::MetadataClear => {
+                if let Some(metadata) = self.global.as_metadata() {
+                    metadata.clear();
+                }
+            }
+        }
     }
 }

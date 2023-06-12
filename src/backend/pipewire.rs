@@ -25,7 +25,7 @@ use pipewire as pw;
 use pw::{permissions::Permissions, proxy::ProxyT, types::ObjectType};
 
 use super::{
-    bind::{BindError, BoundGlobal, Global},
+    bind::{BindError, BoundGlobal},
     profiler::Profiling,
     util,
 };
@@ -130,7 +130,7 @@ fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Rec
         return;
     };
 
-    let binds = Rc::new(RefCell::new(HashMap::new()));
+    let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 
     let _receiver = pwrx.attach(&mainloop, {
         let mainloop = mainloop.clone();
@@ -240,67 +240,8 @@ fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Rec
                 }
             }
             Request::CallObjectMethod(id, method) => {
-                let binds = binds.borrow();
-                let Some(object) = binds.get(&id) else {
-                    return;
-                };
-
-                match method {
-                    ObjectMethod::ClientGetPermissions { index, num } => {
-                        if let BoundGlobal {
-                            global: Global::Client(client),
-                            ..
-                        } = object
-                        {
-                            client.get_permissions(index, num);
-                        }
-                    }
-                    ObjectMethod::ClientUpdatePermissions(permissions) => {
-                        if let BoundGlobal {
-                            global: Global::Client(client),
-                            ..
-                        } = object
-                        {
-                            client.update_permissions(&permissions);
-                        }
-                    }
-                    ObjectMethod::ClientUpdateProperties(props) => {
-                        if let BoundGlobal {
-                            global: Global::Client(client),
-                            ..
-                        } = object
-                        {
-                            client.update_properties(&util::key_val_to_props(props.into_iter()));
-                        }
-                    }
-                    ObjectMethod::MetadataSetProperty {
-                        subject,
-                        key,
-                        type_,
-                        value,
-                    } => {
-                        if let BoundGlobal {
-                            global: Global::Metadata(metadata),
-                            ..
-                        } = object
-                        {
-                            metadata.set_property(
-                                subject,
-                                key.as_str(),
-                                type_.as_deref(),
-                                value.as_deref(),
-                            );
-                        }
-                    }
-                    ObjectMethod::MetadataClear => {
-                        if let BoundGlobal {
-                            global: Global::Metadata(metadata),
-                            ..
-                        } = object
-                        {
-                            metadata.clear();
-                        }
-                    }
+                if let Some(object) = binds.borrow().get(&id) {
+                    object.call(method);
                 }
             }
         }
