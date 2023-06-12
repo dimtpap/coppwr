@@ -99,9 +99,8 @@ impl ObjectCreator {
         ui.label("Properties");
 
         self.props.retain_mut(|(k, v)| {
-            let mut keep = true;
             ui.horizontal(|ui| {
-                keep = !ui.button("Delete").clicked();
+                let keep = !ui.button("Delete").clicked();
                 ui.add(
                     egui::TextEdit::singleline(k)
                         .desired_width(ui.available_width() / 2.5)
@@ -112,8 +111,9 @@ impl ObjectCreator {
                         .desired_width(ui.available_width())
                         .hint_text("Value"),
                 );
-            });
-            keep
+                keep
+            })
+            .inner
         });
 
         if ui.button("Add property").clicked() {

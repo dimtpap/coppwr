@@ -193,7 +193,6 @@ impl MetadataEditor {
                 ));
             }
             metadata.user_properties.retain_mut(|(key, prop)| {
-                let mut keep = true;
                 ui.horizontal(|ui| {
                     ui.add(
                         egui::TextEdit::singleline(key)
@@ -233,9 +232,9 @@ impl MetadataEditor {
                         ))
                         .ok();
                     }
-                    keep = !ui.button("Delete").clicked();
-                });
-                keep
+                    !ui.button("Delete").clicked()
+                })
+                .inner
             });
             ui.separator();
         }

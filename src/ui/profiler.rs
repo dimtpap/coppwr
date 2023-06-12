@@ -371,15 +371,15 @@ impl Profiler {
         }
 
         self.drivers.retain(|id, profilings| {
-            let mut keep = true;
-            ui.horizontal(|ui| {
-                keep = !ui.small_button("Delete").clicked();
+            let keep = ui.horizontal(|ui| {
+                let keep = !ui.small_button("Delete").clicked();
                 if let Some(p) = profilings.back() {
                     ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
                 } else {
                     ui.label(format!("Driver ID: {id}"));
                 }
-            });
+                keep
+            }).inner;
             ui.push_id(id, |ui| {
 				egui::ScrollArea::horizontal().show(ui, |ui| {
 					egui::Grid::new("timings")

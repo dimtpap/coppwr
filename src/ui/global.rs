@@ -103,8 +103,6 @@ impl ObjectData {
 
                     ui.group(|ui| {
                         permissions.retain_mut(|p| {
-                            let mut keep = true;
-
                             ui.horizontal(|ui| {
                                 ui.label("ID");
                                 ui.add(egui::widgets::DragValue::new(&mut p.id));
@@ -123,10 +121,9 @@ impl ObjectData {
                                     }
                                 }
 
-                                keep = !ui.small_button("Delete").clicked();
-                            });
-
-                            keep
+                                !ui.small_button("Delete").clicked()
+                            })
+                            .inner
                         });
 
                         ui.separator();
@@ -298,18 +295,20 @@ impl Global {
                         egui::CollapsingHeader::new("Properties").show(ui, |ui| {
                             key_val_table(ui, |ui| {
                                 self.props.retain(|k, v| {
-                                    let mut keep = true;
                                     ui.label(k);
-                                    ui.with_layout(
-                                        egui::Layout::right_to_left(egui::Align::Min),
-                                        |ui| {
-                                            keep = !ui.button("Delete").clicked();
-                                            egui::TextEdit::singleline(v)
-                                                .hint_text("Value")
-                                                .desired_width(f32::INFINITY)
-                                                .show(ui);
-                                        },
-                                    );
+                                    let keep = ui
+                                        .with_layout(
+                                            egui::Layout::right_to_left(egui::Align::Min),
+                                            |ui| {
+                                                let keep = !ui.button("Delete").clicked();
+                                                egui::TextEdit::singleline(v)
+                                                    .hint_text("Value")
+                                                    .desired_width(f32::INFINITY)
+                                                    .show(ui);
+                                                keep
+                                            },
+                                        )
+                                        .inner;
                                     ui.end_row();
                                     keep
                                 });
