@@ -127,19 +127,25 @@ impl Profiler {
 				info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
         }
 
-        let mut reset_plots = false;
         ui.horizontal(|ui| {
 			ui.label("Profilings");
 			ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
 				.on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
 
-			reset_plots = ui.button("Reset plots").clicked();
 			if ui.button("Clear driver samples").clicked() {
 				profilings.clear();
 			}
 
             ui.toggle_value(&mut self.pause, "Pause");
 		});
+
+        fn profiler_plot_heading(heading: &str, ui: &mut egui::Ui) -> bool {
+            ui.horizontal(|ui| {
+                ui.heading(heading);
+                ui.small_button("Reset").clicked()
+            })
+            .inner
+        }
 
         fn profiler_plot(id: &str, max_x: usize, reset: bool) -> Plot {
             let plot = Plot::new(id)
@@ -179,54 +185,60 @@ impl Profiler {
         ui.separator();
 
         ui.columns(2, |ui| {
-            ui[0].heading("Driver timing");
-            profiler_plot("driver_timing", self.max_profilings, reset_plots)
-                .height(ui[0].available_height() / 2.)
-                .show(&mut ui[0], |ui| {
-                    let measurements: [fn(&Profiling) -> f64; 3] = [
-                        |p| (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
-                        |p| ((p.driver.signal - p.driver.prev_signal) / 1000) as f64,
-                        |p| {
-                            (p.clock.duration * 1_000_000) as f64
-                                / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
-                        },
-                    ];
+            profiler_plot(
+                "driver_timing",
+                self.max_profilings,
+                profiler_plot_heading("Driver timing", &mut ui[0]),
+            )
+            .height(ui[0].available_height() / 2.)
+            .show(&mut ui[0], |ui| {
+                let measurements: [fn(&Profiling) -> f64; 3] = [
+                    |p| (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
+                    |p| ((p.driver.signal - p.driver.prev_signal) / 1000) as f64,
+                    |p| {
+                        (p.clock.duration * 1_000_000) as f64
+                            / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
+                    },
+                ];
 
-                    for (name, measurement) in ["Driver Delay", "Period", "Estimated"]
-                        .into_iter()
-                        .zip(measurements)
-                    {
-                        ui.line(
-                            plot::Line::new(PlotPoints::from_parametric_callback(
-                                |x| {
-                                    let x = x.floor();
-                                    (x, measurement(&profilings[x as usize]))
-                                },
-                                0f64..profilings.len() as f64,
-                                profilings.len(),
-                            ))
-                            .name(name),
-                        );
-                    }
-                });
-
-            ui[1].heading("Driver end date");
-            profiler_plot("driver_end_date", self.max_profilings, reset_plots)
-                .height(ui[1].available_height() / 2.)
-                .show(&mut ui[1], |ui| {
+                for (name, measurement) in ["Driver Delay", "Period", "Estimated"]
+                    .into_iter()
+                    .zip(measurements)
+                {
                     ui.line(
                         plot::Line::new(PlotPoints::from_parametric_callback(
                             |x| {
                                 let x = x.floor();
-                                let driver = &profilings[x as usize].driver;
-                                (x, ((driver.finish - driver.signal) / 1000) as f64)
+                                (x, measurement(&profilings[x as usize]))
                             },
                             0f64..profilings.len() as f64,
                             profilings.len(),
                         ))
-                        .name("Driver end date"),
+                        .name(name),
                     );
-                });
+                }
+            });
+
+            profiler_plot(
+                "driver_end_date",
+                self.max_profilings,
+                profiler_plot_heading("Driver end date", &mut ui[1]),
+            )
+            .height(ui[1].available_height() / 2.)
+            .show(&mut ui[1], |ui| {
+                ui.line(
+                    plot::Line::new(PlotPoints::from_parametric_callback(
+                        |x| {
+                            let x = x.floor();
+                            let driver = &profilings[x as usize].driver;
+                            (x, ((driver.finish - driver.signal) / 1000) as f64)
+                        },
+                        0f64..profilings.len() as f64,
+                        profilings.len(),
+                    ))
+                    .name("Driver end date"),
+                );
+            });
         });
 
         ui.separator();
@@ -288,11 +300,10 @@ impl Profiler {
             .zip(measurements)
             .enumerate()
             {
-                ui[i].heading(heading);
                 per_client_plot(
                     id,
                     self.max_profilings,
-                    reset_plots,
+                    profiler_plot_heading(heading, &mut ui[i]),
                     profilings,
                     measurement,
                     &mut ui[i],
