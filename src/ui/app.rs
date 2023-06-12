@@ -439,6 +439,7 @@ impl eframe::App for CoppwrApp {
                 style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
                 egui_dock::DockArea::new(tree)
                     .style(style)
+                    .scroll_area_in_tabs(false)
                     .show(ctx, viewer);
             }
             State::Unconnected(remote) => {
