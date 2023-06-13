@@ -21,7 +21,7 @@ use eframe::egui::{
     plot::{self, Plot, PlotPoints},
 };
 
-use crate::backend::profiler::{Clock, NodeBlock, Profiling};
+use crate::backend::profiler::{Clock, Info, NodeBlock, Profiling};
 
 pub struct Profiler {
     max_profilings: usize,
@@ -326,7 +326,13 @@ impl Profiler {
 
         ui.separator();
 
-        fn draw_node_block(block: &NodeBlock, clock: &Clock, driver: bool, ui: &mut egui::Ui) {
+        fn draw_node_block(
+            block: &NodeBlock,
+            clock: &Clock,
+            info: &Info,
+            driver: bool,
+            ui: &mut egui::Ui,
+        ) {
             ui.label(block.id.to_string());
             ui.label(&block.name);
 
@@ -379,6 +385,13 @@ impl Profiler {
             for n in [block.awake - block.signal, block.finish - block.awake] {
                 ui.label(format!("{:.6}", n as f64 / 1_000_000_000. / quantum));
             }
+
+            // Xruns
+            if let Some(xruns) = block.xrun_count {
+                ui.label(xruns.to_string());
+            } else {
+                ui.label(info.xrun_count.to_string());
+            }
         }
 
         self.drivers.retain(|id, profilings| {
@@ -395,7 +408,7 @@ impl Profiler {
 				egui::ScrollArea::horizontal().show(ui, |ui| {
 					egui::Grid::new("timings")
 					.striped(true)
-					.num_columns(8)
+					.num_columns(9)
 					.show(ui, |ui| {
 						ui.label("ID");
 						ui.label("Name");
@@ -405,13 +418,14 @@ impl Profiler {
 						ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
 						ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
 						ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
+                        ui.label("Xruns");
 						ui.end_row();
 						if let Some(p) = profilings.back() {
-							draw_node_block(&p.driver, &p.clock, true, ui);
+							draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
 							ui.end_row();
 
 							for nb in &p.followers {
-								draw_node_block(nb, &p.clock, false, ui);
+								draw_node_block(nb, &p.clock, &p.info, false, ui);
 								ui.end_row();
 							}
 						}
