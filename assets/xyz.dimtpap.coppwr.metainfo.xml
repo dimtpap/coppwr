@@ -42,11 +42,20 @@
   </keywords>
 
   <releases>
+    <release version="1.1.0" date="2023-06-13">
+      <description>
+        <ul>
+          <li>Added the option to disconnect from/reconnect to remotes</li>
+          <li>Added xrun counts in process viewer</li>
+          <li>Fixed links not showing up under all of the ports they're connecting</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2023-06-06">
       <description>
         <ul>
-          <li>Fix handling of future profiler data</li>
-          <li>Fix Flatpak client not having full permissions</li>
+          <li>Fixed handling of future profiler data</li>
+          <li>Fixed Flatpak client not having enough permissions</li>
         </ul>
       </description>
     </release>
