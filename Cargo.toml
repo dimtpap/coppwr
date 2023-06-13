@@ -16,7 +16,7 @@ categories = ["gui", "multimedia"]
 [dependencies]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "d6f0be3e10239d92479cbf7ee74959818907cd16"}
 eframe = {version = "0.22.0", features = ["wayland"]}
-egui_dock = "0.6.1"
+egui_dock = "0.6.2"
 
 [profile.release]
 lto = true
