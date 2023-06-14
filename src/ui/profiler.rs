@@ -124,20 +124,20 @@ impl Profiler {
             let followers = last.followers.len();
             ui.label(format!(
                 "Last profiling info\nTotal profiler samples: {} | Xruns: {} | Follower nodes: {}\nQuantum: {} | CPU Load: {} {} {}",
-				info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
+                info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
         }
 
         ui.horizontal(|ui| {
-			ui.label("Profilings");
-			ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
-				.on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
+            ui.label("Profilings");
+            ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
+                .on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
 
-			if ui.button("Clear driver samples").clicked() {
-				profilings.clear();
-			}
+            if ui.button("Clear driver samples").clicked() {
+                profilings.clear();
+            }
 
             ui.toggle_value(&mut self.pause, "Pause");
-		});
+        });
 
         fn profiler_plot_heading(heading: &str, ui: &mut egui::Ui) -> bool {
             ui.horizontal(|ui| {
@@ -405,33 +405,33 @@ impl Profiler {
                 keep
             }).inner;
             ui.push_id(id, |ui| {
-				egui::ScrollArea::horizontal().show(ui, |ui| {
-					egui::Grid::new("timings")
-					.striped(true)
-					.num_columns(9)
-					.show(ui, |ui| {
-						ui.label("ID");
-						ui.label("Name");
-						ui.label("Quantum");
-						ui.label("Rate");
-						ui.label("Waiting").on_hover_text("Time elapsed between when the node was ready to start processing and when it actually started processing");
-						ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
-						ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
-						ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
+                egui::ScrollArea::horizontal().show(ui, |ui| {
+                    egui::Grid::new("timings")
+                    .striped(true)
+                    .num_columns(9)
+                    .show(ui, |ui| {
+                        ui.label("ID");
+                        ui.label("Name");
+                        ui.label("Quantum");
+                        ui.label("Rate");
+                        ui.label("Waiting").on_hover_text("Time elapsed between when the node was ready to start processing and when it actually started processing");
+                        ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
+                        ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
+                        ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
                         ui.label("Xruns");
-						ui.end_row();
-						if let Some(p) = profilings.back() {
-							draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
-							ui.end_row();
+                        ui.end_row();
+                        if let Some(p) = profilings.back() {
+                            draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
+                            ui.end_row();
 
-							for nb in &p.followers {
-								draw_node_block(nb, &p.clock, &p.info, false, ui);
-								ui.end_row();
-							}
-						}
-					});
-				});
-			});
+                            for nb in &p.followers {
+                                draw_node_block(nb, &p.clock, &p.info, false, ui);
+                                ui.end_row();
+                            }
+                        }
+                    });
+                });
+            });
             ui.separator();
 
             keep

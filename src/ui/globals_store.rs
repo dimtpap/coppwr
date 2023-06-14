@@ -152,7 +152,7 @@ impl GlobalsStore {
 
     pub fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
         ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
-								.on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
+                                .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
 
         ui.collapsing("Filters", |ui| {
             ui.horizontal(|ui| {
