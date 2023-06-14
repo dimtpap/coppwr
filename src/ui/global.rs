@@ -82,12 +82,12 @@ impl ObjectData {
         }
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pw::channel::Sender<Request>, id: u32) {
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>, id: u32) {
         match self {
             Self::Client { permissions, .. } => {
                 egui::CollapsingHeader::new("Permissions").show(ui, |ui| {
                     if ui.small_button("Get permissions").clicked() {
-                        rsx.send(Request::CallObjectMethod(
+                        sx.send(Request::CallObjectMethod(
                             id,
                             ObjectMethod::ClientGetPermissions {
                                 index: 0,
@@ -137,7 +137,7 @@ impl ObjectData {
                     });
 
                     if ui.small_button("Update permissions").clicked() {
-                        rsx.send(Request::CallObjectMethod(
+                        sx.send(Request::CallObjectMethod(
                             id,
                             ObjectMethod::ClientUpdatePermissions(permissions.clone()),
                         ))
@@ -253,7 +253,7 @@ impl Global {
         ui: &mut egui::Ui,
         draw_subobjects: bool,
         searched_property: &str,
-        rsx: &pw::channel::Sender<Request>,
+        sx: &pw::channel::Sender<Request>,
     ) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
@@ -269,7 +269,7 @@ impl Global {
                 });
 
                 if ui.small_button("Destroy").clicked() {
-                    rsx.send(Request::DestroyObject(self.id)).ok();
+                    sx.send(Request::DestroyObject(self.id)).ok();
                 }
 
                 ui.push_id(self.id, |ui| {
@@ -326,7 +326,7 @@ impl Global {
                             });
 
                             if ui.button("Update properties").clicked() {
-                                rsx.send(Request::CallObjectMethod(
+                                sx.send(Request::CallObjectMethod(
                                     self.id,
                                     ObjectMethod::ClientUpdateProperties(self.props.clone()),
                                 ))
@@ -360,7 +360,7 @@ impl Global {
                                 match self.object_type() {
                                     ObjectType::Device | ObjectType::Client => {
                                         for sub in subobjects {
-                                            sub.borrow_mut().draw(ui, true, searched_property, rsx);
+                                            sub.borrow_mut().draw(ui, true, searched_property, sx);
                                         }
                                     }
                                     ObjectType::Node => {
@@ -396,7 +396,7 @@ impl Global {
                                                         &mut ui[i],
                                                         true,
                                                         searched_property,
-                                                        rsx,
+                                                        sx,
                                                     );
                                                 }
                                             });
@@ -409,7 +409,7 @@ impl Global {
                                                     &mut ui[i],
                                                     true,
                                                     searched_property,
-                                                    rsx,
+                                                    sx,
                                                 );
                                             }
                                         });
@@ -424,7 +424,7 @@ impl Global {
                         });
                     }
 
-                    self.object_data.draw(ui, rsx, self.id);
+                    self.object_data.draw(ui, sx, self.id);
                 });
             });
         });

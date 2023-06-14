@@ -46,7 +46,7 @@ impl View {
 struct CoppwrViewer {
     open_tabs: u8,
 
-    rsx: pw::channel::Sender<Request>,
+    sx: pw::channel::Sender<Request>,
 
     globals: GlobalsStore,
     profiler: Profiler,
@@ -57,11 +57,11 @@ struct CoppwrViewer {
 }
 
 impl CoppwrViewer {
-    pub fn new(rsx: pw::channel::Sender<Request>) -> Self {
+    pub fn new(sx: pw::channel::Sender<Request>) -> Self {
         Self {
             open_tabs: View::GlobalTracker as u8,
 
-            rsx,
+            sx,
 
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
@@ -133,9 +133,9 @@ impl CoppwrViewer {
     }
 
     pub fn tool_windows(&mut self, ctx: &egui::Context) {
-        self.object_creator.window(ctx, &self.rsx);
-        self.metadata_editor.window(ctx, &self.rsx);
-        self.module_loader.window(ctx, &self.rsx);
+        self.object_creator.window(ctx, &self.sx);
+        self.metadata_editor.window(ctx, &self.sx);
+        self.module_loader.window(ctx, &self.sx);
     }
 
     fn process_event(&mut self, e: Event) {
@@ -268,7 +268,7 @@ impl egui_dock::TabViewer for CoppwrViewer {
                 });
             }
             View::GlobalTracker => {
-                self.globals.draw(ui, &self.rsx);
+                self.globals.draw(ui, &self.sx);
             }
         }
     }
@@ -287,8 +287,8 @@ enum State {
     Connected {
         // Calling .join() requires moving
         thread: Option<JoinHandle<()>>,
-        erx: mpsc::Receiver<Event>,
-        rsx: pw::channel::Sender<Request>,
+        rx: mpsc::Receiver<Event>,
+        sx: pw::channel::Sender<Request>,
 
         tree: egui_dock::Tree<View>,
         viewer: CoppwrViewer,
@@ -307,8 +307,8 @@ impl State {
 
     pub fn disconnect(&mut self) {
         match self {
-            Self::Connected { thread, rsx, .. } => {
-                if rsx.send(Request::Stop).is_err() {
+            Self::Connected { thread, sx, .. } => {
+                if sx.send(Request::Stop).is_err() {
                     eprintln!("Error sending stop request to PipeWire");
                 }
                 if let Some(handle) = thread.take() {
@@ -324,17 +324,17 @@ impl State {
     }
 
     pub fn connect(remote: impl Into<String>) -> Self {
-        let (thread, erx, rsx) = crate::backend::run(remote.into());
+        let (thread, rx, sx) = crate::backend::run(remote.into());
 
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
-            erx,
-            rsx: rsx.clone(),
+            rx,
+            sx: sx.clone(),
             thread: Some(thread),
             tree: egui_dock::Tree::new(tabs),
-            viewer: CoppwrViewer::new(rsx),
+            viewer: CoppwrViewer::new(sx),
             about_opened: false,
         }
     }
@@ -352,8 +352,8 @@ impl CoppwrApp {
 
 impl eframe::App for CoppwrApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        if let State::Connected { ref rsx, .. } = self.0 {
-            if rsx.send(Request::Stop).is_err() {
+        if let State::Connected { ref sx, .. } = self.0 {
+            if sx.send(Request::Stop).is_err() {
                 eprintln!("Error sending stop request to PipeWire");
             }
         };
@@ -362,13 +362,13 @@ impl eframe::App for CoppwrApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         match &mut self.0 {
             State::Connected {
-                erx,
+                rx,
                 tree,
                 viewer,
                 about_opened,
                 ..
             } => 'connected: {
-                while let Ok(e) = erx.try_recv() {
+                while let Ok(e) = rx.try_recv() {
                     match e {
                         Event::Stop => {
                             self.0.disconnect();

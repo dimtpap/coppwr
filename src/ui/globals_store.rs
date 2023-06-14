@@ -150,7 +150,7 @@ impl GlobalsStore {
         true
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
+    pub fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
                                 .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
 
@@ -205,7 +205,7 @@ impl GlobalsStore {
                     None
                 }
             }) {
-                global.draw(ui, self.group_subobjects, &self.searched_property, rsx);
+                global.draw(ui, self.group_subobjects, &self.searched_property, sx);
             }
         });
     }

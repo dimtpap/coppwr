@@ -35,8 +35,8 @@ pub struct ObjectCreator {
 }
 
 impl Tool for ObjectCreator {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, rsx);
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.draw(ui, sx);
     }
 }
 
@@ -63,7 +63,7 @@ impl ObjectCreator {
         self.factories.remove(&id);
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         let factory = if let Some(id) = self.selected_factory {
             let factory = self.factories.get(&id);
             if factory.is_none() {
@@ -130,7 +130,7 @@ impl ObjectCreator {
                     .clicked()
                 {
                     let factory = factory.unwrap();
-                    rsx.send(Request::CreateObject(
+                    sx.send(Request::CreateObject(
                         factory.object_type.clone(),
                         factory.name.clone(),
                         self.props.clone(),

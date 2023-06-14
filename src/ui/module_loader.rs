@@ -29,8 +29,8 @@ pub struct ModuleLoader {
 }
 
 impl Tool for ModuleLoader {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, rsx);
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.draw(ui, sx);
     }
 }
 
@@ -44,7 +44,7 @@ impl ModuleLoader {
         }
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         ui.add(
             egui::TextEdit::singleline(&mut self.module_dir)
                 .hint_text("Modules directory (Leave empty for default)")
@@ -97,7 +97,7 @@ impl ModuleLoader {
                     .on_disabled_hover_text("Provide a module name first")
                     .clicked()
                 {
-                    rsx.send(Request::LoadModule {
+                    sx.send(Request::LoadModule {
                         module_dir: self
                             .module_dir
                             .is_empty()

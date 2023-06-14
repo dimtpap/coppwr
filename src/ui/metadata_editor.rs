@@ -58,8 +58,8 @@ pub struct MetadataEditor {
 }
 
 impl Tool for MetadataEditor {
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, rsx);
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.draw(ui, sx);
     }
 }
 
@@ -131,13 +131,13 @@ impl MetadataEditor {
         });
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, rsx: &pipewire::channel::Sender<Request>) {
+    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         for (id, metadata) in &mut self.metadatas {
             ui.heading(&metadata.name);
             ui.horizontal(|ui| {
                 ui.label(format!("ID: {id}"));
                 if ui.small_button("Clear").clicked() {
-                    rsx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
+                    sx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
                         .ok();
                 }
             });
@@ -150,14 +150,14 @@ impl MetadataEditor {
 
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                             if ui.small_button("Clear").clicked() {
-                                rsx.send(Request::CallObjectMethod(
+                                sx.send(Request::CallObjectMethod(
                                     *id,
                                     prop.clear_request(key.clone()),
                                 ))
                                 .ok();
                             }
                             if ui.small_button("Set").clicked() {
-                                rsx.send(Request::CallObjectMethod(
+                                sx.send(Request::CallObjectMethod(
                                     *id,
                                     prop.set_request(key.clone()),
                                 ))
@@ -226,7 +226,7 @@ impl MetadataEditor {
                 });
                 ui.horizontal(|ui| {
                     if ui.button("Add").clicked() {
-                        rsx.send(Request::CallObjectMethod(
+                        sx.send(Request::CallObjectMethod(
                             *id,
                             prop.set_request(key.clone()),
                         ))
