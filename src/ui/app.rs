@@ -317,7 +317,7 @@ impl State {
                     }
                 }
             }
-            _ => return,
+            Self::Unconnected(_) => return,
         }
 
         *self = Self::unconnected_from_env();
