@@ -305,6 +305,24 @@ impl State {
         Self::Unconnected(remote)
     }
 
+    pub fn disconnect(&mut self) {
+        match self {
+            Self::Connected { thread, rsx, .. } => {
+                if rsx.send(Request::Stop).is_err() {
+                    eprintln!("Error sending stop request to PipeWire");
+                }
+                if let Some(handle) = thread.take() {
+                    if let Err(e) = handle.join() {
+                        eprintln!("The PipeWire thread has paniced: {e:?}");
+                    }
+                }
+            }
+            _ => return,
+        }
+
+        *self = Self::unconnected_from_env();
+    }
+
     pub fn connect(remote: impl Into<String>) -> Self {
         let (thread, erx, rsx) = crate::backend::run(remote.into());
 
@@ -330,10 +348,6 @@ impl CoppwrApp {
             std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
         ))
     }
-
-    fn disconnect(&mut self) {
-        self.0 = State::unconnected_from_env();
-    }
 }
 
 impl eframe::App for CoppwrApp {
@@ -349,16 +363,15 @@ impl eframe::App for CoppwrApp {
         match &mut self.0 {
             State::Connected {
                 erx,
-                rsx,
                 tree,
                 viewer,
                 about_opened,
-                thread,
+                ..
             } => 'connected: {
                 while let Ok(e) = erx.try_recv() {
                     match e {
                         Event::Stop => {
-                            self.disconnect();
+                            self.0.disconnect();
                             break 'connected;
                         }
                         e => {
@@ -395,17 +408,8 @@ impl eframe::App for CoppwrApp {
                 });
 
                 if disconnect {
-                    if rsx.send(Request::Stop).is_err() {
-                        eprintln!("Error sending stop request to PipeWire");
-                    }
-                    if let Some(handle) = thread.take() {
-                        if let Err(e) = handle.join() {
-                            eprintln!("The PipeWire thread has paniced: {e:?}");
-                        }
-                    }
-
-                    self.disconnect();
-                    return;
+                    self.0.disconnect();
+                    break 'connected;
                 }
 
                 egui::Window::new("About")
