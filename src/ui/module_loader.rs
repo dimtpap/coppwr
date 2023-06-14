@@ -14,6 +14,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::ops::Not;
+
 use eframe::egui;
 
 use crate::backend::Request;
@@ -95,29 +97,15 @@ impl ModuleLoader {
                     .on_disabled_hover_text("Provide a module name first")
                     .clicked()
                 {
-                    let module_dir = if self.module_dir.is_empty() {
-                        None
-                    } else {
-                        Some(self.module_dir.clone())
-                    };
-
-                    let args = if self.args.is_empty() {
-                        None
-                    } else {
-                        Some(self.args.clone())
-                    };
-
-                    let props = if self.props.is_empty() {
-                        None
-                    } else {
-                        Some(self.props.clone())
-                    };
-
                     rsx.send(Request::LoadModule {
-                        module_dir,
+                        module_dir: self
+                            .module_dir
+                            .is_empty()
+                            .not()
+                            .then(|| self.module_dir.clone()),
                         name: self.name.clone(),
-                        args,
-                        props,
+                        args: self.args.is_empty().not().then(|| self.args.clone()),
+                        props: self.props.is_empty().not().then(|| self.props.clone()),
                     })
                     .ok();
                 }
