@@ -43,7 +43,7 @@ impl View {
     }
 }
 
-struct CoppwrViewer {
+struct Viewer {
     open_tabs: u8,
 
     sx: pw::channel::Sender<Request>,
@@ -56,7 +56,7 @@ struct CoppwrViewer {
     module_loader: WindowedTool<'static, ModuleLoader>,
 }
 
-impl CoppwrViewer {
+impl Viewer {
     pub fn new(sx: pw::channel::Sender<Request>) -> Self {
         Self {
             open_tabs: View::GlobalTracker as u8,
@@ -252,7 +252,7 @@ impl CoppwrViewer {
     }
 }
 
-impl egui_dock::TabViewer for CoppwrViewer {
+impl egui_dock::TabViewer for Viewer {
     type Tab = View;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
@@ -291,7 +291,7 @@ enum State {
         sx: pw::channel::Sender<Request>,
 
         tree: egui_dock::Tree<View>,
-        viewer: CoppwrViewer,
+        viewer: Viewer,
 
         about_opened: bool,
     },
@@ -334,7 +334,7 @@ impl State {
             sx: sx.clone(),
             thread: Some(thread),
             tree: egui_dock::Tree::new(tabs),
-            viewer: CoppwrViewer::new(sx),
+            viewer: Viewer::new(sx),
             about_opened: false,
         }
     }
