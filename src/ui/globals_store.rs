@@ -122,18 +122,14 @@ impl GlobalsStore {
 
     fn satisfies_filters(&self, global: &Global) -> bool {
         if self.group_subobjects {
-            match *global.object_type() {
-                // Reach the top parent to see if global has been drawn as a subobject
-                ObjectType::Node | ObjectType::Port => {
-                    let mut parent = self.parent_of(global);
-                    while let Some(global) = parent.map(|g| g.borrow()) {
-                        if self.satisfies_filters(&global) {
-                            return false;
-                        }
-                        parent = self.parent_of(&global);
+            if let ObjectType::Node | ObjectType::Port = *global.object_type() {
+                let mut parent = self.parent_of(global);
+                while let Some(global) = parent.map(|g| g.borrow()) {
+                    if self.satisfies_filters(&global) {
+                        return false;
                     }
+                    parent = self.parent_of(&global);
                 }
-                _ => {}
             }
         }
 
