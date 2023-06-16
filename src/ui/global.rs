@@ -188,27 +188,15 @@ impl Global {
     }
 
     fn update(&mut self) {
-        self.parent = 'find_parent_id: {
-            let keys = match self.object_type() {
-                ObjectType::Node => {
-                    if self.props().contains_key("device.id") {
-                        ["device.id"].as_slice()
-                    } else {
-                        ["client.id"].as_slice()
-                    }
-                }
-                ObjectType::Port => ["node.id"].as_slice(),
-                _ => break 'find_parent_id None,
-            };
-
-            for k in keys {
-                if let Some(parent_id) = self.props().get(*k).and_then(|v| v.parse::<u32>().ok()) {
-                    break 'find_parent_id Some(parent_id);
-                }
-            }
-
-            None
-        };
+        self.parent = match self.object_type() {
+            ObjectType::Node => match self.props().get("device.id") {
+                None => self.props().get("client.id"),
+                device_id => device_id,
+            },
+            ObjectType::Port => self.props().get("node.id"),
+            _ => None,
+        }
+        .and_then(|id| id.parse::<u32>().ok());
 
         let mut name = 'name: {
             match self.object_type() {
