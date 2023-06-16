@@ -19,9 +19,10 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use eframe::egui;
 use pipewire::{self, types::ObjectType};
 
+use crate::backend::Request;
+
 #[path = "global.rs"]
 mod global;
-use crate::backend::Request;
 pub use global::{Global, ObjectData};
 
 pub struct GlobalsStore {
