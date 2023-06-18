@@ -328,21 +328,18 @@ impl State {
     }
 
     pub fn disconnect(&mut self) {
-        match self {
-            Self::Connected { thread, sx, .. } => {
-                if sx.send(Request::Stop).is_err() {
-                    eprintln!("Error sending stop request to PipeWire");
-                }
-                if let Some(handle) = thread.take() {
-                    if let Err(e) = handle.join() {
-                        eprintln!("The PipeWire thread has paniced: {e:?}");
-                    }
+        if let Self::Connected { thread, sx, .. } = self {
+            if sx.send(Request::Stop).is_err() {
+                eprintln!("Error sending stop request to PipeWire");
+            }
+            if let Some(handle) = thread.take() {
+                if let Err(e) = handle.join() {
+                    eprintln!("The PipeWire thread has paniced: {e:?}");
                 }
             }
-            Self::Unconnected(_) => return,
-        }
 
-        *self = Self::unconnected_from_env();
+            *self = Self::unconnected_from_env();
+        }
     }
 }
 
