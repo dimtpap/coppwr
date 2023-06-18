@@ -23,9 +23,73 @@ use eframe::egui::{
 
 use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 
+mod driver {
+    use std::collections::VecDeque;
+
+    use crate::backend::pods::profiler::Profiling;
+
+    pub struct Driver {
+        profilings: VecDeque<Profiling>,
+        name: Option<String>,
+    }
+
+    impl Driver {
+        pub fn with_max_profilings(max_profilings: usize) -> Self {
+            Self {
+                profilings: VecDeque::with_capacity(max_profilings),
+                name: None,
+            }
+        }
+
+        pub fn add_profiling(&mut self, profiling: Profiling, max_profilings: usize) {
+            match &mut self.name {
+                Some(name) => {
+                    if *name != profiling.driver.name {
+                        *name = profiling.driver.name.clone();
+                    }
+                }
+                None => self.name = Some(profiling.driver.name.clone()),
+            }
+
+            if self.profilings.capacity() < max_profilings {
+                self.profilings
+                    .reserve(max_profilings - self.profilings.capacity());
+            } else if self.profilings.len() > max_profilings {
+                self.profilings
+                    .drain(0..(self.profilings.len() - max_profilings));
+                self.profilings.shrink_to(max_profilings);
+            }
+
+            if self.profilings.len() + 1 > max_profilings {
+                self.profilings.pop_front();
+            }
+
+            self.profilings.push_back(profiling);
+        }
+
+        pub fn profiling_at(&self, i: usize) -> &Profiling {
+            &self.profilings[i]
+        }
+
+        pub fn profilings(&self) -> &VecDeque<Profiling> {
+            &self.profilings
+        }
+
+        pub fn name(&self) -> Option<&String> {
+            self.name.as_ref()
+        }
+
+        pub fn clear(&mut self) {
+            self.profilings.clear();
+        }
+    }
+}
+
+use driver::Driver;
+
 pub struct Profiler {
     max_profilings: usize,
-    drivers: HashMap<i32, VecDeque<Profiling>>,
+    drivers: HashMap<i32, Driver>,
     selected_driver: Option<(i32, String)>,
     pause: bool,
 }
@@ -50,29 +114,14 @@ impl Profiler {
             return;
         }
 
-        // Adjust driver queues first
-        for profilings in self.drivers.values_mut() {
-            if profilings.capacity() < self.max_profilings {
-                profilings.reserve(self.max_profilings - profilings.len());
-            } else if profilings.len() > self.max_profilings {
-                profilings.drain(0..(profilings.len() - self.max_profilings));
-            }
-        }
-
         for p in profilings {
             match self.drivers.entry(p.driver.id) {
                 Entry::Occupied(mut e) => {
-                    let profilings = e.get_mut();
-
-                    if profilings.len() + 1 > self.max_profilings {
-                        profilings.pop_front();
-                    }
-
-                    profilings.push_back(p);
+                    e.get_mut().add_profiling(p, self.max_profilings);
                 }
                 Entry::Vacant(e) => {
-                    e.insert(VecDeque::with_capacity(self.max_profilings))
-                        .push_back(p);
+                    e.insert(Driver::with_max_profilings(self.max_profilings))
+                        .add_profiling(p, self.max_profilings);
                 }
             }
         }
@@ -98,8 +147,8 @@ impl Profiler {
                     .map_or("Select a driver", |(_, name)| name.as_str()),
             )
             .show_ui(ui, |ui| {
-                for (id, profiling) in &self.drivers {
-                    let Some(name) = profiling.back().map(|p| p.driver.name.as_str()) else {
+                for (id, driver) in &self.drivers {
+                    let Some(name) = driver.name() else {
                         continue;
                     };
                     ui.selectable_value(
@@ -110,7 +159,7 @@ impl Profiler {
                 }
             });
 
-        let profilings = if let Some((id, _)) = self.selected_driver {
+        let driver = if let Some((id, _)) = self.selected_driver {
             ui.label(format!("Driver ID: {id}"));
             self.drivers.get_mut(&id).unwrap()
         } else {
@@ -118,7 +167,7 @@ impl Profiler {
             return;
         };
 
-        if let Some(last) = profilings.back() {
+        if let Some(last) = driver.profilings().back() {
             let info = &last.info;
             let followers = last.followers.len();
             ui.label(format!(
@@ -132,7 +181,7 @@ impl Profiler {
                 .on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
 
             if ui.button("Clear driver samples").clicked() {
-                profilings.clear();
+                driver.clear();
             }
 
             ui.toggle_value(&mut self.pause, "Pause");
@@ -208,10 +257,10 @@ impl Profiler {
                         plot::Line::new(PlotPoints::from_parametric_callback(
                             |x| {
                                 let x = x.floor();
-                                (x, measurement(&profilings[x as usize]))
+                                (x, measurement(&driver.profiling_at(x as usize)))
                             },
-                            0f64..profilings.len() as f64,
-                            profilings.len(),
+                            0f64..driver.profilings().len() as f64,
+                            driver.profilings().len(),
                         ))
                         .name(name),
                     );
@@ -229,11 +278,11 @@ impl Profiler {
                     plot::Line::new(PlotPoints::from_parametric_callback(
                         |x| {
                             let x = x.floor();
-                            let driver = &profilings[x as usize].driver;
+                            let driver = &driver.profiling_at(x as usize).driver;
                             (x, ((driver.finish - driver.signal) / 1000) as f64)
                         },
-                        0f64..profilings.len() as f64,
-                        profilings.len(),
+                        0f64..driver.profilings().len() as f64,
+                        driver.profilings().len(),
                     ))
                     .name("Driver end date"),
                 );
@@ -303,7 +352,7 @@ impl Profiler {
                     id,
                     self.max_profilings,
                     profiler_plot_heading(heading, &mut ui[i]),
-                    profilings,
+                    driver.profilings(),
                     measurement,
                     &mut ui[i],
                 );
@@ -393,10 +442,10 @@ impl Profiler {
             }
         }
 
-        self.drivers.retain(|id, profilings| {
+        self.drivers.retain(|id, driver| {
             let keep = ui.horizontal(|ui| {
                 let keep = !ui.small_button("Delete").clicked();
-                if let Some(p) = profilings.back() {
+                if let Some(p) = driver.profilings().back() {
                     ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
                 } else {
                     ui.label(format!("Driver ID: {id}"));
@@ -419,7 +468,7 @@ impl Profiler {
                         ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
                         ui.label("Xruns");
                         ui.end_row();
-                        if let Some(p) = profilings.back() {
+                        if let Some(p) = driver.profilings().back() {
                             draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
                             ui.end_row();
 
