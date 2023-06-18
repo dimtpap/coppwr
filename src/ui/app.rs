@@ -355,11 +355,7 @@ impl CoppwrApp {
 
 impl eframe::App for CoppwrApp {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        if let State::Connected { ref sx, .. } = self.0 {
-            if sx.send(Request::Stop).is_err() {
-                eprintln!("Error sending stop request to PipeWire");
-            }
-        };
+        self.0.disconnect();
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
