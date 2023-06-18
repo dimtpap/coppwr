@@ -33,6 +33,11 @@ mod driver {
     pub struct Driver {
         profilings: VecDeque<Profiling>,
         name: Option<String>,
+
+        delay: VecDeque<f64>,
+        period: VecDeque<f64>,
+        estimated: VecDeque<f64>,
+        end_date: VecDeque<f64>,
     }
 
     impl Driver {
@@ -40,6 +45,11 @@ mod driver {
             Self {
                 profilings: VecDeque::with_capacity(max_profilings),
                 name: None,
+
+                delay: VecDeque::with_capacity(max_profilings),
+                period: VecDeque::with_capacity(max_profilings),
+                estimated: VecDeque::with_capacity(max_profilings),
+                end_date: VecDeque::with_capacity(max_profilings),
             }
         }
 
@@ -55,11 +65,41 @@ mod driver {
 
             if self.profilings.capacity() < max_profilings {
                 self.profilings
-                    .reserve(max_profilings - self.profilings.capacity());
+                    .reserve(max_profilings - self.profilings.len());
             } else if self.profilings.len() > max_profilings {
                 self.profilings
                     .drain(0..(self.profilings.len() - max_profilings));
-                self.profilings.shrink_to(max_profilings);
+            }
+
+            for (points, measurement) in [
+                (&mut self.delay, |p| {
+                    (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom)
+                }),
+                (&mut self.period, |p| {
+                    ((p.driver.signal - p.driver.prev_signal) / 1000) as f64
+                }),
+                (&mut self.estimated, |p| {
+                    (p.clock.duration * 1_000_000) as f64
+                        / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
+                }),
+                (&mut self.end_date, |p| {
+                    ((p.driver.finish - p.driver.signal) / 1000) as f64
+                }),
+            ]
+                as [(&mut VecDeque<f64>, fn(&Profiling) -> f64); 4]
+            {
+                if points.capacity() < max_profilings {
+                    points.reserve(max_profilings - points.capacity());
+                } else if points.len() > max_profilings {
+                    points.drain(0..(points.len() - max_profilings));
+                    points.shrink_to(max_profilings);
+                }
+
+                if points.len() + 1 > max_profilings {
+                    points.pop_front();
+                }
+
+                points.push_back(measurement(&profiling))
             }
 
             if self.profilings.len() + 1 > max_profilings {
@@ -67,10 +107,6 @@ mod driver {
             }
 
             self.profilings.push_back(profiling);
-        }
-
-        pub fn profiling_at(&self, i: usize) -> &Profiling {
-            &self.profilings[i]
         }
 
         pub fn profilings(&self) -> &VecDeque<Profiling> {
@@ -85,37 +121,24 @@ mod driver {
             self.profilings.clear();
         }
 
-        fn generate_plot_points(&self, measurement: fn(&Profiling) -> f64) -> PlotPoints {
-            // Using from_ys would require 2 calls to .collect()
-            PlotPoints::from_parametric_callback(
-                |x| {
-                    let x = x.floor();
-                    (x, measurement(&self.profiling_at(x as usize)))
-                },
-                0f64..self.profilings().len() as f64,
-                self.profilings().len(),
-            )
+        fn generate_plot_points(points: &mut VecDeque<f64>) -> PlotPoints {
+            PlotPoints::from_ys_f64(points.make_contiguous())
         }
 
-        pub fn delay(&self) -> PlotPoints {
-            self.generate_plot_points(|p| {
-                (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom)
-            })
+        pub fn delay(&mut self) -> PlotPoints {
+            Self::generate_plot_points(&mut self.delay)
         }
 
-        pub fn period(&self) -> PlotPoints {
-            self.generate_plot_points(|p| ((p.driver.signal - p.driver.prev_signal) / 1000) as f64)
+        pub fn period(&mut self) -> PlotPoints {
+            Self::generate_plot_points(&mut self.period)
         }
 
-        pub fn estimated(&self) -> PlotPoints {
-            self.generate_plot_points(|p| {
-                (p.clock.duration * 1_000_000) as f64
-                    / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
-            })
+        pub fn estimated(&mut self) -> PlotPoints {
+            Self::generate_plot_points(&mut self.estimated)
         }
 
-        pub fn end_date(&self) -> PlotPoints {
-            self.generate_plot_points(|p| ((p.driver.finish - p.driver.signal) / 1000) as f64)
+        pub fn end_date(&mut self) -> PlotPoints {
+            Self::generate_plot_points(&mut self.end_date)
         }
     }
 }
