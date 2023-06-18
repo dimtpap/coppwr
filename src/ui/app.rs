@@ -305,6 +305,28 @@ impl State {
         Self::Unconnected(remote)
     }
 
+    pub fn new_connected(remote: impl Into<String>) -> Self {
+        let (thread, rx, sx) = crate::backend::run(remote.into());
+
+        let mut tabs = Vec::with_capacity(3 /* Number of views */);
+        tabs.push(View::GlobalTracker);
+
+        Self::Connected {
+            rx,
+            sx: sx.clone(),
+            thread: Some(thread),
+            tree: egui_dock::Tree::new(tabs),
+            viewer: Viewer::new(sx),
+            about_opened: false,
+        }
+    }
+
+    pub fn connect(&mut self) {
+        if let Self::Unconnected(remote) = self {
+            *self = Self::new_connected(std::mem::take(remote));
+        }
+    }
+
     pub fn disconnect(&mut self) {
         match self {
             Self::Connected { thread, sx, .. } => {
@@ -322,29 +344,13 @@ impl State {
 
         *self = Self::unconnected_from_env();
     }
-
-    pub fn connect(remote: impl Into<String>) -> Self {
-        let (thread, rx, sx) = crate::backend::run(remote.into());
-
-        let mut tabs = Vec::with_capacity(3 /* Number of views */);
-        tabs.push(View::GlobalTracker);
-
-        Self::Connected {
-            rx,
-            sx: sx.clone(),
-            thread: Some(thread),
-            tree: egui_dock::Tree::new(tabs),
-            viewer: Viewer::new(sx),
-            about_opened: false,
-        }
-    }
 }
 
 pub struct CoppwrApp(State);
 
 impl CoppwrApp {
     pub fn new() -> Self {
-        Self(State::connect(
+        Self(State::new_connected(
             std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
         ))
     }
@@ -469,7 +475,7 @@ impl eframe::App for CoppwrApp {
                         })
                 });
                 if connect {
-                    self.0 = State::connect(std::mem::take(remote));
+                    self.0.connect();
                 }
             }
         }
