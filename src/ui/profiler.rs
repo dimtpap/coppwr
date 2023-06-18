@@ -111,10 +111,10 @@ impl Profiler {
                 }
             });
 
-        let profilings = if let Some((id, _)) = self.selected_driver {
+        let Some(profilings) = self.selected_driver.as_ref().and_then(|(id, _)| {
             ui.label(format!("Driver ID: {id}"));
-            self.drivers.get_mut(&id).unwrap()
-        } else {
+            self.drivers.get_mut(&id)
+        }) else {
             ui.label("Select a driver to view profiling info");
             return;
         };
