@@ -26,6 +26,8 @@ use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 mod driver {
     use std::collections::VecDeque;
 
+    use eframe::egui::plot::PlotPoints;
+
     use crate::backend::pods::profiler::Profiling;
 
     pub struct Driver {
@@ -81,6 +83,39 @@ mod driver {
 
         pub fn clear(&mut self) {
             self.profilings.clear();
+        }
+
+        fn generate_plot_points(&self, measurement: fn(&Profiling) -> f64) -> PlotPoints {
+            // Using from_ys would require 2 calls to .collect()
+            PlotPoints::from_parametric_callback(
+                |x| {
+                    let x = x.floor();
+                    (x, measurement(&self.profiling_at(x as usize)))
+                },
+                0f64..self.profilings().len() as f64,
+                self.profilings().len(),
+            )
+        }
+
+        pub fn delay(&self) -> PlotPoints {
+            self.generate_plot_points(|p| {
+                (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom)
+            })
+        }
+
+        pub fn period(&self) -> PlotPoints {
+            self.generate_plot_points(|p| ((p.driver.signal - p.driver.prev_signal) / 1000) as f64)
+        }
+
+        pub fn estimated(&self) -> PlotPoints {
+            self.generate_plot_points(|p| {
+                (p.clock.duration * 1_000_000) as f64
+                    / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
+            })
+        }
+
+        pub fn end_date(&self) -> PlotPoints {
+            self.generate_plot_points(|p| ((p.driver.finish - p.driver.signal) / 1000) as f64)
         }
     }
 }
@@ -240,30 +275,14 @@ impl Profiler {
             )
             .height(ui[0].available_height() / 2.)
             .show(&mut ui[0], |ui| {
-                let measurements: [fn(&Profiling) -> f64; 3] = [
-                    |p| (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
-                    |p| ((p.driver.signal - p.driver.prev_signal) / 1000) as f64,
-                    |p| {
-                        (p.clock.duration * 1_000_000) as f64
-                            / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
-                    },
-                ];
-
-                for (name, measurement) in ["Driver Delay", "Period", "Estimated"]
-                    .into_iter()
-                    .zip(measurements)
+                for (name, plot_points) in [
+                    ("Driver Delay", driver.delay()),
+                    ("Period", driver.period()),
+                    ("Estimated", driver.estimated()),
+                ]
+                .into_iter()
                 {
-                    ui.line(
-                        plot::Line::new(PlotPoints::from_parametric_callback(
-                            |x| {
-                                let x = x.floor();
-                                (x, measurement(&driver.profiling_at(x as usize)))
-                            },
-                            0f64..driver.profilings().len() as f64,
-                            driver.profilings().len(),
-                        ))
-                        .name(name),
-                    );
+                    ui.line(plot::Line::new(plot_points).name(name));
                 }
             });
 
@@ -274,18 +293,7 @@ impl Profiler {
             )
             .height(ui[1].available_height() / 2.)
             .show(&mut ui[1], |ui| {
-                ui.line(
-                    plot::Line::new(PlotPoints::from_parametric_callback(
-                        |x| {
-                            let x = x.floor();
-                            let driver = &driver.profiling_at(x as usize).driver;
-                            (x, ((driver.finish - driver.signal) / 1000) as f64)
-                        },
-                        0f64..driver.profilings().len() as f64,
-                        driver.profilings().len(),
-                    ))
-                    .name("Driver end date"),
-                );
+                ui.line(plot::Line::new(driver.end_date()).name("Driver end date"));
             });
         });
 
