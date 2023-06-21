@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{sync::mpsc, thread::JoinHandle, time::Duration};
+use std::{sync::mpsc, thread::JoinHandle};
 
 use eframe::egui;
 use pipewire as pw;
@@ -359,6 +359,9 @@ impl eframe::App for CoppwrApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        // egui won't update until there is interaction so data shown may be out of date
+        ctx.request_repaint_after(std::time::Duration::from_millis(500));
+
         match &mut self.0 {
             State::Connected {
                 rx,
@@ -366,12 +369,12 @@ impl eframe::App for CoppwrApp {
                 viewer,
                 about_opened,
                 ..
-            } => 'connected: {
+            } => {
                 while let Ok(e) = rx.try_recv() {
                     match e {
                         Event::Stop => {
                             self.0.disconnect();
-                            break 'connected;
+                            return;
                         }
                         e => {
                             viewer.process_event(e);
@@ -408,7 +411,7 @@ impl eframe::App for CoppwrApp {
 
                 if disconnect {
                     self.0.disconnect();
-                    break 'connected;
+                    return;
                 }
 
                 egui::Window::new("About")
@@ -476,8 +479,5 @@ impl eframe::App for CoppwrApp {
                 }
             }
         }
-
-        // egui won't update until there is interaction so data shown may be out of date
-        ctx.request_repaint_after(Duration::from_millis(500));
     }
 }
