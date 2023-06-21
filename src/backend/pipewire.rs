@@ -126,6 +126,7 @@ fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Rec
         // but must outlive it to prevent resource leaks
         Ok((mainloop, Rc::new(context), core, Rc::new(registry)))
     })() else {
+        eprintln!("Error while initializing PipeWire");
         sx.send(Event::Stop).ok();
         return;
     };
