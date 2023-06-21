@@ -57,7 +57,7 @@ fn key_val_display<'a>(
 pub enum ObjectData {
     Client {
         permissions: Option<Vec<Permissions>>,
-        new_property: String,
+        new_properties: Vec<(String, String)>,
     },
     Other(ObjectType),
 }
@@ -67,7 +67,7 @@ impl From<ObjectType> for ObjectData {
         match value {
             ObjectType::Client => Self::Client {
                 permissions: None,
-                new_property: String::new(),
+                new_properties: Vec::new(),
             },
             t => Self::Other(t),
         }
@@ -276,7 +276,7 @@ impl Global {
 
                     // Clients can have their properties updated
                     if let ObjectData::Client {
-                        new_property: ref mut new_property_key,
+                        ref mut new_properties,
                         ..
                     } = self.object_data
                     {
@@ -301,19 +301,37 @@ impl Global {
                                     keep
                                 });
                             });
-                            ui.add_space(5.);
+                            ui.separator();
 
-                            ui.horizontal(|ui| {
-                                egui::TextEdit::singleline(new_property_key)
-                                    .hint_text("Property key")
-                                    .show(ui);
-                                if ui.button("Add").clicked() {
-                                    self.props
-                                        .insert(std::mem::take(new_property_key), String::new());
-                                }
+                            ui.label("Add properties");
+                            new_properties.retain_mut(|(k, v)| {
+                                ui.horizontal(|ui| {
+                                    let keep = !ui.small_button("Delete").clicked();
+                                    ui.add(
+                                        egui::TextEdit::singleline(k)
+                                            .hint_text("Key")
+                                            .desired_width(ui.available_width() / 2.5),
+                                    );
+                                    ui.add(
+                                        egui::TextEdit::singleline(v)
+                                            .hint_text("Value")
+                                            .desired_width(ui.available_width()),
+                                    );
+                                    keep
+                                })
+                                .inner
                             });
 
+                            if ui.button("Add property").clicked() {
+                                new_properties.push((String::new(), String::new()));
+                            }
+
+                            ui.separator();
+
                             if ui.button("Update properties").clicked() {
+                                for (k, v) in std::mem::take(new_properties) {
+                                    self.props.insert(k, v);
+                                }
                                 sx.send(Request::CallObjectMethod(
                                     self.id,
                                     ObjectMethod::ClientUpdateProperties(self.props.clone()),
