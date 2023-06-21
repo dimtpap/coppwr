@@ -39,7 +39,7 @@ impl Global {
         Self::Other(proxy.upcast())
     }
 
-    pub fn proxy(&self) -> &Proxy {
+    pub fn as_proxy(&self) -> &Proxy {
         match self {
             Self::Metadata(m) => m.upcast_ref(),
             Self::Client(c) => c.upcast_ref(),
@@ -107,7 +107,7 @@ impl BoundGlobal {
         };
 
         let _proxy_listener = global
-            .proxy()
+            .as_proxy()
             .add_listener_local()
             .removed(proxy_removed)
             .register();
