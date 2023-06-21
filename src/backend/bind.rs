@@ -46,22 +46,6 @@ impl Global {
             Self::Other(p) => p,
         }
     }
-
-    pub fn as_client(&self) -> Option<&pw::client::Client> {
-        if let Global::Client(client) = self {
-            Some(client)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_metadata(&self) -> Option<&pw::metadata::Metadata> {
-        if let Global::Metadata(metadata) = self {
-            Some(metadata)
-        } else {
-            None
-        }
-    }
 }
 
 pub struct BoundGlobal {
@@ -138,17 +122,17 @@ impl BoundGlobal {
     pub fn call(&self, method: ObjectMethod) {
         match method {
             ObjectMethod::ClientGetPermissions { index, num } => {
-                if let Some(client) = self.global.as_client() {
+                if let Global::Client(ref client) = self.global {
                     client.get_permissions(index, num);
                 }
             }
             ObjectMethod::ClientUpdatePermissions(permissions) => {
-                if let Some(client) = self.global.as_client() {
+                if let Global::Client(ref client) = self.global {
                     client.update_permissions(&permissions);
                 }
             }
             ObjectMethod::ClientUpdateProperties(props) => {
-                if let Some(client) = self.global.as_client() {
+                if let Global::Client(ref client) = self.global {
                     client.update_properties(&util::key_val_to_props(props.into_iter()));
                 }
             }
@@ -158,7 +142,7 @@ impl BoundGlobal {
                 type_,
                 value,
             } => {
-                if let Some(metadata) = self.global.as_metadata() {
+                if let Global::Metadata(ref metadata) = self.global {
                     metadata.set_property(
                         subject,
                         key.as_str(),
@@ -168,7 +152,7 @@ impl BoundGlobal {
                 }
             }
             ObjectMethod::MetadataClear => {
-                if let Some(metadata) = self.global.as_metadata() {
+                if let Global::Metadata(ref metadata) = self.global {
                     metadata.clear();
                 }
             }
