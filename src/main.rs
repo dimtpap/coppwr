@@ -27,7 +27,7 @@ fn main() {
         eframe::NativeOptions {
             app_id: Some(String::from("xyz.dimtpap.coppwr")),
             icon_data: eframe::IconData::try_from_png_bytes(
-                &include_bytes!("../assets/icon/256.png")[..],
+                include_bytes!("../assets/icon/256.png").as_slice(),
             )
             .ok(),
             ..eframe::NativeOptions::default()
