@@ -35,6 +35,8 @@ pub struct ObjectCreator {
 }
 
 impl Tool for ObjectCreator {
+    const NAME: &'static str = "Object Creator";
+
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         self.draw(ui, sx);
     }

@@ -19,26 +19,23 @@ use eframe::egui;
 use crate::backend::Request;
 
 pub trait Tool {
+    const NAME: &'static str;
+
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>);
 }
 
-pub struct WindowedTool<'a, T: Tool> {
+pub struct WindowedTool<T: Tool> {
     pub open: bool,
-    title: &'a str,
     pub tool: T,
 }
 
-impl<'a, T: Tool> WindowedTool<'a, T> {
-    pub fn new(title: &'a str, tool: T) -> Self {
-        WindowedTool {
-            open: false,
-            title,
-            tool,
-        }
+impl<T: Tool> WindowedTool<T> {
+    pub fn new(tool: T) -> Self {
+        WindowedTool { open: false, tool }
     }
 
     pub fn window(&mut self, ctx: &egui::Context, sx: &pipewire::channel::Sender<Request>) {
-        egui::Window::new(self.title)
+        egui::Window::new(T::NAME)
             .vscroll(true)
             .open(&mut self.open)
             .show(ctx, |ui| {

@@ -51,9 +51,9 @@ struct Viewer {
     globals: GlobalsStore,
     profiler: Profiler,
 
-    object_creator: WindowedTool<'static, ObjectCreator>,
-    metadata_editor: WindowedTool<'static, MetadataEditor>,
-    module_loader: WindowedTool<'static, ModuleLoader>,
+    object_creator: WindowedTool<ObjectCreator>,
+    metadata_editor: WindowedTool<MetadataEditor>,
+    module_loader: WindowedTool<ModuleLoader>,
 }
 
 impl Viewer {
@@ -66,9 +66,9 @@ impl Viewer {
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
 
-            object_creator: WindowedTool::new("Object Creator", ObjectCreator::new()),
-            metadata_editor: WindowedTool::new("Metadata Editor", MetadataEditor::new()),
-            module_loader: WindowedTool::new("Module Loader", ModuleLoader::new()),
+            object_creator: WindowedTool::new(ObjectCreator::new()),
+            metadata_editor: WindowedTool::new(MetadataEditor::new()),
+            module_loader: WindowedTool::new(ModuleLoader::new()),
         }
     }
 

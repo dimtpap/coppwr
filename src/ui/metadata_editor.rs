@@ -58,6 +58,8 @@ pub struct MetadataEditor {
 }
 
 impl Tool for MetadataEditor {
+    const NAME: &'static str = "Metadata Editor";
+
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         self.draw(ui, sx);
     }

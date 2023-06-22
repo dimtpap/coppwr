@@ -29,6 +29,8 @@ pub struct ModuleLoader {
 }
 
 impl Tool for ModuleLoader {
+    const NAME: &'static str = "Module Loader";
+
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         self.draw(ui, sx);
     }
