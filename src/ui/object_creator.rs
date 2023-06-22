@@ -27,6 +27,7 @@ struct Factory {
     object_type: ObjectType,
 }
 
+#[derive(Default)]
 pub struct ObjectCreator {
     factories: HashMap<u32, Factory>,
     selected_factory: Option<u32>,
@@ -43,14 +44,6 @@ impl Tool for ObjectCreator {
 }
 
 impl ObjectCreator {
-    pub fn new() -> Self {
-        Self {
-            factories: HashMap::new(),
-            selected_factory: None,
-            props: EditableKVList::new(),
-        }
-    }
-
     pub fn add_factory(&mut self, id: u32, name: &str, object_type: ObjectType) {
         self.factories.insert(
             id,

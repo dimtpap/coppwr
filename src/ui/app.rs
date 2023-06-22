@@ -66,9 +66,9 @@ impl Viewer {
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
 
-            object_creator: WindowedTool::new(ObjectCreator::new()),
-            metadata_editor: WindowedTool::new(MetadataEditor::new()),
-            module_loader: WindowedTool::new(ModuleLoader::new()),
+            object_creator: WindowedTool::default(),
+            metadata_editor: WindowedTool::default(),
+            module_loader: WindowedTool::default(),
         }
     }
 

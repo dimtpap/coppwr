@@ -1,12 +1,13 @@
 use eframe::egui;
 
+#[derive(Default)]
 pub struct EditableKVList {
     list: Vec<(String, String)>,
 }
 
 impl EditableKVList {
     pub fn new() -> Self {
-        Self { list: Vec::new() }
+        Self::default()
     }
 
     pub fn draw(&mut self, ui: &mut egui::Ui) {

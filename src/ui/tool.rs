@@ -24,16 +24,13 @@ pub trait Tool {
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>);
 }
 
+#[derive(Default)]
 pub struct WindowedTool<T: Tool> {
     pub open: bool,
     pub tool: T,
 }
 
 impl<T: Tool> WindowedTool<T> {
-    pub fn new(tool: T) -> Self {
-        WindowedTool { open: false, tool }
-    }
-
     pub fn window(&mut self, ctx: &egui::Context, sx: &pipewire::channel::Sender<Request>) {
         egui::Window::new(T::NAME)
             .vscroll(true)

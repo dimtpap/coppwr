@@ -53,6 +53,7 @@ struct Metadata {
     user_properties: Vec<(String, Property)>,
 }
 
+#[derive(Default)]
 pub struct MetadataEditor {
     metadatas: BTreeMap<u32, Metadata>,
 }
@@ -66,12 +67,6 @@ impl Tool for MetadataEditor {
 }
 
 impl MetadataEditor {
-    pub fn new() -> Self {
-        Self {
-            metadatas: BTreeMap::new(),
-        }
-    }
-
     pub fn add_metadata(&mut self, id: u32, name: &str) {
         self.metadatas.entry(id).or_insert(Metadata {
             name: name.to_string(),

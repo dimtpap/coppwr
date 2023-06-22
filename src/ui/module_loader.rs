@@ -21,6 +21,7 @@ use eframe::egui;
 use crate::backend::Request;
 use crate::ui::{common::EditableKVList, Tool};
 
+#[derive(Default)]
 pub struct ModuleLoader {
     module_dir: String,
     name: String,
@@ -37,15 +38,6 @@ impl Tool for ModuleLoader {
 }
 
 impl ModuleLoader {
-    pub fn new() -> Self {
-        Self {
-            module_dir: String::new(),
-            name: String::new(),
-            args: String::new(),
-            props: EditableKVList::new(),
-        }
-    }
-
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         ui.add(
             egui::TextEdit::singleline(&mut self.module_dir)
