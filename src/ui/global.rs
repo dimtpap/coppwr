@@ -24,7 +24,10 @@ use eframe::egui;
 use pipewire as pw;
 use pw::{permissions::Permissions, registry::Permission, types::ObjectType};
 
-use crate::backend::{ObjectMethod, Request};
+use crate::{
+    backend::{ObjectMethod, Request},
+    ui::common::EditableKVList,
+};
 
 fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
     egui::ScrollArea::vertical()
@@ -57,7 +60,7 @@ fn key_val_display<'a>(
 pub enum ObjectData {
     Client {
         permissions: Option<Vec<Permissions>>,
-        new_properties: Vec<(String, String)>,
+        new_properties: EditableKVList,
     },
     Other(ObjectType),
 }
@@ -67,7 +70,7 @@ impl From<ObjectType> for ObjectData {
         match value {
             ObjectType::Client => Self::Client {
                 permissions: None,
-                new_properties: Vec::new(),
+                new_properties: EditableKVList::new(),
             },
             t => Self::Other(t),
         }
@@ -304,32 +307,13 @@ impl Global {
                             ui.separator();
 
                             ui.label("Add properties");
-                            new_properties.retain_mut(|(k, v)| {
-                                ui.horizontal(|ui| {
-                                    let keep = !ui.small_button("Delete").clicked();
-                                    ui.add(
-                                        egui::TextEdit::singleline(k)
-                                            .hint_text("Key")
-                                            .desired_width(ui.available_width() / 2.5),
-                                    );
-                                    ui.add(
-                                        egui::TextEdit::singleline(v)
-                                            .hint_text("Value")
-                                            .desired_width(ui.available_width()),
-                                    );
-                                    keep
-                                })
-                                .inner
-                            });
 
-                            if ui.button("Add property").clicked() {
-                                new_properties.push((String::new(), String::new()));
-                            }
+                            new_properties.draw(ui);
 
                             ui.separator();
 
                             if ui.button("Update properties").clicked() {
-                                for (k, v) in std::mem::take(new_properties) {
+                                for (k, v) in new_properties.take() {
                                     self.props.insert(k, v);
                                 }
                                 sx.send(Request::CallObjectMethod(

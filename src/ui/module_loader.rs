@@ -19,13 +19,13 @@ use std::ops::Not;
 use eframe::egui;
 
 use crate::backend::Request;
-use crate::ui::Tool;
+use crate::ui::{common::EditableKVList, Tool};
 
 pub struct ModuleLoader {
     module_dir: String,
     name: String,
     args: String,
-    props: Vec<(String, String)>,
+    props: EditableKVList,
 }
 
 impl Tool for ModuleLoader {
@@ -40,7 +40,7 @@ impl ModuleLoader {
             module_dir: String::new(),
             name: String::new(),
             args: String::new(),
-            props: Vec::new(),
+            props: EditableKVList::new(),
         }
     }
 
@@ -66,27 +66,7 @@ impl ModuleLoader {
 
         ui.label("Properties");
 
-        self.props.retain_mut(|(k, v)| {
-            ui.horizontal(|ui| {
-                let keep = !ui.button("Delete").clicked();
-                ui.add(
-                    egui::TextEdit::singleline(k)
-                        .desired_width(ui.available_width() / 2.5)
-                        .hint_text("Key"),
-                );
-                ui.add(
-                    egui::TextEdit::singleline(v)
-                        .desired_width(ui.available_width())
-                        .hint_text("Value"),
-                );
-                keep
-            })
-            .inner
-        });
-
-        if ui.button("Add property").clicked() {
-            self.props.push((String::new(), String::new()));
-        }
+        self.props.draw(ui);
 
         ui.separator();
 
@@ -105,7 +85,12 @@ impl ModuleLoader {
                             .then(|| self.module_dir.clone()),
                         name: self.name.clone(),
                         args: self.args.is_empty().not().then(|| self.args.clone()),
-                        props: self.props.is_empty().not().then(|| self.props.clone()),
+                        props: self
+                            .props
+                            .list()
+                            .is_empty()
+                            .not()
+                            .then(|| self.props.list().clone()),
                     })
                     .ok();
                 }

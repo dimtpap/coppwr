@@ -20,7 +20,7 @@ use eframe::egui;
 use pipewire::types::ObjectType;
 
 use crate::backend::Request;
-use crate::ui::Tool;
+use crate::ui::{common::EditableKVList, Tool};
 
 struct Factory {
     name: String,
@@ -31,7 +31,7 @@ pub struct ObjectCreator {
     factories: HashMap<u32, Factory>,
     selected_factory: Option<u32>,
 
-    props: Vec<(String, String)>,
+    props: EditableKVList,
 }
 
 impl Tool for ObjectCreator {
@@ -45,7 +45,7 @@ impl ObjectCreator {
         Self {
             factories: HashMap::new(),
             selected_factory: None,
-            props: Vec::new(),
+            props: EditableKVList::new(),
         }
     }
 
@@ -98,27 +98,7 @@ impl ObjectCreator {
 
         ui.label("Properties");
 
-        self.props.retain_mut(|(k, v)| {
-            ui.horizontal(|ui| {
-                let keep = !ui.button("Delete").clicked();
-                ui.add(
-                    egui::TextEdit::singleline(k)
-                        .desired_width(ui.available_width() / 2.5)
-                        .hint_text("Key"),
-                );
-                ui.add(
-                    egui::TextEdit::singleline(v)
-                        .desired_width(ui.available_width())
-                        .hint_text("Value"),
-                );
-                keep
-            })
-            .inner
-        });
-
-        if ui.button("Add property").clicked() {
-            self.props.push((String::new(), String::new()));
-        }
+        self.props.draw(ui);
 
         ui.separator();
 
@@ -133,7 +113,7 @@ impl ObjectCreator {
                     sx.send(Request::CreateObject(
                         factory.object_type.clone(),
                         factory.name.clone(),
-                        self.props.clone(),
+                        self.props.list().clone(),
                     ))
                     .ok();
                 }

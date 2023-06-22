@@ -14,6 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+mod common;
 mod globals_store;
 mod metadata_editor;
 mod module_loader;
