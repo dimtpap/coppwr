@@ -65,36 +65,43 @@ impl GlobalsStore {
         id: u32,
         object_type: ObjectType,
         props: Option<BTreeMap<String, String>>,
-    ) -> std::cell::Ref<Global> {
-        self.globals.insert(
-            id,
-            Rc::new(RefCell::new(Global::new(id, object_type, props))),
-        );
+    ) -> &Rc<RefCell<Global>> {
+        use std::collections::btree_map::Entry;
 
-        let g = self.globals.get(&id).unwrap();
-        let global = g.borrow();
-        match *global.object_type() {
-            ObjectType::Node | ObjectType::Port => {
-                if let Some(parent) = self.parent_of(&global) {
-                    parent.borrow_mut().add_subobject(Rc::downgrade(g));
+        let global = Rc::new(RefCell::new(Global::new(id, object_type, props)));
+
+        // Add as subobject
+        {
+            let global_borrow = global.borrow();
+            match *global_borrow.object_type() {
+                ObjectType::Node | ObjectType::Port => {
+                    if let Some(parent) = self.parent_of(&global_borrow) {
+                        parent.borrow_mut().add_subobject(Rc::downgrade(&global));
+                    }
                 }
-            }
-            ObjectType::Link => {
-                for port in [
-                    global.props().get("link.input.port"),
-                    global.props().get("link.output.port"),
-                ]
-                .into_iter()
-                .filter_map(|entry| entry.and_then(|id_str| id_str.parse::<u32>().ok()))
-                .filter_map(|id| self.globals.get(&id))
-                {
-                    port.borrow_mut().add_subobject(Rc::downgrade(g));
+                ObjectType::Link => {
+                    for port in [
+                        global_borrow.props().get("link.input.port"),
+                        global_borrow.props().get("link.output.port"),
+                    ]
+                    .into_iter()
+                    .filter_map(|entry| entry.and_then(|id_str| id_str.parse::<u32>().ok()))
+                    .filter_map(|id| self.globals.get(&id))
+                    {
+                        port.borrow_mut().add_subobject(Rc::downgrade(&global));
+                    }
                 }
+                _ => {}
             }
-            _ => {}
         }
 
-        global
+        match self.globals.entry(id) {
+            Entry::Occupied(mut e) => {
+                e.insert(global);
+                e.into_mut()
+            }
+            Entry::Vacant(e) => e.insert(global),
+        }
     }
 
     pub fn get_global(&self, id: u32) -> Option<&Rc<RefCell<Global>>> {

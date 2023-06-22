@@ -141,7 +141,7 @@ impl Viewer {
     fn process_event(&mut self, e: Event) {
         match e {
             Event::GlobalAdded(id, object_type, props) => {
-                let global = self.globals.add_global(id, object_type, props);
+                let global = self.globals.add_global(id, object_type, props).borrow();
 
                 if global.props().is_empty() {
                     return;
