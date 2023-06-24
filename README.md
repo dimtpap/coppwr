@@ -9,7 +9,7 @@ Low level control GUI for [PipeWire](https://pipewire.org)
 </div>
 
 ## Description
-**coppwr** is a tool that that provides low level control over the [PipeWire](https://pipewire.org) multimedia server.  
+**coppwr** is a tool that provides low level control over the [PipeWire](https://pipewire.org) multimedia server.  
 It aims to expose and provide as many ways to inspect and control the many aspects of the PipeWire multimedia server as possible.
 It can be used as a diagnostic tool for PipeWire and to help develop software that interacts with it.
 End-users of PipeWire that want to configure it should look into simpler tools
