@@ -92,14 +92,7 @@ impl MetadataEditor {
         match self.metadatas.entry(id) {
             Entry::Occupied(e) => {
                 let properties = &mut e.into_mut().properties;
-                match properties.entry(key) {
-                    Entry::Occupied(e) => {
-                        *e.into_mut() = prop;
-                    }
-                    Entry::Vacant(e) => {
-                        e.insert(prop);
-                    }
-                }
+                properties.insert(key, prop);
             }
             Entry::Vacant(e) => {
                 let metadata = Metadata {
