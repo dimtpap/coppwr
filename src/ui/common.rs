@@ -50,7 +50,7 @@ impl EditableKVList {
         }
     }
 
-    pub fn list(&self) -> &Vec<(String, String)> {
+    pub const fn list(&self) -> &Vec<(String, String)> {
         &self.list
     }
 

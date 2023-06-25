@@ -34,11 +34,11 @@ enum View {
 }
 
 impl View {
-    fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
-            View::Profiler => "Profiler",
-            View::ProcessViewer => "Process Viewer",
-            View::GlobalTracker => "Global Tracker",
+            Self::Profiler => "Profiler",
+            Self::ProcessViewer => "Process Viewer",
+            Self::GlobalTracker => "Global Tracker",
         }
     }
 }

@@ -33,7 +33,7 @@ pub struct GlobalsStore {
     searched_property: String,
 }
 
-fn object_type_flag(t: &ObjectType) -> u16 {
+const fn object_type_flag(t: &ObjectType) -> u16 {
     match t {
         ObjectType::Core => 1 << 0,
         ObjectType::Module => 1 << 1,
@@ -50,7 +50,7 @@ fn object_type_flag(t: &ObjectType) -> u16 {
 }
 
 impl GlobalsStore {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             globals: BTreeMap::new(),
 

@@ -78,7 +78,7 @@ impl From<ObjectType> for ObjectData {
 }
 
 impl ObjectData {
-    fn pipewire_type(&self) -> &ObjectType {
+    const fn pipewire_type(&self) -> &ObjectType {
         match self {
             Self::Client { .. } => &ObjectType::Client,
             Self::Other(t) => t,
@@ -420,19 +420,19 @@ impl Global {
         });
     }
 
-    pub fn name(&self) -> Option<&String> {
+    pub const fn name(&self) -> Option<&String> {
         self.name.as_ref()
     }
 
-    pub fn object_type(&self) -> &pw::types::ObjectType {
+    pub const fn object_type(&self) -> &pw::types::ObjectType {
         self.object_data.pipewire_type()
     }
 
-    pub fn add_subobject(&mut self, subobject: Weak<RefCell<Global>>) {
+    pub fn add_subobject(&mut self, subobject: Weak<RefCell<Self>>) {
         self.subobjects.push(subobject);
     }
 
-    pub fn props(&self) -> &BTreeMap<String, String> {
+    pub const fn props(&self) -> &BTreeMap<String, String> {
         &self.props
     }
 
@@ -453,7 +453,7 @@ impl Global {
         &mut self.object_data
     }
 
-    pub fn parent_id(&self) -> Option<u32> {
+    pub const fn parent_id(&self) -> Option<u32> {
         self.parent
     }
 }
