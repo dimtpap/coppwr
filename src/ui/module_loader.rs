@@ -65,7 +65,7 @@ impl ModuleLoader {
         ui.separator();
 
         ui.horizontal(|ui| {
-            ui.add_enabled_ui(!&self.name.is_empty(), |ui| {
+            ui.add_enabled_ui(!self.name.is_empty(), |ui| {
                 if ui
                     .button("Load")
                     .on_disabled_hover_text("Provide a module name first")
