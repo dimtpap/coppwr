@@ -370,7 +370,7 @@ impl eframe::App for CoppwrApp {
                 about_opened,
                 ..
             } => {
-                while let Ok(e) = rx.try_recv() {
+                for e in rx.try_iter() {
                     match e {
                         Event::Stop => {
                             self.0.disconnect();
