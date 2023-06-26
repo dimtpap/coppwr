@@ -21,11 +21,10 @@ use crate::backend::{bind::Global, profiler, util::dict_to_map, Event};
 
 type Bind = (Global, Box<dyn pipewire::proxy::Listener>);
 
-pub fn module(module: pw::module::Module, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn module(module: pw::module::Module, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = module
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 let name = ("Name", info.name().to_string());
                 let filename = ("Filename", info.filename().to_string());
@@ -52,15 +51,10 @@ pub fn module(module: pw::module::Module, id: u32, sx: &std::sync::mpsc::Sender<
     (Global::other(module), Box::new(listener))
 }
 
-pub fn factory(
-    factory: pw::factory::Factory,
-    id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
-) -> Bind {
+pub fn factory(factory: pw::factory::Factory, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = factory
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 let infos = Box::new([
                     ("Type", info.type_().to_string()),
@@ -83,11 +77,10 @@ pub fn factory(
     (Global::other(factory), Box::new(listener))
 }
 
-pub fn device(device: pw::device::Device, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn device(device: pw::device::Device, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = device
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 if let (true, Some(props)) = (
                     info.change_mask()
@@ -103,7 +96,7 @@ pub fn device(device: pw::device::Device, id: u32, sx: &std::sync::mpsc::Sender<
     (Global::other(device), Box::new(listener))
 }
 
-pub fn client(client: pw::client::Client, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn client(client: pw::client::Client, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = client
         .add_listener_local()
         .info({
@@ -120,7 +113,6 @@ pub fn client(client: pw::client::Client, id: u32, sx: &std::sync::mpsc::Sender<
             }
         })
         .permissions({
-            let sx = sx.clone();
             move |idx, permissions| {
                 sx.send(Event::ClientPermissions(id, idx, permissions.into()))
                     .ok();
@@ -130,11 +122,10 @@ pub fn client(client: pw::client::Client, id: u32, sx: &std::sync::mpsc::Sender<
     (Global::Client(client), Box::new(listener))
 }
 
-pub fn node(node: pw::node::Node, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn node(node: pw::node::Node, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = node
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 let state = match info.state() {
                     pw::node::NodeState::Creating => "Creating",
@@ -167,11 +158,10 @@ pub fn node(node: pw::node::Node, id: u32, sx: &std::sync::mpsc::Sender<Event>) 
     (Global::other(node), Box::new(listener))
 }
 
-pub fn port(port: pw::port::Port, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = port
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 let direction = match info.direction() {
                     pw::spa::Direction::Input => "Input",
@@ -195,11 +185,10 @@ pub fn port(port: pw::port::Port, id: u32, sx: &std::sync::mpsc::Sender<Event>) 
     (Global::other(port), Box::new(listener))
 }
 
-pub fn link(link: pw::link::Link, id: u32, sx: &std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn link(link: pw::link::Link, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
     let listener = link
         .add_listener_local()
         .info({
-            let sx = sx.clone();
             move |info| {
                 let state = match info.state() {
                     pw::link::LinkState::Init => "Init",
@@ -237,12 +226,11 @@ pub fn link(link: pw::link::Link, id: u32, sx: &std::sync::mpsc::Sender<Event>) 
 pub fn profiler(
     profiler: pw::profiler::Profiler,
     id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
+    sx: std::sync::mpsc::Sender<Event>,
 ) -> Bind {
     let listener = profiler
         .add_listener_local()
         .profile({
-            let sx = sx.clone();
             move |pod| match PodDeserializer::deserialize_from::<profiler::Profilings>(pod)
                 .map(|(_, pod)| pod)
             {
@@ -261,12 +249,11 @@ pub fn profiler(
 pub fn metadata(
     metadata: pw::metadata::Metadata,
     id: u32,
-    sx: &std::sync::mpsc::Sender<Event>,
+    sx: std::sync::mpsc::Sender<Event>,
 ) -> Bind {
     let listener = metadata
         .add_listener_local()
         .property({
-            let sx = sx.clone();
             move |subject, key, type_, value| {
                 sx.send(Event::MetadataProperty {
                     id,

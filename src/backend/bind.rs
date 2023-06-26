@@ -72,6 +72,8 @@ impl BoundGlobal {
         sx: &std::sync::mpsc::Sender<Event>,
         proxy_removed: impl Fn() + 'static,
     ) -> Result<Self, BindError> {
+        let sx = sx.clone();
+
         let id = global.id;
         let (global, _object_listener): (_, Box<dyn pw::proxy::Listener>) = match global.type_ {
             ObjectType::Module => {
