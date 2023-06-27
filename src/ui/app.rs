@@ -332,10 +332,8 @@ impl State {
             if sx.send(Request::Stop).is_err() {
                 eprintln!("Error sending stop request to PipeWire");
             }
-            if let Some(handle) = thread.take() {
-                if let Err(e) = handle.join() {
-                    eprintln!("The PipeWire thread has paniced: {e:?}");
-                }
+            if let Some(Err(e)) = thread.take().map(JoinHandle::join) {
+                eprintln!("The PipeWire thread has paniced: {e:?}");
             }
 
             *self = Self::unconnected_from_env();
