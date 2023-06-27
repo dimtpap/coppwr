@@ -203,11 +203,7 @@ impl GlobalsStore {
         egui::ScrollArea::vertical().show(ui, |ui| {
             for mut global in self.globals.values().filter_map(|global| {
                 let global = global.borrow_mut();
-                if self.satisfies_filters(&global) {
-                    Some(global)
-                } else {
-                    None
-                }
+                self.satisfies_filters(&global).then_some(global)
             }) {
                 global.draw(ui, self.group_subobjects, &self.searched_property, sx);
             }
