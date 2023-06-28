@@ -31,13 +31,15 @@ pub fn key_val_to_props(
     kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
 ) -> pw::Properties {
     unsafe {
+        use std::ops::Not;
+
         let raw = NonNull::new(pw::sys::pw_properties_new(std::ptr::null())).unwrap();
-        for (k, v) in kv
-            .map(|(k, v)| (k.into(), v.into()))
-            .filter(|(k, _)| !k.is_empty())
-        {
-            let k = CString::new(k).unwrap();
-            let v = CString::new(v).unwrap();
+        for (k, v) in kv.filter_map(|(k, v)| {
+            let k = k.into();
+            k.is_empty()
+                .not()
+                .then(|| (CString::new(k).unwrap(), CString::new(v).unwrap()))
+        }) {
             pw::sys::pw_properties_set(raw.as_ptr(), k.as_ptr(), v.as_ptr());
         }
         pw::Properties::from_ptr(raw)
