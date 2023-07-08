@@ -17,7 +17,7 @@
 use pipewire as pw;
 use pw::spa::pod::deserialize::PodDeserializer;
 
-use crate::backend::{bind::Global, profiler, util::dict_to_map, Event};
+use crate::backend::{bind::Global, pods::profiler, util::dict_to_map, Event};
 
 type Bind = (Global, Box<dyn pipewire::proxy::Listener>);
 

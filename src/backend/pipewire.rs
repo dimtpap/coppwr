@@ -26,7 +26,7 @@ use pw::{permissions::Permissions, proxy::ProxyT, types::ObjectType};
 
 use super::{
     bind::{BindError, BoundGlobal},
-    profiler::Profiling,
+    pods::profiler::Profiling,
     util,
 };
 

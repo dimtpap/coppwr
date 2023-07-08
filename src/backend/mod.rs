@@ -16,8 +16,7 @@
 
 mod bind;
 mod pipewire;
-#[path = "profiler_deserialize.rs"]
-pub mod profiler;
+pub mod pods;
 mod util;
 
 pub use self::pipewire::*;
