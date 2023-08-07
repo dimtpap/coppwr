@@ -555,6 +555,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie-factory"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -788,9 +797,9 @@ dependencies = [
 
 [[package]]
 name = "egui_dock"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c12e6f4b175be951d85ab7c0c81138797a25bfcf74387f3999e11c229d548e3"
+checksum = "1ec07302c1a474f37fe6ef2c6672427880025edc37ac33955e6ea4a11bc6972a"
 dependencies = [
  "duplicate",
  "egui",
@@ -1302,14 +1311,15 @@ dependencies = [
 [[package]]
 name = "libspa"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=609646074a39958501095f62af6d68c54c5d3ae1#609646074a39958501095f62af6d68c54c5d3ae1"
 dependencies = [
  "bitflags 2.3.2",
  "cc",
+ "convert_case",
  "cookie-factory",
- "errno",
  "libc",
  "libspa-sys",
+ "nix 0.26.2",
  "nom",
  "system-deps",
 ]
@@ -1317,7 +1327,7 @@ dependencies = [
 [[package]]
 name = "libspa-sys"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=609646074a39958501095f62af6d68c54c5d3ae1#609646074a39958501095f62af6d68c54c5d3ae1"
 dependencies = [
  "bindgen",
  "cc",
@@ -1703,11 +1713,10 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pipewire"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=609646074a39958501095f62af6d68c54c5d3ae1#609646074a39958501095f62af6d68c54c5d3ae1"
 dependencies = [
  "anyhow",
  "bitflags 2.3.2",
- "errno",
  "libc",
  "libspa",
  "libspa-sys",
@@ -1720,7 +1729,7 @@ dependencies = [
 [[package]]
 name = "pipewire-sys"
 version = "0.6.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=d6f0be3e10239d92479cbf7ee74959818907cd16#d6f0be3e10239d92479cbf7ee74959818907cd16"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=609646074a39958501095f62af6d68c54c5d3ae1#609646074a39958501095f62af6d68c54c5d3ae1"
 dependencies = [
  "bindgen",
  "libspa-sys",
@@ -2323,6 +2332,12 @@ checksum = "5c5713f0fc4b5db668a2ac63cdb7bb4469d8c9fed047b1d0292cc7b0ce2ba921"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1dd624098567895118886609431a7c3b8f516e41d30e0643f03d94592a147e36"
 
 [[package]]
 name = "url"
