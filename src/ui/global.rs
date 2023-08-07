@@ -18,6 +18,7 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     rc::{Rc, Weak},
+    sync::OnceLock,
 };
 
 use eframe::egui;
@@ -77,6 +78,8 @@ impl From<ObjectType> for ObjectData {
     }
 }
 
+static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
+
 impl ObjectData {
     const fn pipewire_type(&self) -> &ObjectType {
         match self {
@@ -110,17 +113,37 @@ impl ObjectData {
                                 ui.label("ID");
                                 ui.add(egui::widgets::DragValue::new(&mut p.id));
 
-                                for (permission, label) in [
-                                    (Permission::R, "Read"),
-                                    (Permission::W, "Write"),
-                                    (Permission::X, "Execute"),
-                                    (Permission::M, "Metadata"),
-                                ] {
+                                for (permission, label) in *PERMISSIONS.get_or_init(|| {
+                                    #[cfg(feature = "pw_v0_3_77")]
+                                    if crate::backend::remote_version()
+                                        .is_some_and(|ver| ver.2 >= 77)
+                                    {
+                                        return [
+                                            (Permission::R, "Read"),
+                                            (Permission::W, "Write"),
+                                            (Permission::X, "Execute"),
+                                            (Permission::M, "Metadata"),
+                                            (Permission::L, "Link"),
+                                        ]
+                                        .as_slice();
+                                    }
+
+                                    [
+                                        (Permission::R, "Read"),
+                                        (Permission::W, "Write"),
+                                        (Permission::X, "Execute"),
+                                        (Permission::M, "Metadata"),
+                                    ]
+                                    .as_slice()
+                                }) {
                                     if ui
-                                        .selectable_label(p.permissions.contains(permission), label)
+                                        .selectable_label(
+                                            p.permissions.contains(*permission),
+                                            *label,
+                                        )
                                         .clicked()
                                     {
-                                        p.permissions.toggle(permission);
+                                        p.permissions.toggle(*permission);
                                     }
                                 }
 

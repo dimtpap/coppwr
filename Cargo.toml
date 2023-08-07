@@ -18,6 +18,10 @@ pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewir
 eframe = {version = "0.22.0", features = ["wayland"]}
 egui_dock = "0.6.2"
 
+[features]
+# Used for the Link permission
+pw_v0_3_77 = ["pipewire/v0_3_77"]
+
 [profile.release]
 lto = true
 strip = true

@@ -21,6 +21,9 @@ use std::{
     sync::mpsc,
 };
 
+#[cfg(feature = "pw_v0_3_77")]
+use std::sync::OnceLock;
+
 use pipewire as pw;
 use pw::{permissions::Permissions, proxy::ProxyT, types::ObjectType};
 
@@ -74,6 +77,13 @@ pub enum Event {
         value: Option<String>,
     },
     Stop,
+}
+
+#[cfg(feature = "pw_v0_3_77")]
+static REMOTE_VERSION: OnceLock<(u32, u32, u32)> = OnceLock::new();
+#[cfg(feature = "pw_v0_3_77")]
+pub fn remote_version<'a>() -> Option<&'a (u32, u32, u32)> {
+    REMOTE_VERSION.get()
 }
 
 pub fn run(
@@ -255,6 +265,20 @@ fn pipewire_thread(remote: &str, sx: mpsc::Sender<Event>, pwrx: pw::channel::Rec
         .info({
             let sx = sx.clone();
             move |info| {
+                #[cfg(feature = "pw_v0_3_77")]
+                if REMOTE_VERSION.get().is_none() {
+                    let mut version = info
+                        .version()
+                        .split('.')
+                        .filter_map(|v| v.parse::<u32>().ok());
+
+                    if let (Some(major), Some(minor), Some(micro)) =
+                        (version.next(), version.next(), version.next())
+                    {
+                        REMOTE_VERSION.set((major, minor, micro)).ok();
+                    }
+                }
+
                 let infos = Box::new([
                     ("Name", info.name().to_string()),
                     ("Hostname", info.host_name().to_string()),
