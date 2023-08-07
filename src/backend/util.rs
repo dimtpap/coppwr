@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::BTreeMap, ffi::CString, ptr::NonNull};
+use std::{collections::BTreeMap, ffi::CString};
 
 use pipewire as pw;
 use pipewire::spa::{ForeignDict, ReadableDict};
@@ -33,15 +33,15 @@ pub fn key_val_to_props(
     unsafe {
         use std::ops::Not;
 
-        let raw = NonNull::new(pw::sys::pw_properties_new(std::ptr::null())).unwrap();
+        let props = pw::Properties::new();
         for (k, v) in kv.filter_map(|(k, v)| {
             let k = k.into();
             k.is_empty()
                 .not()
                 .then(|| (CString::new(k).unwrap(), CString::new(v).unwrap()))
         }) {
-            pw::sys::pw_properties_set(raw.as_ptr(), k.as_ptr(), v.as_ptr());
+            pw::sys::pw_properties_set(props.as_ptr(), k.as_ptr(), v.as_ptr());
         }
-        pw::Properties::from_ptr(raw)
+        props
     }
 }
