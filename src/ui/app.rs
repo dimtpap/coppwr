@@ -354,11 +354,11 @@ impl eframe::App for CoppwrApp {
 
         match &mut self.0 {
             State::Connected {
-                tabs_tree: tabs,
-                inspector: state,
+                tabs_tree,
+                inspector,
                 about,
             } => {
-                if state.process_events_or_stop() {
+                if inspector.process_events_or_stop() {
                     self.0.disconnect();
                     return;
                 }
@@ -379,8 +379,8 @@ impl eframe::App for CoppwrApp {
                             }
                         });
 
-                        state.views_menu_buttons(ui, tabs);
-                        state.tools_menu_buttons(ui);
+                        inspector.views_menu_buttons(ui, tabs_tree);
+                        inspector.tools_menu_buttons(ui);
 
                         ui.menu_button("Help", |ui| {
                             if ui.button("❓ About").clicked() {
@@ -420,14 +420,14 @@ impl eframe::App for CoppwrApp {
                         });
                     });
 
-                state.tool_windows(ctx);
+                inspector.tool_windows(ctx);
 
                 let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
                 style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
-                egui_dock::DockArea::new(tabs)
+                egui_dock::DockArea::new(tabs_tree)
                     .style(style)
                     .scroll_area_in_tabs(false)
-                    .show(ctx, state);
+                    .show(ctx, inspector);
             }
             State::Unconnected(remote) => {
                 let mut connect = false;
