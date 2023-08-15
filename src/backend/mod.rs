@@ -19,23 +19,15 @@ mod pipewire;
 pub mod pods;
 mod util;
 
-use std::{collections::BTreeMap, sync::mpsc, thread::JoinHandle};
-
-#[cfg(feature = "pw_v0_3_77")]
-use std::sync::OnceLock;
-
 use ::pipewire as pw;
-use pw::{permissions::Permissions, types::ObjectType};
-
-use self::pods::profiler::Profiling;
 
 pub enum ObjectMethod {
     ClientGetPermissions {
         index: u32,
         num: u32,
     },
-    ClientUpdatePermissions(Vec<Permissions>),
-    ClientUpdateProperties(BTreeMap<String, String>),
+    ClientUpdatePermissions(Vec<pw::permissions::Permissions>),
+    ClientUpdateProperties(std::collections::BTreeMap<String, String>),
     MetadataSetProperty {
         subject: u32,
         key: String,
@@ -47,7 +39,7 @@ pub enum ObjectMethod {
 
 pub enum Request {
     Stop,
-    CreateObject(ObjectType, String, Vec<(String, String)>),
+    CreateObject(pw::types::ObjectType, String, Vec<(String, String)>),
     DestroyObject(u32),
     LoadModule {
         module_dir: Option<String>,
@@ -59,12 +51,16 @@ pub enum Request {
 }
 
 pub enum Event {
-    GlobalAdded(u32, ObjectType, Option<BTreeMap<String, String>>),
+    GlobalAdded(
+        u32,
+        pw::types::ObjectType,
+        Option<std::collections::BTreeMap<String, String>>,
+    ),
     GlobalRemoved(u32),
     GlobalInfo(u32, Box<[(&'static str, String)]>),
-    GlobalProperties(u32, BTreeMap<String, String>),
-    ClientPermissions(u32, u32, Vec<Permissions>),
-    ProfilerProfile(Vec<Profiling>),
+    GlobalProperties(u32, std::collections::BTreeMap<String, String>),
+    ClientPermissions(u32, u32, Vec<pw::permissions::Permissions>),
+    ProfilerProfile(Vec<self::pods::profiler::Profiling>),
     MetadataProperty {
         id: u32,
         subject: u32,
@@ -76,21 +72,21 @@ pub enum Event {
 }
 
 #[cfg(feature = "pw_v0_3_77")]
-static REMOTE_VERSION: OnceLock<(u32, u32, u32)> = OnceLock::new();
+static REMOTE_VERSION: std::sync::OnceLock<(u32, u32, u32)> = std::sync::OnceLock::new();
 #[cfg(feature = "pw_v0_3_77")]
 pub fn remote_version<'a>() -> Option<&'a (u32, u32, u32)> {
     REMOTE_VERSION.get()
 }
 
 pub struct Handle {
-    thread: Option<JoinHandle<()>>,
-    pub rx: mpsc::Receiver<Event>,
+    thread: Option<std::thread::JoinHandle<()>>,
+    pub rx: std::sync::mpsc::Receiver<Event>,
     pub sx: pw::channel::Sender<Request>,
 }
 
 impl Handle {
     pub fn run(remote: String) -> Self {
-        let (sx, rx) = mpsc::channel::<Event>();
+        let (sx, rx) = std::sync::mpsc::channel::<Event>();
         let (pwsx, pwrx) = pw::channel::channel::<Request>();
 
         Self {
@@ -108,7 +104,7 @@ impl Drop for Handle {
         if self.sx.send(Request::Stop).is_err() {
             eprintln!("Error sending stop request to PipeWire");
         }
-        if let Some(Err(e)) = self.thread.take().map(JoinHandle::join) {
+        if let Some(Err(e)) = self.thread.take().map(std::thread::JoinHandle::join) {
             eprintln!("The PipeWire thread has paniced: {e:?}");
         }
     }

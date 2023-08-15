@@ -16,11 +16,10 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
-use pw::proxy::ProxyT;
-
 use super::{
     bind::{BoundGlobal, Error},
-    pw, util, Event, ObjectType, Request,
+    pw::{self, proxy::ProxyT, types::ObjectType},
+    util, Event, Request,
 };
 
 #[cfg(feature = "pw_v0_3_77")]
