@@ -24,7 +24,7 @@ use std::{collections::BTreeMap, sync::mpsc, thread::JoinHandle};
 #[cfg(feature = "pw_v0_3_77")]
 use std::sync::OnceLock;
 
-pub use ::pipewire as pw;
+use ::pipewire as pw;
 use pw::{permissions::Permissions, types::ObjectType};
 
 use self::pods::profiler::Profiling;

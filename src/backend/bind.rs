@@ -54,12 +54,12 @@ pub struct BoundGlobal {
     _proxy_listener: pw::proxy::ProxyListener,
 }
 
-pub enum BindError {
+pub enum Error {
     Unimplemented,
     PipeWireError(pw::Error),
 }
 
-impl From<pw::Error> for BindError {
+impl From<pw::Error> for Error {
     fn from(value: pw::Error) -> Self {
         Self::PipeWireError(value)
     }
@@ -71,7 +71,7 @@ impl BoundGlobal {
         global: &GlobalObject<ForeignDict>,
         sx: &std::sync::mpsc::Sender<Event>,
         proxy_removed: impl Fn() + 'static,
-    ) -> Result<Self, BindError> {
+    ) -> Result<Self, Error> {
         let sx = sx.clone();
 
         let id = global.id;
@@ -104,7 +104,7 @@ impl BoundGlobal {
                 listeners::metadata(registry.bind::<pw::metadata::Metadata, _>(global)?, id, sx)
             }
             _ => {
-                return Err(BindError::Unimplemented);
+                return Err(Error::Unimplemented);
             }
         };
 

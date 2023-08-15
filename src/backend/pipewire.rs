@@ -18,7 +18,13 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
 use pw::proxy::ProxyT;
 
-use super::{bind::*, *};
+use super::{
+    bind::{BoundGlobal, Error},
+    pw, util, Event, ObjectType, Request,
+};
+
+#[cfg(feature = "pw_v0_3_77")]
+use super::REMOTE_VERSION;
 
 pub fn pipewire_thread(
     remote: &str,
@@ -261,10 +267,10 @@ pub fn pipewire_thread(
                         binds.borrow_mut().insert(id, bound_global);
                     }
                     Err(e) => match e {
-                        BindError::Unimplemented => {
+                        Error::Unimplemented => {
                             eprintln!("Unsupported object type {}", global.type_);
                         }
-                        BindError::PipeWireError(e) => {
+                        Error::PipeWireError(e) => {
                             eprintln!("Error binding object {id}: {e}");
                         }
                     },
