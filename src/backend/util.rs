@@ -14,10 +14,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::BTreeMap, ffi::CString};
+use std::collections::BTreeMap;
 
 use pipewire as pw;
-use pipewire::spa::{ForeignDict, ReadableDict};
+use pipewire::spa::{ForeignDict, ReadableDict, WritableDict};
 
 pub fn dict_to_map(dict: &ForeignDict) -> BTreeMap<String, String> {
     let mut map = BTreeMap::new();
@@ -30,18 +30,9 @@ pub fn dict_to_map(dict: &ForeignDict) -> BTreeMap<String, String> {
 pub fn key_val_to_props(
     kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
 ) -> pw::Properties {
-    unsafe {
-        use std::ops::Not;
-
-        let props = pw::Properties::new();
-        for (k, v) in kv.filter_map(|(k, v)| {
-            let k = k.into();
-            k.is_empty()
-                .not()
-                .then(|| (CString::new(k).unwrap(), CString::new(v).unwrap()))
-        }) {
-            pw::sys::pw_properties_set(props.as_ptr(), k.as_ptr(), v.as_ptr());
-        }
-        props
+    let mut props = pw::Properties::new();
+    for (k, v) in kv {
+        props.insert(k, v);
     }
+    props
 }
