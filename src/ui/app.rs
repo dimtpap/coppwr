@@ -14,8 +14,6 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{sync::mpsc, thread::JoinHandle};
-
 use eframe::egui;
 use pipewire as pw;
 use pw::types::ObjectType;
@@ -24,7 +22,7 @@ use super::{
     globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
     WindowedTool,
 };
-use crate::backend::{Event, Request};
+use crate::backend::{self, Event};
 
 #[derive(Clone, Copy)]
 enum View {
@@ -43,10 +41,10 @@ impl View {
     }
 }
 
-struct Viewer {
-    open_tabs: u8,
+struct Inspector {
+    handle: backend::Handle,
 
-    sx: pw::channel::Sender<Request>,
+    open_tabs: u8,
 
     globals: GlobalsStore,
     profiler: Profiler,
@@ -56,12 +54,12 @@ struct Viewer {
     module_loader: WindowedTool<ModuleLoader>,
 }
 
-impl Viewer {
-    pub fn new(sx: pw::channel::Sender<Request>) -> Self {
+impl Inspector {
+    pub fn new(remote: impl Into<String>) -> Self {
         Self {
-            open_tabs: View::GlobalTracker as u8,
+            handle: backend::Handle::run(remote.into()),
 
-            sx,
+            open_tabs: View::GlobalTracker as u8,
 
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
@@ -133,9 +131,21 @@ impl Viewer {
     }
 
     pub fn tool_windows(&mut self, ctx: &egui::Context) {
-        self.object_creator.window(ctx, &self.sx);
-        self.metadata_editor.window(ctx, &self.sx);
-        self.module_loader.window(ctx, &self.sx);
+        self.object_creator.window(ctx, &self.handle.sx);
+        self.metadata_editor.window(ctx, &self.handle.sx);
+        self.module_loader.window(ctx, &self.handle.sx);
+    }
+
+    #[must_use = "Indicates whether the connection to the backend has ended"]
+    pub fn process_events_or_stop(&mut self) -> bool {
+        while let Ok(e) = self.handle.rx.try_recv() {
+            match e {
+                Event::Stop => return true,
+                e => self.process_event(e),
+            }
+        }
+
+        false
     }
 
     fn process_event(&mut self, e: Event) {
@@ -252,7 +262,7 @@ impl Viewer {
     }
 }
 
-impl egui_dock::TabViewer for Viewer {
+impl egui_dock::TabViewer for Inspector {
     type Tab = View;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
@@ -268,7 +278,7 @@ impl egui_dock::TabViewer for Viewer {
                 });
             }
             View::GlobalTracker => {
-                self.globals.draw(ui, &self.sx);
+                self.globals.draw(ui, &self.handle.sx);
             }
         }
     }
@@ -285,15 +295,9 @@ impl egui_dock::TabViewer for Viewer {
 
 enum State {
     Connected {
-        // Calling .join() requires moving
-        thread: Option<JoinHandle<()>>,
-        rx: mpsc::Receiver<Event>,
-        sx: pw::channel::Sender<Request>,
-
-        tree: egui_dock::Tree<View>,
-        viewer: Viewer,
-
-        about_opened: bool,
+        tabs_tree: egui_dock::Tree<View>,
+        inspector: Inspector,
+        about: bool,
     },
     Unconnected(String), // user provided remote name
 }
@@ -306,18 +310,13 @@ impl State {
     }
 
     pub fn new_connected(remote: impl Into<String>) -> Self {
-        let (thread, rx, sx) = crate::backend::run(remote.into());
-
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
-            rx,
-            sx: sx.clone(),
-            thread: Some(thread),
-            tree: egui_dock::Tree::new(tabs),
-            viewer: Viewer::new(sx),
-            about_opened: false,
+            tabs_tree: egui_dock::Tree::new(tabs),
+            inspector: Inspector::new(remote),
+            about: false,
         }
     }
 
@@ -328,14 +327,7 @@ impl State {
     }
 
     pub fn disconnect(&mut self) {
-        if let Self::Connected { thread, sx, .. } = self {
-            if sx.send(Request::Stop).is_err() {
-                eprintln!("Error sending stop request to PipeWire");
-            }
-            if let Some(Err(e)) = thread.take().map(JoinHandle::join) {
-                eprintln!("The PipeWire thread has paniced: {e:?}");
-            }
-
+        if let Self::Connected { .. } = self {
             *self = Self::unconnected_from_env();
         }
     }
@@ -362,22 +354,13 @@ impl eframe::App for CoppwrApp {
 
         match &mut self.0 {
             State::Connected {
-                rx,
-                tree,
-                viewer,
-                about_opened,
-                ..
+                tabs_tree: tabs,
+                inspector: state,
+                about,
             } => {
-                for e in rx.try_iter() {
-                    match e {
-                        Event::Stop => {
-                            self.0.disconnect();
-                            return;
-                        }
-                        e => {
-                            viewer.process_event(e);
-                        }
-                    }
+                if state.process_events_or_stop() {
+                    self.0.disconnect();
+                    return;
                 }
 
                 let mut disconnect = false;
@@ -396,12 +379,12 @@ impl eframe::App for CoppwrApp {
                             }
                         });
 
-                        viewer.views_menu_buttons(ui, tree);
-                        viewer.tools_menu_buttons(ui);
+                        state.views_menu_buttons(ui, tabs);
+                        state.tools_menu_buttons(ui);
 
                         ui.menu_button("Help", |ui| {
                             if ui.button("❓ About").clicked() {
-                                *about_opened = true;
+                                *about = true;
                             }
                         })
                     });
@@ -419,7 +402,7 @@ impl eframe::App for CoppwrApp {
                         (frame.info().window_info.size.x - 350f32) / 2f32,
                         (frame.info().window_info.size.y - 150f32) / 2f32,
                     ])
-                    .open(about_opened)
+                    .open(about)
                     .show(ctx, |ui| {
                         ui.vertical_centered(|ui| {
                             ui.heading(env!("CARGO_PKG_NAME"));
@@ -437,14 +420,14 @@ impl eframe::App for CoppwrApp {
                         });
                     });
 
-                viewer.tool_windows(ctx);
+                state.tool_windows(ctx);
 
                 let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
                 style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
-                egui_dock::DockArea::new(tree)
+                egui_dock::DockArea::new(tabs)
                     .style(style)
                     .scroll_area_in_tabs(false)
-                    .show(ctx, viewer);
+                    .show(ctx, state);
             }
             State::Unconnected(remote) => {
                 let mut connect = false;

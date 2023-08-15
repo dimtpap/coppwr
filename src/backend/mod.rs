@@ -19,7 +19,7 @@ mod pipewire;
 pub mod pods;
 mod util;
 
-use std::{collections::BTreeMap, sync::mpsc};
+use std::{collections::BTreeMap, sync::mpsc, thread::JoinHandle};
 
 #[cfg(feature = "pw_v0_3_77")]
 use std::sync::OnceLock;
@@ -82,19 +82,34 @@ pub fn remote_version<'a>() -> Option<&'a (u32, u32, u32)> {
     REMOTE_VERSION.get()
 }
 
-pub fn run(
-    remote: String,
-) -> (
-    std::thread::JoinHandle<()>,
-    mpsc::Receiver<Event>,
-    pw::channel::Sender<Request>,
-) {
-    let (sx, rx) = mpsc::channel::<Event>();
-    let (pwsx, pwrx) = pw::channel::channel::<Request>();
+pub struct Handle {
+    thread: Option<JoinHandle<()>>,
+    pub rx: mpsc::Receiver<Event>,
+    pub sx: pw::channel::Sender<Request>,
+}
 
-    (
-        std::thread::spawn(move || self::pipewire::pipewire_thread(remote.as_str(), sx, pwrx)),
-        rx,
-        pwsx,
-    )
+impl Handle {
+    pub fn run(remote: String) -> Self {
+        let (sx, rx) = mpsc::channel::<Event>();
+        let (pwsx, pwrx) = pw::channel::channel::<Request>();
+
+        Self {
+            thread: Some(std::thread::spawn(move || {
+                self::pipewire::pipewire_thread(remote.as_str(), sx, pwrx);
+            })),
+            rx,
+            sx: pwsx,
+        }
+    }
+}
+
+impl Drop for Handle {
+    fn drop(&mut self) {
+        if self.sx.send(Request::Stop).is_err() {
+            eprintln!("Error sending stop request to PipeWire");
+        }
+        if let Some(Err(e)) = self.thread.take().map(JoinHandle::join) {
+            eprintln!("The PipeWire thread has paniced: {e:?}");
+        }
+    }
 }
