@@ -214,10 +214,10 @@ impl Global {
 
     fn update(&mut self) {
         self.parent = match self.object_type() {
-            ObjectType::Node => match self.props().get("device.id") {
-                None => self.props().get("client.id"),
-                device_id => device_id,
-            },
+            ObjectType::Node => self
+                .props()
+                .get("device.id")
+                .or_else(|| self.props().get("client.id")),
             ObjectType::Port => self.props().get("node.id"),
             _ => None,
         }
