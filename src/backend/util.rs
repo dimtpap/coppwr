@@ -21,10 +21,14 @@ use pipewire::{
     spa::{ForeignDict, ReadableDict, WritableDict},
 };
 
-pub fn dict_to_map(dict: &ForeignDict) -> BTreeMap<String, String> {
+pub fn dict_to_map<'a, K, V>(dict: &'a ForeignDict) -> BTreeMap<K, V>
+where
+    K: From<&'a str> + Ord,
+    V: From<&'a str>,
+{
     let mut map = BTreeMap::new();
     for (k, v) in dict.iter() {
-        map.insert(k.to_string(), v.to_string());
+        map.insert(k.into(), v.into());
     }
     map
 }
