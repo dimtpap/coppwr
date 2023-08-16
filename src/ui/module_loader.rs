@@ -18,8 +18,10 @@ use std::ops::Not;
 
 use eframe::egui;
 
-use crate::backend::Request;
-use crate::ui::{common::EditableKVList, Tool};
+use crate::{
+    backend::Request,
+    ui::{common::EditableKVList, Tool},
+};
 
 #[derive(Default)]
 pub struct ModuleLoader {

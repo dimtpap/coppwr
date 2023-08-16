@@ -22,8 +22,7 @@ use std::{
 };
 
 use eframe::egui;
-use pipewire as pw;
-use pw::{permissions::Permissions, registry::Permission, types::ObjectType};
+use pipewire::{self as pw, permissions::Permissions, registry::Permission, types::ObjectType};
 
 use crate::{
     backend::{ObjectMethod, Request},

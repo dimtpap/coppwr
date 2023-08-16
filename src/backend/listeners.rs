@@ -14,8 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use pipewire as pw;
-use pw::spa::pod::deserialize::PodDeserializer;
+use pipewire::{self as pw, spa::pod::deserialize::PodDeserializer};
 
 use crate::backend::{bind::Global, pods::profiler, util::dict_to_map, Event};
 

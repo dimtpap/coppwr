@@ -18,8 +18,10 @@ use std::collections::{btree_map::Entry, BTreeMap};
 
 use eframe::egui;
 
-use crate::backend::{ObjectMethod, Request};
-use crate::ui::Tool;
+use crate::{
+    backend::{ObjectMethod, Request},
+    ui::Tool,
+};
 
 struct Property {
     subject: u32,

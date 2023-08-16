@@ -17,7 +17,7 @@
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use eframe::egui;
-use pipewire::{self, types::ObjectType};
+use pipewire::{self as pw, types::ObjectType};
 
 use crate::backend::Request;
 
@@ -154,7 +154,7 @@ impl GlobalsStore {
         true
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    pub fn draw(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>) {
         ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
                                 .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
 

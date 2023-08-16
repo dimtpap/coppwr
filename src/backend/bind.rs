@@ -17,8 +17,8 @@
 #[path = "listeners.rs"]
 mod listeners;
 
-use pipewire as pw;
-use pw::{
+use pipewire::{
+    self as pw,
     proxy::{Proxy, ProxyT},
     registry::GlobalObject,
     spa::ForeignDict,

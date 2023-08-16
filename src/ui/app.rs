@@ -15,8 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use eframe::egui;
-use pipewire as pw;
-use pw::types::ObjectType;
+use pipewire::types::ObjectType;
 
 use super::{
     globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,

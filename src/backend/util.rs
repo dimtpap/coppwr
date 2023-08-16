@@ -16,8 +16,10 @@
 
 use std::collections::BTreeMap;
 
-use pipewire as pw;
-use pipewire::spa::{ForeignDict, ReadableDict, WritableDict};
+use pipewire::{
+    self as pw,
+    spa::{ForeignDict, ReadableDict, WritableDict},
+};
 
 pub fn dict_to_map(dict: &ForeignDict) -> BTreeMap<String, String> {
     let mut map = BTreeMap::new();

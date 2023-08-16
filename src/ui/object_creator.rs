@@ -19,8 +19,10 @@ use std::collections::HashMap;
 use eframe::egui;
 use pipewire::types::ObjectType;
 
-use crate::backend::Request;
-use crate::ui::{common::EditableKVList, Tool};
+use crate::{
+    backend::Request,
+    ui::{common::EditableKVList, Tool},
+};
 
 struct Factory {
     name: String,
