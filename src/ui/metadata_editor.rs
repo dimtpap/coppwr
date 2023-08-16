@@ -125,110 +125,127 @@ impl MetadataEditor {
 
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         for (id, metadata) in &mut self.metadatas {
-            ui.heading(&metadata.name);
-            ui.horizontal(|ui| {
-                ui.label(format!("ID: {id}"));
-                if ui.small_button("Clear").clicked() {
-                    sx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
-                        .ok();
-                }
-            });
-            egui::Grid::new(&metadata.name)
-                .num_columns(2)
-                .striped(true)
-                .show(ui, |ui| {
-                    for (key, prop) in &mut metadata.properties {
-                        ui.label(key);
+            ui.group(|ui| {
+                ui.heading(&metadata.name);
+                ui.horizontal(|ui| {
+                    ui.label(format!("ID: {id}"));
+                    if ui.small_button("Clear").clicked() {
+                        sx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
+                            .ok();
+                    }
+                });
+                egui::Grid::new(&metadata.name)
+                    .num_columns(2)
+                    .striped(true)
+                    .show(ui, |ui| {
+                        for (key, prop) in &mut metadata.properties {
+                            ui.label(key);
 
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                            if ui.small_button("Clear").clicked() {
-                                sx.send(Request::CallObjectMethod(
-                                    *id,
-                                    prop.clear_request(key.clone()),
-                                ))
-                                .ok();
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                                if ui.small_button("Clear").clicked() {
+                                    sx.send(Request::CallObjectMethod(
+                                        *id,
+                                        prop.clear_request(key.clone()),
+                                    ))
+                                    .ok();
+                                }
+                                if ui.small_button("Set").clicked() {
+                                    sx.send(Request::CallObjectMethod(
+                                        *id,
+                                        prop.set_request(key.clone()),
+                                    ))
+                                    .ok();
+                                }
+                                let input = ui.add(
+                                    egui::TextEdit::singleline(&mut prop.value)
+                                        .hint_text("Value")
+                                        .desired_width(f32::INFINITY),
+                                );
+                                if let Some(type_) = prop.type_.as_ref() {
+                                    input.on_hover_text(format!(
+                                        "Type: {type_}\nSubject: {}",
+                                        prop.subject
+                                    ));
+                                } else {
+                                    input.on_hover_text(prop.subject.to_string());
+                                }
+                            });
+
+                            ui.end_row();
+                        }
+                    });
+
+                ui.separator();
+
+                ui.label("Add properties");
+
+                metadata.user_properties.retain_mut(|(key, prop)| {
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(key)
+                                .hint_text("Key")
+                                .desired_width(ui.available_width() / 2.),
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut prop.value)
+                                .hint_text("Value")
+                                .desired_width(f32::INFINITY),
+                        );
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Subject");
+                        ui.add(egui::widgets::DragValue::new(&mut prop.subject));
+
+                        if ui.checkbox(&mut prop.type_.is_some(), "Type").changed() {
+                            if prop.type_.is_none() {
+                                prop.type_ = Some(String::new());
+                            } else {
+                                prop.type_ = None;
                             }
-                            if ui.small_button("Set").clicked() {
+                        }
+                        if let Some(ref mut type_) = prop.type_ {
+                            ui.add(
+                                egui::TextEdit::singleline(type_)
+                                    .hint_text("Type")
+                                    .desired_width(f32::INFINITY),
+                            );
+                        }
+                    });
+                    let keep = ui
+                        .horizontal(|ui| {
+                            if ui.button("Set").clicked() {
                                 sx.send(Request::CallObjectMethod(
                                     *id,
                                     prop.set_request(key.clone()),
                                 ))
                                 .ok();
                             }
-                            let input = ui.add(
-                                egui::TextEdit::singleline(&mut prop.value)
-                                    .hint_text("Value")
-                                    .desired_width(f32::INFINITY),
-                            );
-                            if let Some(type_) = prop.type_.as_ref() {
-                                input.on_hover_text(format!(
-                                    "Type: {type_}\nSubject: {}",
-                                    prop.subject
-                                ));
-                            } else {
-                                input.on_hover_text(prop.subject.to_string());
-                            }
-                        });
+                            !ui.button("Delete").clicked()
+                        })
+                        .inner;
 
-                        ui.end_row();
-                    }
+                    ui.separator();
+
+                    keep
                 });
 
-            if ui.button("Add Property").clicked() {
-                metadata.user_properties.push((
-                    String::new(),
-                    Property {
-                        subject: 0,
-                        type_: None,
-                        value: String::new(),
-                    },
-                ));
-            }
-            metadata.user_properties.retain_mut(|(key, prop)| {
-                ui.horizontal(|ui| {
-                    ui.add(
-                        egui::TextEdit::singleline(key)
-                            .hint_text("Key")
-                            .desired_width(ui.available_width() / 2.),
-                    );
-                    ui.add(
-                        egui::TextEdit::singleline(&mut prop.value)
-                            .hint_text("Value")
-                            .desired_width(f32::INFINITY),
-                    );
-                });
-                ui.horizontal(|ui| {
-                    ui.label("Subject");
-                    ui.add(egui::widgets::DragValue::new(&mut prop.subject));
-
-                    if ui.checkbox(&mut prop.type_.is_some(), "Type").changed() {
-                        if prop.type_.is_none() {
-                            prop.type_ = Some(String::new());
-                        } else {
-                            prop.type_ = None;
-                        }
-                    }
-                    if let Some(ref mut type_) = prop.type_ {
-                        ui.add(
-                            egui::TextEdit::singleline(type_)
-                                .hint_text("Type")
-                                .desired_width(f32::INFINITY),
-                        );
-                    }
-                });
                 ui.horizontal(|ui| {
                     if ui.button("Add").clicked() {
-                        sx.send(Request::CallObjectMethod(
-                            *id,
-                            prop.set_request(key.clone()),
-                        ))
-                        .ok();
+                        metadata.user_properties.push((
+                            String::new(),
+                            Property {
+                                subject: 0,
+                                type_: None,
+                                value: String::new(),
+                            },
+                        ));
                     }
-                    !ui.button("Delete").clicked()
-                })
-                .inner
+
+                    if !metadata.user_properties.is_empty() && ui.button("Clear").clicked() {
+                        metadata.user_properties.clear();
+                    }
+                });
             });
-            ui.separator();
         }
     }
 }
