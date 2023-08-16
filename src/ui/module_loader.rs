@@ -92,6 +92,7 @@ impl ModuleLoader {
                 }
             });
             if ui.button("Clear").clicked() {
+                self.module_dir.clear();
                 self.name.clear();
                 self.args.clear();
                 self.props.clear();
