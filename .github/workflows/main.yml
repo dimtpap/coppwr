@@ -26,7 +26,50 @@ jobs:
         run: cargo fmt --check --verbose
       - name: Install system dependencies
         run: |
-          sudo apt install libpipewire-0.3-dev llvm-dev libclang-dev clang
+          sudo apt install meson ninja-build libdbus-1-dev llvm-dev libclang-dev clang
+      - uses: actions/checkout@v3
+        name: Checkout PipeWire
+        with:
+          repository: pipewire/pipewire
+          ref: '0.3.77'
+          path: '~/pipewire'
+      - name: Build and install PipeWire
+        working-directory: ~/pipewire
+        run: |
+          meson setup builddir
+          meson configure builddir -Dprefix=/usr \
+            -Dauto_features=disabled \
+            -Davb=disabled \
+            -Dlegacy-rtkit=false \
+            -Dpw-cat=disabled \
+            -Dsndfile=disabled \
+            -Daudiotestsrc=disabled \
+            -Dvideotestsrc=disabled \
+            -Daudiomixer=disabled \
+            -Dvideoconvert=disabled \
+            -Dcontrol=disabled \
+            -Dsupport=disabled \
+            -Draop=disabled \
+            -Dflatpak=disabled \
+            -Dvolume=disabled \
+            -Dvulkan=disabled \
+            -Ddbus=disabled \
+            -Ddocs=disabled \
+            -Dman=disabled \
+            -Dlibcamera=disabled \
+            -Dsystemd=disabled \
+            -Dalsa=disabled \
+            -Dpipewire-alsa=disabled \
+            -Djack=disabled \
+            -Dpipewire-jack=disabled \
+            -Dudev=disabled \
+            -Dbluez5=disabled \
+            -Dgstreamer=disabled \
+            -Dsession-managers=[] \
+            -Dexamples=disabled \
+            -Dtests=disabled
+          meson compile -C builddir
+          sudo meson install -C builddir
       - uses: actions/cache@v3
         name: Restore Cargo cache
         id: cargo-cache
@@ -42,7 +85,7 @@ jobs:
         if: steps.cargo-cache.outputs.cache-hit != 'true'
         run: cargo install cargo-deb cargo-generate-rpm
       - name: Build
-        run: cargo build --release --verbose
+        run: cargo build --release --verbose --all-features
       - uses: actions/upload-artifact@v3
         name: Upload binary
         with:
@@ -52,7 +95,7 @@ jobs:
         run: |
           NAME=coppwr-$GITHUB_REF_NAME
           mkdir out/
-          cargo deb --output out/$NAME.deb
+          cargo deb --output out/$NAME.deb -- --all-features
           cargo generate-rpm -o out/$NAME.rpm
           mkdir .cargo
           cargo vendor > .cargo/config.toml
