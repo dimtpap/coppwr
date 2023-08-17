@@ -56,11 +56,48 @@ fn key_val_display<'a>(
     });
 }
 
+static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
+
+fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
+    ui.label("ID");
+    ui.add(egui::widgets::DragValue::new(&mut p.id));
+
+    for (permission, label) in *PERMISSIONS.get_or_init(|| {
+        #[cfg(feature = "pw_v0_3_77")]
+        if crate::backend::remote_version().is_some_and(|ver| ver.2 >= 77) {
+            return [
+                (Permission::R, "Read"),
+                (Permission::W, "Write"),
+                (Permission::X, "Execute"),
+                (Permission::M, "Metadata"),
+                (Permission::L, "Link"),
+            ]
+            .as_slice();
+        }
+
+        [
+            (Permission::R, "Read"),
+            (Permission::W, "Write"),
+            (Permission::X, "Execute"),
+            (Permission::M, "Metadata"),
+        ]
+        .as_slice()
+    }) {
+        if ui
+            .selectable_label(p.permissions.contains(*permission), *label)
+            .clicked()
+        {
+            p.permissions.toggle(*permission);
+        }
+    }
+}
+
 /// Object type specific data
 pub enum ObjectData {
     Client {
         permissions: Option<Vec<Permissions>>,
-        new_properties: EditableKVList,
+        user_permissions: Vec<Permissions>,
+        user_properties: EditableKVList,
     },
     Other(ObjectType),
 }
@@ -70,14 +107,13 @@ impl From<ObjectType> for ObjectData {
         match value {
             ObjectType::Client => Self::Client {
                 permissions: None,
-                new_properties: EditableKVList::new(),
+                user_permissions: Vec::new(),
+                user_properties: EditableKVList::new(),
             },
             t => Self::Other(t),
         }
     }
 }
-
-static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
 
 impl ObjectData {
     const fn pipewire_type(&self) -> &ObjectType {
@@ -89,7 +125,11 @@ impl ObjectData {
 
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>, id: u32) {
         match self {
-            Self::Client { permissions, .. } => {
+            Self::Client {
+                permissions,
+                user_permissions,
+                ..
+            } => {
                 egui::CollapsingHeader::new("Permissions").show(ui, |ui| {
                     if ui.small_button("Get permissions").clicked() {
                         sx.send(Request::CallObjectMethod(
@@ -109,43 +149,7 @@ impl ObjectData {
                     ui.group(|ui| {
                         permissions.retain_mut(|p| {
                             ui.horizontal(|ui| {
-                                ui.label("ID");
-                                ui.add(egui::widgets::DragValue::new(&mut p.id));
-
-                                for (permission, label) in *PERMISSIONS.get_or_init(|| {
-                                    #[cfg(feature = "pw_v0_3_77")]
-                                    if crate::backend::remote_version()
-                                        .is_some_and(|ver| ver.2 >= 77)
-                                    {
-                                        return [
-                                            (Permission::R, "Read"),
-                                            (Permission::W, "Write"),
-                                            (Permission::X, "Execute"),
-                                            (Permission::M, "Metadata"),
-                                            (Permission::L, "Link"),
-                                        ]
-                                        .as_slice();
-                                    }
-
-                                    [
-                                        (Permission::R, "Read"),
-                                        (Permission::W, "Write"),
-                                        (Permission::X, "Execute"),
-                                        (Permission::M, "Metadata"),
-                                    ]
-                                    .as_slice()
-                                }) {
-                                    if ui
-                                        .selectable_label(
-                                            p.permissions.contains(*permission),
-                                            *label,
-                                        )
-                                        .clicked()
-                                    {
-                                        p.permissions.toggle(*permission);
-                                    }
-                                }
-
+                                draw_permissions(ui, p);
                                 !ui.small_button("Delete").clicked()
                             })
                             .inner
@@ -153,8 +157,18 @@ impl ObjectData {
 
                         ui.separator();
 
-                        if ui.button("Add permission").clicked() {
-                            permissions.push(Permissions {
+                        ui.label("Add permissions");
+
+                        user_permissions.retain_mut(|p| {
+                            ui.horizontal(|ui| {
+                                draw_permissions(ui, p);
+                                !ui.small_button("Delete").clicked()
+                            })
+                            .inner
+                        });
+
+                        if ui.button("Add").clicked() {
+                            user_permissions.push(Permissions {
                                 id: 0,
                                 permissions: Permission::empty(),
                             });
@@ -162,9 +176,29 @@ impl ObjectData {
                     });
 
                     if ui.small_button("Update permissions").clicked() {
+                        let mut all_permissions =
+                            Vec::with_capacity(permissions.len() + user_permissions.len());
+
+                        all_permissions.extend(
+                            permissions
+                                .clone()
+                                .into_iter()
+                                .chain(std::mem::take(user_permissions).into_iter()),
+                        );
+
                         sx.send(Request::CallObjectMethod(
                             id,
-                            ObjectMethod::ClientUpdatePermissions(permissions.clone()),
+                            ObjectMethod::ClientUpdatePermissions(all_permissions),
+                        ))
+                        .ok();
+
+                        // Request the permissions instantly to update the UI
+                        sx.send(Request::CallObjectMethod(
+                            id,
+                            ObjectMethod::ClientGetPermissions {
+                                index: 0,
+                                num: u32::MAX,
+                            },
                         ))
                         .ok();
                     }
@@ -301,7 +335,7 @@ impl Global {
 
                     // Clients can have their properties updated
                     if let ObjectData::Client {
-                        ref mut new_properties,
+                        user_properties: ref mut new_properties,
                         ..
                     } = self.object_data
                     {
