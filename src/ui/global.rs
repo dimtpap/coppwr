@@ -56,9 +56,9 @@ fn key_val_display<'a>(
     });
 }
 
-static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
-
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
+    static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
+
     ui.label("ID");
     ui.add(egui::widgets::DragValue::new(&mut p.id));
 
