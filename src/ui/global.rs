@@ -62,32 +62,36 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
     ui.label("ID");
     ui.add(egui::widgets::DragValue::new(&mut p.id));
 
-    for (permission, label) in *PERMISSIONS.get_or_init(|| {
-        #[cfg(feature = "pw_v0_3_77")]
-        if crate::backend::remote_version().is_some_and(|ver| ver.2 >= 77) {
-            return [
+    for (permission, label) in PERMISSIONS
+        .get_or_init(|| {
+            #[cfg(feature = "pw_v0_3_77")]
+            if crate::backend::remote_version().is_some_and(|ver| ver.2 >= 77) {
+                return [
+                    (Permission::R, "Read"),
+                    (Permission::W, "Write"),
+                    (Permission::X, "Execute"),
+                    (Permission::M, "Metadata"),
+                    (Permission::L, "Link"),
+                ]
+                .as_slice();
+            }
+
+            [
                 (Permission::R, "Read"),
                 (Permission::W, "Write"),
                 (Permission::X, "Execute"),
                 (Permission::M, "Metadata"),
-                (Permission::L, "Link"),
             ]
-            .as_slice();
-        }
-
-        [
-            (Permission::R, "Read"),
-            (Permission::W, "Write"),
-            (Permission::X, "Execute"),
-            (Permission::M, "Metadata"),
-        ]
-        .as_slice()
-    }) {
+            .as_slice()
+        })
+        .iter()
+        .map(|(p, l)| (*p, *l))
+    {
         if ui
-            .selectable_label(p.permissions.contains(*permission), *label)
+            .selectable_label(p.permissions.contains(permission), label)
             .clicked()
         {
-            p.permissions.toggle(*permission);
+            p.permissions.toggle(permission);
         }
     }
 }
