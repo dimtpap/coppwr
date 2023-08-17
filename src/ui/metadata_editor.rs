@@ -241,8 +241,19 @@ impl MetadataEditor {
                         ));
                     }
 
-                    if !metadata.user_properties.is_empty() && ui.button("Clear").clicked() {
-                        metadata.user_properties.clear();
+                    ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
+                        if ui.button("Clear").clicked() {
+                            metadata.user_properties.clear();
+                        }
+                    });
+                });
+
+                ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
+                    if ui.button("Set all").clicked() {
+                        for (key, prop) in std::mem::take(&mut metadata.user_properties) {
+                            sx.send(Request::CallObjectMethod(*id, prop.set_request(key)))
+                                .ok();
+                        }
                     }
                 });
             });
