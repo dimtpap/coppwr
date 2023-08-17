@@ -167,7 +167,10 @@ impl MetadataEditor {
                                         prop.subject
                                     ));
                                 } else {
-                                    input.on_hover_text(prop.subject.to_string());
+                                    input.on_hover_text(format!(
+                                        "Subject: {}",
+                                        prop.subject.to_string()
+                                    ));
                                 }
                             });
 
