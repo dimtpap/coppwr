@@ -16,6 +16,8 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
+use log::{debug, error, info, trace, warn};
+
 use super::{
     bind::{BoundGlobal, Error},
     pw::{self, proxy::ProxyT, types::ObjectType},
@@ -33,21 +35,26 @@ pub fn pipewire_thread(
     // Proxies created by core.create_object
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
+    trace!("Initializing PipeWire... Remote: {remote}");
     let Ok((mainloop, context, core, registry))
         : Result<(pw::MainLoop, Rc<pw::Context<pw::MainLoop>>, pw::Core, Rc<pw::registry::Registry>), pw::Error> = (|| {
+        trace!("Creating the mainloop");
         let mainloop = pw::MainLoop::new()?;
 
+        trace!("Creating the context");
         let context = pw::Context::new(&mainloop)?;
+        trace!("Loading the profiler module");
         if context
             .load_module("libpipewire-module-profiler", None, None)
             .is_err()
         {
-            eprintln!("Failed to load the profiler module. No profiler data will be available");
+            warn!("Failed to load the profiler module. No profiler data will be available");
         };
 
         let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
         std::env::remove_var("PIPEWIRE_REMOTE");
 
+        trace!("Getting the core");
         let core = context.connect(Some(util::key_val_to_props(
             [("media.category", "Manager"), ("remote.name", remote)].into_iter(),
         )))?;
@@ -56,13 +63,16 @@ pub fn pipewire_thread(
             std::env::set_var("PIPEWIRE_REMOTE", env_remote);
         }
 
+        trace!("Getting the registry");
         let registry = core.get_registry()?;
+
+        info!("Connected to PipeWire remote {remote}");
 
         // Context needs to be moved to the loop listener
         // but must outlive it to prevent resource leaks
         Ok((mainloop, Rc::new(context), core, Rc::new(registry)))
     })() else {
-        eprintln!("Error while initializing PipeWire");
+        error!("Failed to initialize PipeWire");
         sx.send(Event::Stop).ok();
         return;
     };
@@ -81,7 +91,9 @@ pub fn pipewire_thread(
         let locals = Rc::new(RefCell::new(HashMap::new()));
         let binds = Rc::clone(&binds);
 
-        move |msg| match msg {
+        move |msg| {
+            debug!("Received request: {msg:#?}");
+            match msg {
             Request::Stop => {
                 mainloop.quit();
             }
@@ -117,7 +129,7 @@ pub fn pipewire_thread(
                         .create_object::<pw::profiler::Profiler, _>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     _ => {
-                        eprintln!("{object_type} unimplemented");
+                        warn!("{object_type} unimplemented");
                         return;
                     }
                 };
@@ -134,14 +146,14 @@ pub fn pipewire_thread(
                                 }
                             })
                             .error(move |_, res, msg| {
-                                eprintln!("Local proxy {id} error: {res} - {msg}");
+                                warn!("Local proxy {id} error: {res} - {msg}");
                             })
                             .register();
 
                         locals.borrow_mut().insert(id, LocalProxy(proxy, listener));
                     }
                     Err(e) => {
-                        eprintln!("Error creating object from factory \"{factory}\" with properties {props:#?}: {e}");
+                        error!("Error creating object from factory \"{factory}\" with properties {props:#?}: {e}");
                     }
                 }
             }
@@ -165,7 +177,7 @@ pub fn pipewire_thread(
                     .load_module(name.as_str(), args.as_deref(), props)
                     .is_err()
                 {
-                    eprintln!("Failed to load module: Name: {name} - Directory: {module_dir:?} - Arguments: {args:?}");
+                    warn!("Failed to load module: Name: {name} - Directory: {module_dir:?} - Arguments: {args:?}");
                 };
 
                 if module_dir.is_some() {
@@ -182,6 +194,7 @@ pub fn pipewire_thread(
                 }
             }
         }
+    }
     });
 
     sx.send(Event::GlobalAdded(0, ObjectType::Core, None)).ok();
@@ -201,6 +214,7 @@ pub fn pipewire_thread(
                     if let (Some(major), Some(minor), Some(micro)) =
                         (version.next(), version.next(), version.next())
                     {
+                        debug!("Got remote version {major}.{minor}.{micro}");
                         REMOTE_VERSION.set((major, minor, micro)).ok();
                     }
                 }
@@ -227,10 +241,11 @@ pub fn pipewire_thread(
         .error({
             let mainloop = mainloop.clone();
             move |id, _, res, msg| {
-                eprintln!("Core: Error on proxy {id}: {res} - {msg}");
+                warn!("Core: Error on proxy {id}: {res} - {msg}");
 
                 // -EPIPE on the core proxy usually means the remote has been closed
                 if id == 0 && res == -32 {
+                    error!("Received -EPIPE on core, quitting mainloop");
                     mainloop.quit();
                 }
             }
@@ -255,6 +270,7 @@ pub fn pipewire_thread(
                 ))
                 .ok();
 
+                trace!("Binding to global {global:#?}");
                 let id = global.id;
                 match BoundGlobal::bind_to(&registry, global, &sx, {
                     let binds = binds.clone();
@@ -267,10 +283,10 @@ pub fn pipewire_thread(
                     }
                     Err(e) => match e {
                         Error::Unimplemented => {
-                            eprintln!("Unsupported object type {}", global.type_);
+                            warn!("Unsupported object type {}", global.type_);
                         }
                         Error::PipeWireError(e) => {
-                            eprintln!("Error binding object {id}: {e}");
+                            error!("Error binding object {id}: {e}");
                         }
                     },
                 }
@@ -285,6 +301,8 @@ pub fn pipewire_thread(
         .register();
 
     mainloop.run();
+
+    debug!("PipeWire mainloop has stopped");
 
     sx.send(Event::Stop).ok();
 }

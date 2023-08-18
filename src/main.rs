@@ -17,6 +17,8 @@
 mod backend;
 mod ui;
 
+use log::error;
+
 use crate::ui::CoppwrApp;
 
 fn main() {
@@ -34,7 +36,7 @@ fn main() {
         },
         Box::new(|_| Box::new(CoppwrApp::new())),
     ) {
-        eprintln!("Failed to start the GUI: {e}");
+        error!("Failed to start the GUI: {e}");
     }
 
     unsafe {

@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use eframe::egui;
+use log::trace;
 use pipewire::types::ObjectType;
 
 use super::{
@@ -138,6 +139,7 @@ impl Inspector {
     #[must_use = "Indicates whether the connection to the backend has ended"]
     pub fn process_events_or_stop(&mut self) -> bool {
         while let Ok(e) = self.handle.rx.try_recv() {
+            trace!("Received event: {e:#?}");
             match e {
                 Event::Stop => return true,
                 e => self.process_event(e),
