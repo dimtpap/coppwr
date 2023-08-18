@@ -183,7 +183,7 @@ pub fn pipewire_thread(
                 }
 
                 if context
-                    .load_module(name.as_str(), args.as_deref(), props)
+                    .load_module(name.as_ref(), args.as_deref(), props)
                     .is_err()
                 {
                     eprintln!("Failed to load module: Name: {name} - Directory: {module_dir:?} - Arguments: {args:?}");
@@ -201,7 +201,7 @@ pub fn pipewire_thread(
                 send(Event::ContextProperties(util::dict_to_map(context.properties().dict())));
             }
             Request::UpdateContextProperties(props) => {
-                context.update_properties(util::key_val_to_props(props.into_iter()).dict());
+                context.update_properties(util::key_val_to_props(props.into_iter().map(|(k,v)| (k.into_boxed_bytes(), v))).dict());
             }
             Request::CallObjectMethod(id, method) => {
                 if let Some(object) = binds.borrow().get(&id) {
@@ -230,11 +230,11 @@ pub fn pipewire_thread(
                 }
 
                 let infos = Box::new([
-                    ("Name", info.name().to_owned()),
-                    ("Hostname", info.host_name().to_owned()),
-                    ("Username", info.user_name().to_owned()),
-                    ("Version", info.version().to_owned()),
-                    ("Cookie", info.cookie().to_string()),
+                    ("Name", info.name().into()),
+                    ("Hostname", info.host_name().into()),
+                    ("Username", info.user_name().into()),
+                    ("Version", info.version().into()),
+                    ("Cookie", info.cookie().to_string().into_boxed_str()),
                 ]);
 
                 send(Event::GlobalInfo(0, infos));

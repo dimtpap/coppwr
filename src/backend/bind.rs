@@ -159,7 +159,12 @@ impl BoundGlobal {
             }
             ObjectMethod::ClientUpdateProperties(props) => {
                 if let Global::Client(ref client) = self.global {
-                    client.update_properties(util::key_val_to_props(props.into_iter()).dict());
+                    client.update_properties(
+                        util::key_val_to_props(
+                            props.into_iter().map(|(k, v)| (k.into_boxed_bytes(), v)),
+                        )
+                        .dict(),
+                    );
                 }
             }
             ObjectMethod::MetadataSetProperty {
@@ -171,7 +176,7 @@ impl BoundGlobal {
                 if let Global::Metadata(ref metadata) = self.global {
                     metadata.set_property(
                         subject,
-                        key.as_str(),
+                        key.as_ref(),
                         type_.as_deref(),
                         value.as_deref(),
                     );
