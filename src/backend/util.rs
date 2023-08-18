@@ -27,11 +27,11 @@ where
 }
 
 pub fn key_val_to_props(
-    kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
+    kv: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)>,
 ) -> pw::properties::Properties {
     let mut props = pw::properties::Properties::new();
     for (k, v) in kv {
-        props.insert(k, v);
+        props.insert(k.as_ref(), v.as_ref());
     }
     props
 }

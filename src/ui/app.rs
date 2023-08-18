@@ -282,7 +282,7 @@ mod inspector {
                             ObjectType::Port => {
                                 if let Some(parent) = global_borrow.parent_id() {
                                     let name = global_borrow.name().cloned().unwrap_or_default();
-                                    match info[0].1.as_str() {
+                                    match info[0].1.as_ref() {
                                         "Input" => {
                                             self.graph.add_input_port(id, parent, name);
                                         }

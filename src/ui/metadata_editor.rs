@@ -57,7 +57,7 @@ impl Property {
 }
 
 struct Metadata {
-    properties: BTreeMap<String, Property>,
+    properties: BTreeMap<Box<str>, Property>,
     user_properties: Vec<(String, Property)>,
     global: Rc<RefCell<Global>>,
 }
@@ -89,7 +89,7 @@ impl MetadataEditor {
         &mut self,
         global: &Rc<RefCell<Global>>,
         subject: u32,
-        key: String,
+        key: Box<str>,
         type_: Option<String>,
         value: String,
     ) {
@@ -151,20 +151,20 @@ impl MetadataEditor {
                     .striped(true)
                     .show(ui, |ui| {
                         for (key, prop) in &mut metadata.properties {
-                            ui.label(key);
+                            ui.label(key.as_ref());
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                                 if ui.small_button("Clear").clicked() {
                                     sx.send(Request::CallObjectMethod(
                                         *id,
-                                        prop.clear_request(key.clone()),
+                                        prop.clear_request(key.clone().into_string()),
                                     ))
                                     .ok();
                                 }
                                 if ui.small_button("Set").clicked() {
                                     sx.send(Request::CallObjectMethod(
                                         *id,
-                                        prop.set_request(key.clone()),
+                                        prop.set_request(key.clone().into_string()),
                                     ))
                                     .ok();
                                 }

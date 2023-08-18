@@ -32,7 +32,7 @@ pub enum ObjectMethod {
         num: u32,
     },
     ClientUpdatePermissions(Vec<pw::permissions::Permission>),
-    ClientUpdateProperties(std::collections::BTreeMap<String, String>),
+    ClientUpdateProperties(std::collections::BTreeMap<Box<str>, String>),
     MetadataSetProperty {
         subject: u32,
         key: String,
@@ -53,7 +53,7 @@ pub enum Request {
         props: Option<Vec<(String, String)>>,
     },
     GetContextProperties,
-    UpdateContextProperties(std::collections::BTreeMap<String, String>),
+    UpdateContextProperties(std::collections::BTreeMap<Box<str>, String>),
     CallObjectMethod(u32, ObjectMethod),
 }
 
@@ -61,11 +61,11 @@ pub enum Event {
     GlobalAdded(
         u32,
         pw::types::ObjectType,
-        Option<std::collections::BTreeMap<String, String>>,
+        Option<std::collections::BTreeMap<Box<str>, String>>,
     ),
     GlobalRemoved(u32),
-    GlobalInfo(u32, Box<[(&'static str, String)]>),
-    GlobalProperties(u32, std::collections::BTreeMap<String, String>),
+    GlobalInfo(u32, Box<[(&'static str, Box<str>)]>),
+    GlobalProperties(u32, std::collections::BTreeMap<Box<str>, String>),
     ClientPermissions(
         u32,
         // Let's keep this as similar to PipeWire's message as possible
@@ -76,11 +76,11 @@ pub enum Event {
     MetadataProperty {
         id: u32,
         subject: u32,
-        key: Option<String>,
+        key: Option<Box<str>>,
         type_: Option<String>,
         value: Option<String>,
     },
-    ContextProperties(std::collections::BTreeMap<String, String>),
+    ContextProperties(std::collections::BTreeMap<Box<str>, String>),
     Stop,
 }
 
