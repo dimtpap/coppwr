@@ -45,7 +45,7 @@
     <release version="1.1.1" date="2023-08-18">
       <description>
         <ul>
-          <li>Added support the new Link permission</li>
+          <li>Added support for the new Link permission</li>
           <li>Improved the UI of the Metadata Editor</li>
           <li>Improved permission adding UI in the client global permissions section</li>
         </ul>
