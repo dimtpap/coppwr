@@ -627,6 +627,7 @@ version = "1.1.1"
 dependencies = [
  "eframe",
  "egui_dock",
+ "log",
  "pipewire",
 ]
 
