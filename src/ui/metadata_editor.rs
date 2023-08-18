@@ -37,7 +37,7 @@ struct Property {
 }
 
 impl Property {
-    fn set_request(&self, key: String) -> ObjectMethod {
+    fn set_request(&self, key: Box<str>) -> ObjectMethod {
         ObjectMethod::MetadataSetProperty {
             subject: self.subject,
             key,
@@ -46,7 +46,7 @@ impl Property {
         }
     }
 
-    fn clear_request(&self, key: String) -> ObjectMethod {
+    fn clear_request(&self, key: Box<str>) -> ObjectMethod {
         ObjectMethod::MetadataSetProperty {
             subject: self.subject,
             key,
@@ -57,7 +57,7 @@ impl Property {
 }
 
 struct Metadata {
-    properties: BTreeMap<String, Property>,
+    properties: BTreeMap<Box<str>, Property>,
     user_properties: Vec<(String, Property)>,
     global: Rc<RefCell<Global>>,
 }
@@ -89,7 +89,7 @@ impl MetadataEditor {
         &mut self,
         global: &Rc<RefCell<Global>>,
         subject: u32,
-        key: String,
+        key: Box<str>,
         type_: Option<String>,
         value: String,
     ) {
@@ -229,10 +229,11 @@ impl MetadataEditor {
                                     if ui.small_button("Set").clicked() {
                                         sx.send(Request::CallObjectMethod(
                                             *id,
-                                            prop.set_request(key.clone()),
+                                            prop.set_request(key.clone().into_boxed_str()),
                                         ))
                                         .ok();
                                     }
+
                                     !ui.small_button("Delete").clicked()
                                 })
                                 .inner;
@@ -264,8 +265,11 @@ impl MetadataEditor {
                         ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
                             if ui.button("Set all").clicked() {
                                 for (key, prop) in std::mem::take(&mut metadata.user_properties) {
-                                    sx.send(Request::CallObjectMethod(*id, prop.set_request(key)))
-                                        .ok();
+                                    sx.send(Request::CallObjectMethod(
+                                        *id,
+                                        prop.set_request(key.into_boxed_str()),
+                                    ))
+                                    .ok();
                                 }
                             }
                         });

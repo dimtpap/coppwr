@@ -301,7 +301,7 @@ mod inspector {
                                         None
                                     };
 
-                                    match info[0].1.as_str() {
+                                    match info[0].1.as_ref() {
                                         "Input" => {
                                             self.graph.add_input_port(id, parent, name, media_type);
                                         }

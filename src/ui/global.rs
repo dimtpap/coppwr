@@ -193,8 +193,8 @@ pub struct Global {
 
     subobjects: Vec<Weak<RefCell<Global>>>,
 
-    info: Option<Box<[(&'static str, String)]>>,
-    props: BTreeMap<String, String>,
+    info: Option<Box<[(&'static str, Box<str>)]>>,
+    props: BTreeMap<Box<str>, String>,
 
     object_data: ObjectData,
 }
@@ -203,7 +203,7 @@ impl Global {
     pub fn new(
         id: u32,
         object_type: pw::types::ObjectType,
-        props: Option<BTreeMap<String, String>>,
+        props: Option<BTreeMap<Box<str>, String>>,
     ) -> Self {
         let mut this = Self {
             id,
@@ -258,9 +258,9 @@ impl Global {
             for (k, v) in self
                 .props
                 .iter()
-                .filter(|(k, _)| k.ends_with(".name") && k.as_str() != "library.name")
+                .filter(|(k, _)| k.ends_with(".name") && k.as_ref() != "library.name")
             {
-                if *self.object_type() != ObjectType::Factory && k == "factory.name" {
+                if *self.object_type() != ObjectType::Factory && k.as_ref() == "factory.name" {
                     continue;
                 }
                 name = Some(v);
@@ -342,7 +342,11 @@ impl Global {
                         ui.separator();
 
                         if ui.button("Update properties").clicked() {
-                            self.props.extend(std::mem::take(&mut user_properties.list));
+                            self.props.extend(
+                                std::mem::take(&mut user_properties.list)
+                                    .into_iter()
+                                    .map(|(k, v)| (k.into_boxed_str(), v)),
+                            );
 
                             sx.send(Request::CallObjectMethod(
                                 self.id,
@@ -458,20 +462,20 @@ impl Global {
         self.subobjects.push(subobject);
     }
 
-    pub const fn props(&self) -> &BTreeMap<String, String> {
+    pub const fn props(&self) -> &BTreeMap<Box<str>, String> {
         &self.props
     }
 
-    pub fn set_props(&mut self, props: BTreeMap<String, String>) {
+    pub fn set_props(&mut self, props: BTreeMap<Box<str>, String>) {
         self.props = props;
         self.update();
     }
 
-    pub fn info(&self) -> Option<&[(&'static str, String)]> {
+    pub fn info(&self) -> Option<&[(&'static str, Box<str>)]> {
         self.info.as_deref()
     }
 
-    pub fn set_info(&mut self, info: Option<Box<[(&'static str, String)]>>) {
+    pub fn set_info(&mut self, info: Option<Box<[(&'static str, Box<str>)]>>) {
         self.info = info;
     }
 

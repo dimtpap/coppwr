@@ -544,11 +544,11 @@ impl Graph {
                         {
                             sx.send(Request::CreateObject(
                                 ObjectType::Link,
-                                String::from("link-factory"),
+                                "link-factory".into(),
                                 vec![
-                                    ("link.output.port".to_owned(), output),
-                                    ("link.input.port".to_owned(), input),
-                                    ("object.linger".to_owned(), "true".to_owned()),
+                                    ("link.output.port".into(), output.into()),
+                                    ("link.input.port".into(), input.into()),
+                                    ("object.linger".into(), "true".into()),
                                 ],
                             ))
                             .ok();
