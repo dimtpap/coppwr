@@ -88,12 +88,12 @@ pub fn map_editor(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
     max_height: f32,
-    map: &mut BTreeMap<String, String>,
+    map: &mut BTreeMap<Box<str>, String>,
     user_additions: &mut EditableKVList,
 ) {
     key_val_table(ui, min_scrolled_height, max_height, |ui| {
         map.retain(|k, v| {
-            ui.label(k);
+            ui.label(k.as_ref());
             let keep = ui
                 .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                     let keep = !ui.button("Delete").clicked();
@@ -169,12 +169,12 @@ impl EditableKVList {
 /// Like [`map_editor`] but it stores the map in itself.
 #[derive(Default)]
 pub struct MapEditor {
-    properties: BTreeMap<String, String>,
+    properties: BTreeMap<Box<str>, String>,
     user_additions: EditableKVList,
 }
 
 impl MapEditor {
-    pub fn set_map(&mut self, map: BTreeMap<String, String>) {
+    pub fn set_map(&mut self, map: BTreeMap<Box<str>, String>) {
         self.properties = map;
     }
 
@@ -188,8 +188,13 @@ impl MapEditor {
         );
     }
 
-    pub fn take(&mut self) -> BTreeMap<String, String> {
-        self.properties.extend(self.user_additions.take());
+    pub fn take(&mut self) -> BTreeMap<Box<str>, String> {
+        self.properties.extend(
+            self.user_additions
+                .take()
+                .into_iter()
+                .map(|(k, v)| (k.into_boxed_str(), v)),
+        );
 
         std::mem::take(&mut self.properties)
     }

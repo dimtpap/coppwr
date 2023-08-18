@@ -68,7 +68,7 @@ impl Tool for ContextManager {
 }
 
 impl ContextManager {
-    pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
+    pub fn set_context_properties(&mut self, properties: BTreeMap<Box<str>, String>) {
         self.properties.set_map(properties);
     }
 
