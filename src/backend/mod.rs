@@ -21,6 +21,7 @@ mod util;
 
 use ::pipewire as pw;
 
+#[derive(Debug)]
 pub enum ObjectMethod {
     ClientGetPermissions {
         index: u32,
@@ -37,6 +38,7 @@ pub enum ObjectMethod {
     MetadataClear,
 }
 
+#[derive(Debug)]
 pub enum Request {
     Stop,
     CreateObject(pw::types::ObjectType, String, Vec<(String, String)>),
@@ -50,6 +52,7 @@ pub enum Request {
     CallObjectMethod(u32, ObjectMethod),
 }
 
+#[derive(Debug)]
 pub enum Event {
     GlobalAdded(
         u32,
