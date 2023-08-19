@@ -13,6 +13,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  PIPEWIRE_VERSION: '0.3.77'
 
 jobs:
   Build:
@@ -27,14 +28,22 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt install meson ninja-build libdbus-1-dev llvm-dev libclang-dev clang
+      - uses: actions/cache@v3
+        name: Restore PipeWire cache
+        id: pipewire-cache
+        with:
+          key: ${{ env.PIPEWIRE_VERSION }}
+          path: 'pipewire'
       - uses: actions/checkout@v3
         name: Checkout PipeWire
+        if: steps.pipewire-cache.outputs.cache-hit != 'true'
         with:
           repository: pipewire/pipewire
-          ref: '0.3.77'
-          path: '~/pipewire'
-      - name: Build and install PipeWire
-        working-directory: ~/pipewire
+          ref: ${{ env.PIPEWIRE_VERSION }}
+          path: 'pipewire'
+      - name: Build PipeWire
+        if: steps.pipewire-cache.outputs.cache-hit != 'true'
+        working-directory: 'pipewire'
         run: |
           meson setup builddir
           meson configure builddir -Dprefix=/usr \
@@ -69,7 +78,9 @@ jobs:
             -Dexamples=disabled \
             -Dtests=disabled
           meson compile -C builddir
-          sudo meson install -C builddir
+      - name: Install PipeWire
+        working-directory: 'pipewire'
+        run: sudo meson install -C builddir
       - uses: actions/cache@v3
         name: Restore Cargo cache
         id: cargo-cache
@@ -83,7 +94,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Cargo tools
         if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: cargo install cargo-deb cargo-generate-rpm
+        run: |
+          cargo install cargo-deb
+          cargo install cargo-generate-rpm --version 0.11.1
       - name: Build
         run: cargo build --release --verbose --all-features
       - uses: actions/upload-artifact@v3
@@ -93,13 +106,16 @@ jobs:
           path: target/release/coppwr
       - name: Package
         run: |
-          NAME=coppwr-$GITHUB_REF_NAME
+          case "$GITHUB_REF" in
+              *tags*) NAME=coppwr-$GITHUB_REF_NAME ;;
+              *)      NAME=coppwr-$GITHUB_REF_NAME-$GITHUB_SHA ;;
+          esac
           mkdir out/
-          cargo deb --output out/$NAME.deb -- --all-features
+          cargo deb -v --output out/$NAME.deb -- --all-features
           cargo generate-rpm -o out/$NAME.rpm
           mkdir .cargo
           cargo vendor > .cargo/config.toml
-          tar --exclude='out' --exclude='.git*' --exclude='target' --transform "s/coppwr/$NAME/" -zcvf out/$NAME-vendor.tar.gz ../coppwr/
+          tar --exclude='out' --exclude='.git*' --exclude='pipewire' --exclude='target' --transform "s/coppwr/$NAME/" -zcvf out/$NAME-vendor.tar.gz ../coppwr/
       - uses: actions/upload-artifact@v3
         name: Upload packages
         with:
