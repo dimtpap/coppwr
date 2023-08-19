@@ -185,7 +185,7 @@ impl Inspector {
                         }
                     }
                     ObjectType::Metadata => {
-                        if let Some(name) = global.props().get("metadata.name") {
+                        if let Some(name) = global.name() {
                             self.metadata_editor.tool.add_metadata(id, name);
                         }
                     }
