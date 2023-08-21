@@ -94,9 +94,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Cargo tools
         if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo install cargo-deb
-          cargo install cargo-generate-rpm --version 0.11.1
+        run: cargo install cargo-deb cargo-generate-rpm
       - name: Build
         run: cargo build --release --verbose --all-features
       - uses: actions/upload-artifact@v3
