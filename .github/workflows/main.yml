@@ -112,7 +112,7 @@ jobs:
           cargo deb -v --output out/$NAME.deb -- --all-features
           cargo generate-rpm -o out/$NAME.rpm
           mkdir .cargo
-          cargo vendor > .cargo/config.toml
+          cargo vendor -v > .cargo/config.toml
           tar --exclude='out' --exclude='.git*' --exclude='pipewire' --exclude='target' --transform "s/coppwr/$NAME/" -zcvf out/$NAME-vendor.tar.gz ../coppwr/
       - uses: actions/upload-artifact@v3
         name: Upload packages
