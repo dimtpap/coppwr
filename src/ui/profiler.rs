@@ -121,24 +121,24 @@ mod driver {
             self.profilings.clear();
         }
 
-        fn generate_plot_points(points: &mut VecDeque<f64>) -> PlotPoints {
-            PlotPoints::from_ys_f64(points.make_contiguous())
+        fn generate_plot_points(points: &VecDeque<f64>) -> PlotPoints {
+            PlotPoints::from_iter(points.iter().enumerate().map(|(i, &x)| [i as f64, x]))
         }
 
-        pub fn delay(&mut self) -> PlotPoints {
-            Self::generate_plot_points(&mut self.delay)
+        pub fn delay(&self) -> PlotPoints {
+            Self::generate_plot_points(&self.delay)
         }
 
-        pub fn period(&mut self) -> PlotPoints {
-            Self::generate_plot_points(&mut self.period)
+        pub fn period(&self) -> PlotPoints {
+            Self::generate_plot_points(&self.period)
         }
 
-        pub fn estimated(&mut self) -> PlotPoints {
-            Self::generate_plot_points(&mut self.estimated)
+        pub fn estimated(&self) -> PlotPoints {
+            Self::generate_plot_points(&self.estimated)
         }
 
-        pub fn end_date(&mut self) -> PlotPoints {
-            Self::generate_plot_points(&mut self.end_date)
+        pub fn end_date(&self) -> PlotPoints {
+            Self::generate_plot_points(&self.end_date)
         }
     }
 }
