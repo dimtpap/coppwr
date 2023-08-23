@@ -259,7 +259,7 @@ impl Global {
             ObjectType::Port => self.props().get("node.id"),
             _ => None,
         }
-        .and_then(|id| id.parse::<u32>().ok());
+        .and_then(|id| id.parse().ok());
 
         let mut name = 'name: {
             match self.object_type() {

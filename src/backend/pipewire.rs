@@ -193,10 +193,7 @@ pub fn pipewire_thread(
             move |info| {
                 #[cfg(feature = "pw_v0_3_77")]
                 if REMOTE_VERSION.get().is_none() {
-                    let mut version = info
-                        .version()
-                        .split('.')
-                        .filter_map(|v| v.parse::<u32>().ok());
+                    let mut version = info.version().split('.').filter_map(|v| v.parse().ok());
 
                     if let (Some(major), Some(minor), Some(micro)) =
                         (version.next(), version.next(), version.next())

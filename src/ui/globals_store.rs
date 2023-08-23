@@ -85,7 +85,7 @@ impl GlobalsStore {
                         global_borrow.props().get("link.output.port"),
                     ]
                     .into_iter()
-                    .filter_map(|entry| entry.and_then(|id_str| id_str.parse::<u32>().ok()))
+                    .filter_map(|entry| entry.and_then(|id_str| id_str.parse().ok()))
                     .filter_map(|id| self.globals.get(&id))
                     {
                         port.borrow_mut().add_subobject(Rc::downgrade(&global));
