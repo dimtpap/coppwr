@@ -33,8 +33,15 @@ pub fn pipewire_thread(
     // Proxies created by core.create_object
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
-    let Ok((mainloop, context, core, registry))
-        : Result<(pw::MainLoop, Rc<pw::Context<pw::MainLoop>>, pw::Core, Rc<pw::registry::Registry>), pw::Error> = (|| {
+    let Ok((mainloop, context, core, registry)): Result<
+        (
+            pw::MainLoop,
+            Rc<pw::Context<pw::MainLoop>>,
+            pw::Core,
+            Rc<pw::registry::Registry>,
+        ),
+        pw::Error,
+    > = (|| {
         let mainloop = pw::MainLoop::new()?;
 
         let context = pw::Context::new(&mainloop)?;
