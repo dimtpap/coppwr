@@ -114,6 +114,7 @@ mod driver {
 
         pub fn clear(&mut self) {
             self.profilings.clear();
+            self.measurements.clear();
         }
 
         fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
