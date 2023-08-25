@@ -45,13 +45,7 @@ mod data {
     }
 
     fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
-        PlotPoints::from_iter(points.enumerate().map(|(i, x)| {
-            if x.is_nan() {
-                [f64::NAN, f64::NAN]
-            } else {
-                [i as f64, x]
-            }
-        }))
+        PlotPoints::from_iter(points.enumerate().map(|(i, x)| [i as f64, x]))
     }
 
     struct ClientMeasurement {
