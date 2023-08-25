@@ -150,7 +150,7 @@ mod data {
     }
 
     pub struct Driver {
-        profilings: VecDeque<Profiling>,
+        last_profiling: Option<Profiling>,
         name: Option<String>,
 
         measurements: VecDeque<DriverMeasurement>,
@@ -160,7 +160,7 @@ mod data {
     impl Driver {
         pub fn with_max_profilings(max_profilings: usize) -> Self {
             Self {
-                profilings: VecDeque::with_capacity(max_profilings),
+                last_profiling: None,
                 name: None,
 
                 measurements: VecDeque::with_capacity(max_profilings),
@@ -206,11 +206,11 @@ mod data {
                 }
             }
 
-            adjust_and_push(&mut self.profilings, max_profilings, profiling);
+            self.last_profiling = Some(profiling);
         }
 
-        pub fn profilings(&self) -> &VecDeque<Profiling> {
-            &self.profilings
+        pub fn last_profling(&self) -> Option<&Profiling> {
+            self.last_profiling.as_ref()
         }
 
         pub fn name(&self) -> Option<&String> {
@@ -218,8 +218,8 @@ mod data {
         }
 
         pub fn clear(&mut self) {
-            self.profilings.clear();
             self.measurements.clear();
+            self.followers.clear();
         }
 
         pub fn delay(&self) -> PlotPoints {
@@ -326,7 +326,7 @@ impl Profiler {
             return;
         };
 
-        if let Some(last) = driver.profilings().back() {
+        if let Some(last) = driver.last_profling() {
             let info = &last.info;
             let followers = last.followers.len();
             ui.label(format!(
@@ -539,7 +539,7 @@ impl Profiler {
         self.drivers.retain(|id, driver| {
             let keep = ui.horizontal(|ui| {
                 let keep = !ui.small_button("Delete").clicked();
-                if let Some(p) = driver.profilings().back() {
+                if let Some(p) = driver.last_profling() {
                     ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
                 } else {
                     ui.label(format!("Driver ID: {id}"));
@@ -562,7 +562,7 @@ impl Profiler {
                         ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
                         ui.label("Xruns");
                         ui.end_row();
-                        if let Some(p) = driver.profilings().back() {
+                        if let Some(p) = driver.last_profling() {
                             draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
                             ui.end_row();
 
