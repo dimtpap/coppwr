@@ -30,14 +30,33 @@ mod driver {
 
     use crate::backend::pods::profiler::Profiling;
 
+    struct Measurement {
+        delay: f64,
+        period: f64,
+        estimated: f64,
+        end_date: f64,
+    }
+
+    impl From<&Profiling> for Measurement {
+        fn from(p: &Profiling) -> Self {
+            Self {
+                delay: (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
+
+                period: ((p.driver.signal - p.driver.prev_signal) / 1000) as f64,
+
+                end_date: ((p.driver.finish - p.driver.signal) / 1000) as f64,
+
+                estimated: (p.clock.duration * 1_000_000) as f64
+                    / (p.clock.rate_diff * f64::from(p.clock.rate.denom)),
+            }
+        }
+    }
+
     pub struct Driver {
         profilings: VecDeque<Profiling>,
         name: Option<String>,
 
-        delay: VecDeque<f64>,
-        period: VecDeque<f64>,
-        estimated: VecDeque<f64>,
-        end_date: VecDeque<f64>,
+        measurements: VecDeque<Measurement>,
     }
 
     impl Driver {
@@ -46,10 +65,7 @@ mod driver {
                 profilings: VecDeque::with_capacity(max_profilings),
                 name: None,
 
-                delay: VecDeque::with_capacity(max_profilings),
-                period: VecDeque::with_capacity(max_profilings),
-                estimated: VecDeque::with_capacity(max_profilings),
-                end_date: VecDeque::with_capacity(max_profilings),
+                measurements: VecDeque::with_capacity(max_profilings),
             }
         }
 
@@ -63,6 +79,18 @@ mod driver {
                 None => self.name = Some(profiling.driver.name.clone()),
             }
 
+            if self.measurements.capacity() < max_profilings {
+                self.measurements
+                    .reserve(max_profilings - self.measurements.capacity());
+            } else if self.measurements.len() > max_profilings {
+                self.measurements
+                    .drain(0..(self.measurements.len() - max_profilings));
+            }
+            if self.measurements.len() + 1 > max_profilings {
+                self.measurements.pop_front();
+            }
+            self.measurements.push_back(Measurement::from(&profiling));
+
             if self.profilings.capacity() < max_profilings {
                 self.profilings
                     .reserve(max_profilings - self.profilings.len());
@@ -70,42 +98,9 @@ mod driver {
                 self.profilings
                     .drain(0..(self.profilings.len() - max_profilings));
             }
-
-            for (points, measurement) in [
-                (&mut self.delay, |p| {
-                    (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom)
-                }),
-                (&mut self.period, |p| {
-                    ((p.driver.signal - p.driver.prev_signal) / 1000) as f64
-                }),
-                (&mut self.estimated, |p| {
-                    (p.clock.duration * 1_000_000) as f64
-                        / (p.clock.rate_diff * f64::from(p.clock.rate.denom))
-                }),
-                (&mut self.end_date, |p| {
-                    ((p.driver.finish - p.driver.signal) / 1000) as f64
-                }),
-            ]
-                as [(&mut VecDeque<f64>, fn(&Profiling) -> f64); 4]
-            {
-                if points.capacity() < max_profilings {
-                    points.reserve(max_profilings - points.capacity());
-                } else if points.len() > max_profilings {
-                    points.drain(0..(points.len() - max_profilings));
-                    points.shrink_to(max_profilings);
-                }
-
-                if points.len() + 1 > max_profilings {
-                    points.pop_front();
-                }
-
-                points.push_back(measurement(&profiling))
-            }
-
             if self.profilings.len() + 1 > max_profilings {
                 self.profilings.pop_front();
             }
-
             self.profilings.push_back(profiling);
         }
 
@@ -121,24 +116,24 @@ mod driver {
             self.profilings.clear();
         }
 
-        fn generate_plot_points(points: &VecDeque<f64>) -> PlotPoints {
-            PlotPoints::from_iter(points.iter().enumerate().map(|(i, &x)| [i as f64, x]))
+        fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
+            PlotPoints::from_iter(points.enumerate().map(|(i, x)| [i as f64, x]))
         }
 
         pub fn delay(&self) -> PlotPoints {
-            Self::generate_plot_points(&self.delay)
+            Self::generate_plot_points(self.measurements.iter().map(|m| m.delay))
         }
 
         pub fn period(&self) -> PlotPoints {
-            Self::generate_plot_points(&self.period)
+            Self::generate_plot_points(self.measurements.iter().map(|m| m.period))
         }
 
         pub fn estimated(&self) -> PlotPoints {
-            Self::generate_plot_points(&self.estimated)
+            Self::generate_plot_points(self.measurements.iter().map(|m| m.estimated))
         }
 
         pub fn end_date(&self) -> PlotPoints {
-            Self::generate_plot_points(&self.end_date)
+            Self::generate_plot_points(self.measurements.iter().map(|m| m.end_date))
         }
     }
 }
