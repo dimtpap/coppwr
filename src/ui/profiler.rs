@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::{hash_map::Entry, HashMap, VecDeque};
+use std::collections::{hash_map::Entry, HashMap};
 
 use eframe::egui::{
     self,
@@ -23,21 +23,118 @@ use eframe::egui::{
 
 use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 
-mod driver {
-    use std::collections::VecDeque;
+mod data {
+    use std::collections::{btree_map::Entry, BTreeMap, VecDeque};
 
     use eframe::egui::plot::PlotPoints;
 
-    use crate::backend::pods::profiler::Profiling;
+    use crate::backend::pods::profiler::{NodeBlock, Profiling};
 
-    struct Measurement {
+    fn adjust_and_push<T>(queue: &mut VecDeque<T>, max: usize, item: T) {
+        if queue.capacity() < max {
+            queue.reserve(max - queue.len());
+        } else if queue.len() > max {
+            queue.drain(0..(queue.len() - max));
+        }
+
+        if queue.len() + 1 > max {
+            queue.pop_front();
+        }
+
+        queue.push_back(item);
+    }
+
+    fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
+        PlotPoints::from_iter(points.enumerate().map(|(i, x)| {
+            if x.is_nan() {
+                [f64::NAN, f64::NAN]
+            } else {
+                [i as f64, x]
+            }
+        }))
+    }
+
+    struct ClientMeasurement {
+        end_date: f64,
+        scheduling_latency: f64,
+        duration: f64,
+    }
+
+    impl ClientMeasurement {
+        fn empty() -> Self {
+            Self {
+                end_date: f64::NAN,
+                scheduling_latency: f64::NAN,
+                duration: f64::NAN,
+            }
+        }
+
+        fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
+            Self {
+                end_date: (follower.finish - driver.signal) as f64,
+                scheduling_latency: (follower.awake - follower.signal) as f64,
+                duration: (follower.finish - follower.awake) as f64,
+            }
+        }
+    }
+
+    pub struct Client {
+        title: String,
+        measurements: VecDeque<ClientMeasurement>,
+    }
+
+    impl Client {
+        fn new(title: String, max_profilings: usize) -> Self {
+            Self {
+                title,
+                measurements: VecDeque::with_capacity(max_profilings),
+            }
+        }
+
+        pub fn title(&self) -> &str {
+            &self.title
+        }
+
+        fn add_measurement(
+            &mut self,
+            follower: &NodeBlock,
+            driver: &NodeBlock,
+            max_profilings: usize,
+        ) {
+            adjust_and_push(
+                &mut self.measurements,
+                max_profilings,
+                ClientMeasurement::new(follower, driver),
+            );
+        }
+
+        fn add_empty_measurement(&mut self, max_profilings: usize) {
+            adjust_and_push(
+                &mut self.measurements,
+                max_profilings,
+                ClientMeasurement::empty(),
+            );
+        }
+
+        pub fn end_date(&self) -> PlotPoints {
+            generate_plot_points(self.measurements.iter().map(|m| m.end_date))
+        }
+        pub fn scheduling_latency(&self) -> PlotPoints {
+            generate_plot_points(self.measurements.iter().map(|m| m.scheduling_latency))
+        }
+        pub fn duration(&self) -> PlotPoints {
+            generate_plot_points(self.measurements.iter().map(|m| m.duration))
+        }
+    }
+
+    struct DriverMeasurement {
         delay: f64,
         period: f64,
         estimated: f64,
         end_date: f64,
     }
 
-    impl From<&Profiling> for Measurement {
+    impl From<&Profiling> for DriverMeasurement {
         fn from(p: &Profiling) -> Self {
             Self {
                 delay: (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
@@ -56,7 +153,8 @@ mod driver {
         profilings: VecDeque<Profiling>,
         name: Option<String>,
 
-        measurements: VecDeque<Measurement>,
+        measurements: VecDeque<DriverMeasurement>,
+        followers: BTreeMap<i32, Client>,
     }
 
     impl Driver {
@@ -66,6 +164,7 @@ mod driver {
                 name: None,
 
                 measurements: VecDeque::with_capacity(max_profilings),
+                followers: BTreeMap::new(),
             }
         }
 
@@ -79,29 +178,35 @@ mod driver {
                 None => self.name = Some(profiling.driver.name.clone()),
             }
 
-            if self.measurements.capacity() < max_profilings {
-                self.measurements
-                    .reserve(max_profilings - self.measurements.capacity());
-            } else if self.measurements.len() > max_profilings {
-                self.measurements
-                    .drain(0..(self.measurements.len() - max_profilings));
-            }
-            if self.measurements.len() + 1 > max_profilings {
-                self.measurements.pop_front();
-            }
-            self.measurements.push_back(Measurement::from(&profiling));
+            adjust_and_push(
+                &mut self.measurements,
+                max_profilings,
+                DriverMeasurement::from(&profiling),
+            );
 
-            if self.profilings.capacity() < max_profilings {
-                self.profilings
-                    .reserve(max_profilings - self.profilings.len());
-            } else if self.profilings.len() > max_profilings {
-                self.profilings
-                    .drain(0..(self.profilings.len() - max_profilings));
+            // Add measurements to registered followers
+            for (id, follower) in &mut self.followers {
+                if let Some(f) = profiling.followers.iter().find(|nb| nb.id == *id) {
+                    follower.add_measurement(f, &profiling.driver, max_profilings)
+                } else {
+                    follower.add_empty_measurement(max_profilings)
+                }
             }
-            if self.profilings.len() + 1 > max_profilings {
-                self.profilings.pop_front();
+
+            // Add new followers
+            for follower in &profiling.followers {
+                match self.followers.entry(follower.id) {
+                    Entry::Vacant(e) => e
+                        .insert(Client::new(
+                            format!("{}/{}", follower.name, follower.id),
+                            max_profilings,
+                        ))
+                        .add_measurement(follower, &profiling.driver, max_profilings),
+                    _ => {}
+                }
             }
-            self.profilings.push_back(profiling);
+
+            adjust_and_push(&mut self.profilings, max_profilings, profiling);
         }
 
         pub fn profilings(&self) -> &VecDeque<Profiling> {
@@ -117,29 +222,29 @@ mod driver {
             self.measurements.clear();
         }
 
-        fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
-            PlotPoints::from_iter(points.enumerate().map(|(i, x)| [i as f64, x]))
-        }
-
         pub fn delay(&self) -> PlotPoints {
-            Self::generate_plot_points(self.measurements.iter().map(|m| m.delay))
+            generate_plot_points(self.measurements.iter().map(|m| m.delay))
         }
 
         pub fn period(&self) -> PlotPoints {
-            Self::generate_plot_points(self.measurements.iter().map(|m| m.period))
+            generate_plot_points(self.measurements.iter().map(|m| m.period))
         }
 
         pub fn estimated(&self) -> PlotPoints {
-            Self::generate_plot_points(self.measurements.iter().map(|m| m.estimated))
+            generate_plot_points(self.measurements.iter().map(|m| m.estimated))
         }
 
         pub fn end_date(&self) -> PlotPoints {
-            Self::generate_plot_points(self.measurements.iter().map(|m| m.end_date))
+            generate_plot_points(self.measurements.iter().map(|m| m.end_date))
+        }
+
+        pub fn clients(&self) -> impl Iterator<Item = &Client> + '_ {
+            self.followers.values()
         }
     }
 }
 
-use driver::Driver;
+use data::{Client, Driver};
 
 pub struct Profiler {
     max_profilings: usize,
@@ -318,71 +423,33 @@ impl Profiler {
 
         ui.separator();
 
-        fn per_client_plot(
-            id: &str,
-            max_x: usize,
-            reset: bool,
-            profilings: &VecDeque<Profiling>,
-            measurement: fn(&NodeBlock, &NodeBlock) -> i64,
-            ui: &mut egui::Ui,
-        ) {
-            let Some(followers) = profilings.back().map(|p| &p.followers) else {
-                return;
-            };
-            profiler_plot(id, max_x, reset).show(ui, |ui| {
-                for node in followers {
-                    ui.line(
-                        plot::Line::new(PlotPoints::from_parametric_callback(
-                            |x| {
-                                let x = x.floor();
-                                if let Some(f) = profilings[x as usize]
-                                    .followers
-                                    .iter()
-                                    .find(|f| f.id == node.id)
-                                {
-                                    let val = measurement(f, &profilings[x as usize].driver) as f64;
-                                    if val > 0. {
-                                        (x, val / 1000.)
-                                    } else {
-                                        (f64::NAN, f64::NAN)
-                                    }
-                                } else {
-                                    (f64::NAN, f64::NAN)
-                                }
-                            },
-                            0f64..profilings.len() as f64,
-                            profilings.len(),
-                        ))
-                        .name(format!("{}/{}", &node.name, node.id)),
-                    );
-                }
-            });
-        }
-
         ui.columns(3, |ui| {
-            // (Follower block, driver block)
-            let measurements: [fn(&NodeBlock, &NodeBlock) -> i64; 3] = [
-                |nb, d| nb.finish - d.signal,
-                |nb, _| nb.awake - nb.signal,
-                |nb, _| nb.finish - nb.awake,
-            ];
-            for (i, ((heading, id), measurement)) in [
-                ("Clients End Date", "clients_end_date"),
-                ("Clients Scheduling Latency", "clients_scheduling_latency"),
-                ("Clients Duration", "clients_duration"),
+            for (i, (heading, id, measurement)) in [
+                (
+                    "Clients End Date",
+                    "clients_end_date",
+                    Client::end_date as fn(&Client) -> PlotPoints,
+                ),
+                (
+                    "Clients Scheduling Latency",
+                    "clients_scheduling_latency",
+                    Client::scheduling_latency,
+                ),
+                ("Clients Duration", "clients_duration", Client::duration),
             ]
             .into_iter()
-            .zip(measurements)
             .enumerate()
             {
-                per_client_plot(
+                profiler_plot(
                     id,
                     self.max_profilings,
                     profiler_plot_heading(heading, &mut ui[i]),
-                    driver.profilings(),
-                    measurement,
-                    &mut ui[i],
-                );
+                )
+                .show(&mut ui[i], |ui| {
+                    for client in driver.clients() {
+                        ui.line(plot::Line::new(measurement(client)).name(client.title()));
+                    }
+                });
             }
         });
     }
