@@ -53,10 +53,9 @@ impl Profiler {
         // Adjust driver queues first
         for profilings in self.drivers.values_mut() {
             if profilings.capacity() < self.max_profilings {
-                profilings.reserve(self.max_profilings - profilings.capacity());
+                profilings.reserve(self.max_profilings - profilings.len());
             } else if profilings.len() > self.max_profilings {
                 profilings.drain(0..(profilings.len() - self.max_profilings));
-                profilings.shrink_to(self.max_profilings);
             }
         }
 
