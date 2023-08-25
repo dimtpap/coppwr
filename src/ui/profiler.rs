@@ -75,6 +75,11 @@ mod data {
     pub struct Client {
         title: String,
         measurements: VecDeque<ClientMeasurement>,
+
+        // Position of last non-empty profiling that was added.
+        // When this reaches 0 every profiling is empty indicating
+        // that this follower has no statistics to show
+        last_non_empty_pos: usize,
     }
 
     impl Client {
@@ -82,6 +87,8 @@ mod data {
             Self {
                 title,
                 measurements: VecDeque::with_capacity(max_profilings),
+
+                last_non_empty_pos: max_profilings,
             }
         }
 
@@ -100,6 +107,8 @@ mod data {
                 max_profilings,
                 ClientMeasurement::new(follower, driver),
             );
+
+            self.last_non_empty_pos = self.measurements.len();
         }
 
         fn add_empty_measurement(&mut self, max_profilings: usize) {
@@ -108,6 +117,12 @@ mod data {
                 max_profilings,
                 ClientMeasurement::empty(),
             );
+
+            self.last_non_empty_pos -= 1;
+        }
+
+        fn is_empty(&self) -> bool {
+            self.last_non_empty_pos == 0
         }
 
         pub fn end_date(&self) -> PlotPoints {
@@ -178,14 +193,16 @@ mod data {
                 DriverMeasurement::from(&profiling),
             );
 
-            // Add measurements to registered followers
-            for (id, follower) in &mut self.followers {
+            // Add measurements to registered followers and delete those that have no non-empty measurements
+            self.followers.retain(|id, follower| {
                 if let Some(f) = profiling.followers.iter().find(|nb| nb.id == *id) {
-                    follower.add_measurement(f, &profiling.driver, max_profilings)
+                    follower.add_measurement(f, &profiling.driver, max_profilings);
                 } else {
-                    follower.add_empty_measurement(max_profilings)
+                    follower.add_empty_measurement(max_profilings);
                 }
-            }
+
+                !follower.is_empty()
+            });
 
             // Add new followers
             for follower in &profiling.followers {
