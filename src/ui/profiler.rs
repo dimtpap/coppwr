@@ -23,6 +23,11 @@ use eframe::egui::{
 
 use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 mod data {
     use std::collections::{btree_map::Entry, BTreeMap, VecDeque};
 
@@ -206,14 +211,16 @@ mod data {
 
             // Add new followers
             for follower in &profiling.followers {
-                match self.followers.entry(follower.id) {
-                    Entry::Vacant(e) => e
-                        .insert(Client::new(
-                            format!("{}/{}", follower.name, follower.id),
-                            max_profilings,
-                        ))
-                        .add_measurement(follower, &profiling.driver, max_profilings),
-                    _ => {}
+                if let Entry::Vacant(e) = self.followers.entry(follower.id) {
+                    e.insert(Client::new(
+                        format!("{}/{}", follower.name, follower.id),
+                        max_profilings,
+                    ))
+                    .add_measurement(
+                        follower,
+                        &profiling.driver,
+                        max_profilings,
+                    );
                 }
             }
 
@@ -414,9 +421,7 @@ impl Profiler {
                     ("Driver Delay", driver.delay()),
                     ("Period", driver.period()),
                     ("Estimated", driver.estimated()),
-                ]
-                .into_iter()
-                {
+                ] {
                     ui.line(plot::Line::new(plot_points).name(name));
                 }
             });

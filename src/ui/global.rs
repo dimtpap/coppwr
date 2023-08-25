@@ -187,7 +187,7 @@ impl ObjectData {
                             permissions
                                 .clone()
                                 .into_iter()
-                                .chain(std::mem::take(user_permissions).into_iter()),
+                                .chain(std::mem::take(user_permissions)),
                         );
 
                         sx.send(Request::CallObjectMethod(
