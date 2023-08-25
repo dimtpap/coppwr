@@ -183,12 +183,8 @@ impl ObjectData {
                         let mut all_permissions =
                             Vec::with_capacity(permissions.len() + user_permissions.len());
 
-                        all_permissions.extend(
-                            permissions
-                                .clone()
-                                .into_iter()
-                                .chain(std::mem::take(user_permissions)),
-                        );
+                        all_permissions.append(&mut permissions.clone());
+                        all_permissions.append(user_permissions);
 
                         sx.send(Request::CallObjectMethod(
                             id,
