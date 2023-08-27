@@ -165,7 +165,6 @@ mod data {
 
     pub struct Driver {
         last_profiling: Option<Profiling>,
-        name: Option<String>,
 
         measurements: VecDeque<DriverMeasurement>,
         followers: BTreeMap<i32, Client>,
@@ -175,7 +174,6 @@ mod data {
         pub fn with_max_profilings(max_profilings: usize) -> Self {
             Self {
                 last_profiling: None,
-                name: None,
 
                 measurements: VecDeque::with_capacity(max_profilings),
                 followers: BTreeMap::new(),
@@ -183,15 +181,6 @@ mod data {
         }
 
         pub fn add_profiling(&mut self, profiling: Profiling, max_profilings: usize) {
-            match &mut self.name {
-                Some(name) => {
-                    if *name != profiling.driver.name {
-                        *name = profiling.driver.name.clone();
-                    }
-                }
-                None => self.name = Some(profiling.driver.name.clone()),
-            }
-
             adjust_and_push(
                 &mut self.measurements,
                 max_profilings,
@@ -231,8 +220,8 @@ mod data {
             self.last_profiling.as_ref()
         }
 
-        pub fn name(&self) -> Option<&String> {
-            self.name.as_ref()
+        pub fn name(&self) -> Option<&str> {
+            self.last_profling().map(|p| p.driver.name.as_str())
         }
 
         pub fn clear(&mut self) {
@@ -267,7 +256,7 @@ use data::{Client, Driver};
 pub struct Profiler {
     max_profilings: usize,
     drivers: HashMap<i32, Driver>,
-    selected_driver: Option<(i32, String)>,
+    selected_driver_id: Option<i32>,
     pause: bool,
 }
 
@@ -281,7 +270,7 @@ impl Profiler {
         Self {
             max_profilings,
             drivers: HashMap::new(),
-            selected_driver: None,
+            selected_driver_id: None,
             pause: false,
         }
     }
@@ -312,37 +301,43 @@ impl Profiler {
         {
             self.drivers.clear();
             self.max_profilings = 250;
-            self.selected_driver = None;
+            self.selected_driver_id = None;
             self.pause = false;
             return;
         }
 
-        egui::ComboBox::from_label("Driver")
-            .selected_text(
-                self.selected_driver
-                    .as_ref()
-                    .map_or("Select a driver", |(_, name)| name.as_str()),
-            )
+        let Some((id, driver)) = ({
+            let driver = self
+                .selected_driver_id
+                .and_then(|id| self.drivers.get(&id).map(|d| (id, d)));
+
+            // Selected driver doesn't exist
+            if self.selected_driver_id.is_some() && driver.is_none() {
+                self.selected_driver_id = None;
+            }
+
+            let cb = egui::ComboBox::from_label("Driver");
+            if let Some(name) = driver.as_ref().map(|(_, d)| d.name()) {
+                cb.selected_text(name.unwrap_or("Unnamed driver"))
+            } else {
+                cb.selected_text("Select a driver")
+            }
             .show_ui(ui, |ui| {
                 for (id, driver) in &self.drivers {
                     let Some(name) = driver.name() else {
                         continue;
                     };
-                    ui.selectable_value(
-                        &mut self.selected_driver,
-                        Some((*id, String::from(name))),
-                        name,
-                    );
+                    ui.selectable_value(&mut self.selected_driver_id, Some(*id), name);
                 }
             });
 
-        let driver = if let Some((id, _)) = self.selected_driver {
-            ui.label(format!("Driver ID: {id}"));
-            self.drivers.get_mut(&id).unwrap()
-        } else {
+            driver
+        }) else {
             ui.label("Select a driver to view profiling info");
             return;
         };
+
+        ui.label(format!("Driver ID: {id}"));
 
         if let Some(last) = driver.last_profling() {
             let info = &last.info;
@@ -352,17 +347,20 @@ impl Profiler {
                 info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
         }
 
-        ui.horizontal(|ui| {
+        if ui.horizontal(|ui| {
             ui.label("Profilings");
             ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
                 .on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
 
-            if ui.button("Clear driver samples").clicked() {
-                driver.clear();
-            }
+            let clear = ui.button("Clear driver samples").clicked();
 
             ui.toggle_value(&mut self.pause, "Pause");
-        });
+
+            clear
+        }).inner {
+            self.drivers.get_mut(&id).unwrap().clear();
+            return;
+        }
 
         fn profiler_plot_heading(heading: &str, ui: &mut egui::Ui) -> bool {
             ui.horizontal(|ui| {
@@ -477,7 +475,7 @@ impl Profiler {
             .clicked()
         {
             self.drivers.clear();
-            self.selected_driver = None;
+            self.selected_driver_id = None;
             self.pause = false;
             return;
         }
