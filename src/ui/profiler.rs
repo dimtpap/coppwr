@@ -35,18 +35,12 @@ mod data {
 
     use crate::backend::pods::profiler::{NodeBlock, Profiling};
 
-    fn adjust_and_push<T>(queue: &mut VecDeque<T>, max: usize, item: T) {
-        if queue.capacity() < max {
-            queue.reserve(max - queue.len());
-        } else if queue.len() > max {
-            queue.drain(0..(queue.len() - max));
-        }
-
+    fn pop_front_push_back<T>(queue: &mut VecDeque<T>, max: usize, value: T) {
         if queue.len() + 1 > max {
             queue.pop_front();
         }
 
-        queue.push_back(item);
+        queue.push_back(value);
     }
 
     fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
@@ -107,7 +101,7 @@ mod data {
             driver: &NodeBlock,
             max_profilings: usize,
         ) {
-            adjust_and_push(
+            pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
                 ClientMeasurement::new(follower, driver),
@@ -117,7 +111,7 @@ mod data {
         }
 
         fn add_empty_measurement(&mut self, max_profilings: usize) {
-            adjust_and_push(
+            pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
                 ClientMeasurement::empty(),
@@ -181,7 +175,7 @@ mod data {
         }
 
         pub fn add_profiling(&mut self, profiling: Profiling, max_profilings: usize) {
-            adjust_and_push(
+            pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
                 DriverMeasurement::from(&profiling),
@@ -227,6 +221,21 @@ mod data {
         pub fn clear(&mut self) {
             self.measurements.clear();
             self.followers.clear();
+        }
+
+        pub fn adjust_queues(&mut self, max_profilings: usize) {
+            fn adjust_queue<T>(queue: &mut VecDeque<T>, max: usize) {
+                if queue.capacity() < max {
+                    queue.reserve(max - queue.len());
+                } else if queue.len() > max {
+                    queue.drain(0..(queue.len() - max));
+                }
+            }
+
+            adjust_queue(&mut self.measurements, max_profilings);
+            for follower in self.followers.values_mut() {
+                adjust_queue(&mut follower.measurements, max_profilings);
+            }
         }
 
         pub fn delay(&self) -> PlotPoints {
@@ -278,6 +287,10 @@ impl Profiler {
     pub fn add_profilings(&mut self, profilings: Vec<Profiling>) {
         if self.pause {
             return;
+        }
+
+        for driver in self.drivers.values_mut() {
+            driver.adjust_queues(self.max_profilings);
         }
 
         for p in profilings {
