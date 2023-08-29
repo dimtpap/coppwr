@@ -424,7 +424,7 @@ impl Profiler {
         ui.columns(2, |ui| {
             profiler_plot(
                 &mut ui[0],
-                "Driver timing",
+                "Driver Timing",
                 "driver_timing",
                 self.max_profilings,
             )
@@ -441,13 +441,13 @@ impl Profiler {
 
             profiler_plot(
                 &mut ui[1],
-                "Driver end date",
+                "Driver End Date",
                 "driver_end_date",
                 self.max_profilings,
             )
             .height(ui[1].available_height() / 2.)
             .show(&mut ui[1], |ui| {
-                ui.line(plot::Line::new(driver.end_date()).name("Driver end date"));
+                ui.line(plot::Line::new(driver.end_date()).name("Driver End Date"));
             });
         });
 
