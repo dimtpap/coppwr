@@ -377,15 +377,14 @@ impl Profiler {
             return;
         }
 
-        fn profiler_plot_heading(heading: &str, ui: &mut egui::Ui) -> bool {
-            ui.horizontal(|ui| {
-                ui.heading(heading);
-                ui.small_button("Reset").clicked()
-            })
-            .inner
-        }
+        fn profiler_plot(ui: &mut egui::Ui, heading: &str, id: &str, max_x: usize) -> Plot {
+            let reset = ui
+                .horizontal(|ui| {
+                    ui.heading(heading);
+                    ui.small_button("Reset").clicked()
+                })
+                .inner;
 
-        fn profiler_plot(id: &str, max_x: usize, reset: bool) -> Plot {
             let plot = Plot::new(id)
                 .clamp_grid(true)
                 .legend(plot::Legend::default())
@@ -424,9 +423,10 @@ impl Profiler {
 
         ui.columns(2, |ui| {
             profiler_plot(
+                &mut ui[0],
+                "Driver timing",
                 "driver_timing",
                 self.max_profilings,
-                profiler_plot_heading("Driver timing", &mut ui[0]),
             )
             .height(ui[0].available_height() / 2.)
             .show(&mut ui[0], |ui| {
@@ -440,9 +440,10 @@ impl Profiler {
             });
 
             profiler_plot(
+                &mut ui[1],
+                "Driver end date",
                 "driver_end_date",
                 self.max_profilings,
-                profiler_plot_heading("Driver end date", &mut ui[1]),
             )
             .height(ui[1].available_height() / 2.)
             .show(&mut ui[1], |ui| {
@@ -469,16 +470,14 @@ impl Profiler {
             .into_iter()
             .enumerate()
             {
-                profiler_plot(
-                    id,
-                    self.max_profilings,
-                    profiler_plot_heading(heading, &mut ui[i]),
-                )
-                .show(&mut ui[i], |ui| {
-                    for client in driver.clients() {
-                        ui.line(plot::Line::new(measurement(client)).name(client.title()));
-                    }
-                });
+                profiler_plot(&mut ui[i], heading, id, self.max_profilings).show(
+                    &mut ui[i],
+                    |ui| {
+                        for client in driver.clients() {
+                            ui.line(plot::Line::new(measurement(client)).name(client.title()));
+                        }
+                    },
+                );
             }
         });
     }
