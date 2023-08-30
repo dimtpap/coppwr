@@ -48,6 +48,10 @@ coppwr does **not** self-update.
 - Rust and Cargo from your distribution packages or see https://www.rust-lang.org/tools/install
 - bindgen [requirements](https://rust-lang.github.io/rust-bindgen/requirements.html)
 - PipeWire library headers/PipeWire development packages
+
+Available [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html) (Enable by passing `--feature feature-name` to Cargo)
+- `pw_v0_3_77` - Used for the Link permission on PipeWire globals. Enable this if you're building with libpipewire 0.3.77 or later.
+- `xdg_desktop_portals` - Allows connecting to PipeWire remotes opened by the Camera and Screencast XDG Desktop Portals.
 ### Build
 In the repository's root directory
 ```sh
@@ -66,7 +70,8 @@ and [cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm#cargo-
 See their usage instructions.
 
 ## Credits
-- [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe)
-- [egui_dock](https://crates.io/crates/egui_dock)
-- ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr-next) of) [pipewire-rs](https://crates.io/crates/pipewire)
-- [ashpd](https://crates.io/crates/ashpd) (with [pollster](https://crates.io/crates/pollster) for execution)
+- [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe) - Immediate mode GUI for Rust and its desktop/web framework
+- [egui_dock](https://crates.io/crates/egui_dock) - Docking support for egui
+- ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr-next) of) [pipewire-rs](https://crates.io/crates/pipewire) - Rust bindings to libpipewire
+- [ashpd](https://crates.io/crates/ashpd) - XDG Desktop Portals wrapper
+- [pollster](https://crates.io/crates/pollster) - Simple async executor
