@@ -21,7 +21,8 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 - Object inspection, creation & destruction
 - Process monitoring & profiler statistics
 - Metadata editing
-- Module loading  
+- Module loading
+- Connecting to [XDG Desktop Portal](https://flatpak.github.io/xdg-desktop-portal/) remotes  
 [More to be added...](https://github.com/dimtpap/coppwr/issues/1)
 
 ## Installing
@@ -68,3 +69,4 @@ See their usage instructions.
 - [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe)
 - [egui_dock](https://crates.io/crates/egui_dock)
 - ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr-next) of) [pipewire-rs](https://crates.io/crates/pipewire)
+- [ashpd](https://crates.io/crates/ashpd) (with [pollster](https://crates.io/crates/pollster) for execution)

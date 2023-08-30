@@ -19,28 +19,28 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 use super::{
     bind::{BoundGlobal, Error},
     pw::{self, proxy::ProxyT, types::ObjectType},
-    util, Event, Request,
+    util, Connection, Event, RemoteInfo, Request,
 };
 
 #[cfg(feature = "pw_v0_3_77")]
 use super::REMOTE_VERSION;
 
 pub fn pipewire_thread(
-    remote: &str,
+    remote: RemoteInfo,
     sx: mpsc::Sender<Event>,
     pwrx: pw::channel::Receiver<Request>,
 ) {
     // Proxies created by core.create_object
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
-    let Ok((mainloop, context, core, registry)): Result<
+    let Ok((mainloop, context, connection, registry)): Result<
         (
             pw::MainLoop,
             Rc<pw::Context<pw::MainLoop>>,
-            pw::Core,
+            Connection,
             Rc<pw::registry::Registry>,
         ),
-        pw::Error,
+        super::connection::Error,
     > = (|| {
         let mainloop = pw::MainLoop::new()?;
 
@@ -52,27 +52,19 @@ pub fn pipewire_thread(
             eprintln!("Failed to load the profiler module. No profiler data will be available");
         };
 
-        let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
-        std::env::remove_var("PIPEWIRE_REMOTE");
+        let connection = Connection::connect(&context, remote)?;
 
-        let core = context.connect(Some(util::key_val_to_props(
-            [("media.category", "Manager"), ("remote.name", remote)].into_iter(),
-        )))?;
-
-        if let Some(env_remote) = env_remote {
-            std::env::set_var("PIPEWIRE_REMOTE", env_remote);
-        }
-
-        let registry = core.get_registry()?;
+        let registry = connection.core().get_registry()?;
 
         // Context needs to be moved to the loop listener
         // but must outlive it to prevent resource leaks
-        Ok((mainloop, Rc::new(context), core, Rc::new(registry)))
+        Ok((mainloop, Rc::new(context), connection, Rc::new(registry)))
     })() else {
         eprintln!("Error while initializing PipeWire");
         sx.send(Event::Stop).ok();
         return;
     };
+    let core = connection.core();
 
     let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 

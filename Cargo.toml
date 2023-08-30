@@ -17,10 +17,13 @@ categories = ["gui", "multimedia"]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "82836f9cec23891911a5e0d1ffb6eaac98e86c0c"}
 eframe = {version = "0.22.0", features = ["wayland"]}
 egui_dock = "0.6.3"
+ashpd = {version = "0.6.2", optional = true}
+pollster = {version = "0.3.0", optional = true}
 
 [features]
 # Used for the Link permission
 pw_v0_3_77 = ["pipewire/v0_3_77"]
+xdg_desktop_portals = ["dep:ashpd", "dep:pollster"]
 
 [profile.release]
 lto = true

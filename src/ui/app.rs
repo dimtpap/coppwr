@@ -17,11 +17,14 @@
 use eframe::egui;
 use pipewire::types::ObjectType;
 
+#[cfg(feature = "xdg_desktop_portals")]
+use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
+
 use super::{
     globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
     WindowedTool,
 };
-use crate::backend::{self, Event};
+use crate::backend::{self, Event, RemoteInfo};
 
 #[derive(Clone, Copy)]
 enum View {
@@ -54,9 +57,9 @@ struct Inspector {
 }
 
 impl Inspector {
-    pub fn new(remote: impl Into<String>) -> Self {
+    pub fn new(remote: RemoteInfo) -> Self {
         Self {
-            handle: backend::Handle::run(remote.into()),
+            handle: backend::Handle::run(remote),
 
             open_tabs: View::GlobalTracker as u8,
 
@@ -298,17 +301,15 @@ enum State {
         inspector: Inspector,
         about: bool,
     },
-    Unconnected(String), // user provided remote name
+    Unconnected(RemoteInfo),
 }
 
 impl State {
     pub fn unconnected_from_env() -> Self {
-        let remote =
-            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0"));
-        Self::Unconnected(remote)
+        Self::Unconnected(RemoteInfo::default())
     }
 
-    pub fn new_connected(remote: impl Into<String>) -> Self {
+    pub fn new_connected(remote: RemoteInfo) -> Self {
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
@@ -336,9 +337,7 @@ pub struct CoppwrApp(State);
 
 impl CoppwrApp {
     pub fn new() -> Self {
-        Self(State::new_connected(
-            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
-        ))
+        Self(State::new_connected(RemoteInfo::default()))
     }
 }
 
@@ -430,30 +429,84 @@ impl eframe::App for CoppwrApp {
             }
             State::Unconnected(remote) => {
                 let mut connect = false;
-                egui::CentralPanel::default().show(ctx, |_| {
-                    egui::Window::new("Connect to PipeWire")
-                        .fixed_size([300., 100.])
-                        .fixed_pos([
-                            (frame.info().window_info.size.x - 300.) / 2.,
-                            (frame.info().window_info.size.y - 100.) / 2.,
-                        ])
-                        .collapsible(false)
-                        .show(ctx, |ui| {
-                            ui.with_layout(
-                                egui::Layout {
-                                    cross_justify: true,
-                                    cross_align: egui::Align::Center,
-                                    ..egui::Layout::default()
-                                },
-                                |ui| {
-                                    egui::TextEdit::singleline(remote)
+                egui::CentralPanel::default().show(ctx, |_| {});
+                egui::Window::new("Connect to PipeWire")
+                    .fixed_size([300., 100.])
+                    .fixed_pos([
+                        (frame.info().window_info.size.x - 300.) / 2.,
+                        (frame.info().window_info.size.y - 100.) / 2.,
+                    ])
+                    .collapsible(false)
+                    .show(ctx, |ui| {
+                        ui.with_layout(egui::Layout::default().with_cross_justify(true), |ui| {
+                            #[cfg(feature = "xdg_desktop_portals")]
+                            egui::ComboBox::new("remote_type", "Remote Kind")
+                                .selected_text({
+                                    match remote {
+                                        RemoteInfo::Regular(..) => "Regular",
+                                        RemoteInfo::Screencast { .. } => "Screencast Portal",
+                                        RemoteInfo::Camera => "Camera Portal",
+                                    }
+                                })
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(remote, RemoteInfo::default(), "Regular");
+                                    ui.selectable_value(
+                                        remote,
+                                        RemoteInfo::Screencast {
+                                            types: BitFlags::EMPTY,
+                                            multiple: false,
+                                        },
+                                        "Screencast Portal",
+                                    );
+                                    ui.selectable_value(
+                                        remote,
+                                        RemoteInfo::Camera,
+                                        "Camera Portal",
+                                    );
+                                });
+
+                            match remote {
+                                RemoteInfo::Regular(name) => {
+                                    egui::TextEdit::singleline(name)
                                         .hint_text("Remote name")
                                         .show(ui);
+                                }
+
+                                #[cfg(feature = "xdg_desktop_portals")]
+                                RemoteInfo::Screencast { types, multiple } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label("Source Types");
+                                        for (label, source_type) in [
+                                            ("Monitor", SourceType::Monitor),
+                                            ("Window", SourceType::Window),
+                                            ("Virtual", SourceType::Virtual),
+                                        ] {
+                                            if ui
+                                                .selectable_label(
+                                                    types.contains(source_type),
+                                                    label,
+                                                )
+                                                .clicked()
+                                            {
+                                                types.toggle(source_type);
+                                            }
+                                        }
+                                    });
+                                    ui.checkbox(multiple, "Multiple Sources");
+                                }
+                                #[cfg(feature = "xdg_desktop_portals")]
+                                RemoteInfo::Camera => {}
+                            }
+
+                            ui.with_layout(
+                                egui::Layout::top_down_justified(egui::Align::Center),
+                                |ui| {
                                     connect = ui.button("Connect").clicked();
                                 },
-                            )
+                            );
                         })
-                });
+                    });
+
                 if connect {
                     self.0.connect();
                 }

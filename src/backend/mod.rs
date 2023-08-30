@@ -15,11 +15,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod bind;
+mod connection;
 mod pipewire;
 pub mod pods;
 mod util;
 
 use ::pipewire as pw;
+use connection::Connection;
 
 pub enum ObjectMethod {
     ClientGetPermissions {
@@ -78,6 +80,32 @@ pub fn remote_version<'a>() -> Option<&'a (u32, u32, u32)> {
     REMOTE_VERSION.get()
 }
 
+pub enum RemoteInfo {
+    Regular(String),
+
+    #[cfg(feature = "xdg_desktop_portals")]
+    Screencast {
+        types: ashpd::enumflags2::BitFlags<ashpd::desktop::screencast::SourceType>,
+        multiple: bool,
+    },
+    #[cfg(feature = "xdg_desktop_portals")]
+    Camera,
+}
+
+impl PartialEq for RemoteInfo {
+    fn eq(&self, other: &Self) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(other)
+    }
+}
+
+impl Default for RemoteInfo {
+    fn default() -> Self {
+        Self::Regular(
+            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
+        )
+    }
+}
+
 pub struct Handle {
     thread: Option<std::thread::JoinHandle<()>>,
     pub rx: std::sync::mpsc::Receiver<Event>,
@@ -85,13 +113,13 @@ pub struct Handle {
 }
 
 impl Handle {
-    pub fn run(remote: String) -> Self {
+    pub fn run(remote: RemoteInfo) -> Self {
         let (sx, rx) = std::sync::mpsc::channel::<Event>();
         let (pwsx, pwrx) = pw::channel::channel::<Request>();
 
         Self {
             thread: Some(std::thread::spawn(move || {
-                self::pipewire::pipewire_thread(remote.as_str(), sx, pwrx);
+                self::pipewire::pipewire_thread(remote, sx, pwrx);
             })),
             rx,
             sx: pwsx,

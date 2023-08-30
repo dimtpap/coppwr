@@ -42,3 +42,54 @@ pub fn key_val_to_props(
     }
     props
 }
+
+#[cfg(feature = "xdg_desktop_portals")]
+pub mod portals {
+    use std::os::fd::{FromRawFd, OwnedFd};
+
+    use ashpd::{
+        desktop::{screencast::SourceType, Session},
+        enumflags2::BitFlags,
+    };
+
+    pub fn open_screencast_remote<'s>(
+        types: BitFlags<SourceType>,
+        multiple: bool,
+    ) -> Result<(OwnedFd, Session<'s>), ashpd::Error> {
+        async fn async_inner<'s>(
+            types: BitFlags<SourceType>,
+            multiple: bool,
+        ) -> Result<(OwnedFd, Session<'s>), ashpd::Error> {
+            use ashpd::desktop::screencast::{CursorMode, PersistMode, Screencast};
+
+            let proxy = Screencast::new().await?;
+            let session = proxy.create_session().await?;
+
+            proxy
+                .select_sources(
+                    &session,
+                    CursorMode::Hidden,
+                    types,
+                    multiple,
+                    None,
+                    PersistMode::DoNot,
+                )
+                .await?;
+
+            proxy
+                .start(&session, &ashpd::WindowIdentifier::default())
+                .await?;
+
+            let fd = proxy.open_pipe_wire_remote(&session).await?;
+
+            Ok((unsafe { OwnedFd::from_raw_fd(fd) }, session))
+        }
+
+        pollster::block_on(async_inner(types, multiple))
+    }
+
+    pub fn open_camera_remote() -> Result<Option<OwnedFd>, ashpd::Error> {
+        pollster::block_on(ashpd::desktop::camera::request())
+            .map(|fd| fd.map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }))
+    }
+}
