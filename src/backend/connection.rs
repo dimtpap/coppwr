@@ -46,35 +46,13 @@ impl From<ashpd::Error> for Error {
     }
 }
 
-fn connect_non_portal_context(
-    context: &pw::Context<pw::MainLoop>,
-    remote: String,
-) -> Result<pw::Core, pw::Error> {
-    let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
-    std::env::remove_var("PIPEWIRE_REMOTE");
-
-    let core = context.connect(Some(util::key_val_to_props(
-        [
-            ("media.category", "Manager"),
-            ("remote.name", remote.as_str()),
-        ]
-        .into_iter(),
-    )))?;
-
-    if let Some(env_remote) = env_remote {
-        std::env::set_var("PIPEWIRE_REMOTE", env_remote);
-    }
-
-    Ok(core)
-}
-
 #[cfg(not(feature = "xdg_desktop_portals"))]
 pub struct Connection(pw::Core);
 #[cfg(not(feature = "xdg_desktop_portals"))]
 impl Connection {
     pub fn connect(context: &pw::Context<pw::MainLoop>, remote: RemoteInfo) -> Result<Self, Error> {
         let RemoteInfo::Regular(remote) = remote;
-        Ok(Self(connect_non_portal_context(context, remote)?))
+        Ok(Self(util::manager_core(context, remote.as_str())?))
     }
 
     pub fn core(&self) -> &pw::Core {
@@ -91,31 +69,19 @@ pub enum Connection<'s> {
 #[cfg(feature = "xdg_desktop_portals")]
 impl<'s> Connection<'s> {
     pub fn connect(context: &pw::Context<pw::MainLoop>, remote: RemoteInfo) -> Result<Self, Error> {
-        fn connect_portal_context(
-            context: &pw::Context<pw::MainLoop>,
-            fd: std::os::fd::OwnedFd,
-        ) -> Result<pw::Core, pw::Error> {
-            context.connect_fd(
-                fd,
-                Some(pw::properties! {
-                    "media.category" => "Manager",
-                }),
-            )
-        }
-
         match remote {
             RemoteInfo::Regular(name) => {
-                Ok(Self::Simple(connect_non_portal_context(context, name)?))
+                Ok(Self::Simple(util::manager_core(context, name.as_str())?))
             }
             RemoteInfo::Screencast { types, multiple } => {
                 let (fd, session) = portals::open_screencast_remote(types, multiple)?;
 
                 Ok(Self::PortalWithSession(
-                    connect_portal_context(context, fd)?,
+                    util::manager_core_fd(context, fd)?,
                     session,
                 ))
             }
-            RemoteInfo::Camera => Ok(Self::Simple(connect_portal_context(
+            RemoteInfo::Camera => Ok(Self::Simple(util::manager_core_fd(
                 context,
                 portals::open_camera_remote()?.ok_or(Error::MissingFd)?,
             )?)),

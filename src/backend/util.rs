@@ -43,6 +43,37 @@ pub fn key_val_to_props(
     props
 }
 
+pub fn manager_core(
+    context: &pw::Context<pw::MainLoop>,
+    remote_name: &str,
+) -> Result<pw::Core, pw::Error> {
+    let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
+    std::env::remove_var("PIPEWIRE_REMOTE");
+
+    let core = context.connect(Some(key_val_to_props(
+        [("media.category", "Manager"), ("remote.name", remote_name)].into_iter(),
+    )))?;
+
+    if let Some(env_remote) = env_remote {
+        std::env::set_var("PIPEWIRE_REMOTE", env_remote);
+    }
+
+    Ok(core)
+}
+
+#[cfg(feature = "xdg_desktop_portals")]
+pub fn manager_core_fd(
+    context: &pw::Context<pw::MainLoop>,
+    fd: std::os::fd::OwnedFd,
+) -> Result<pw::Core, pw::Error> {
+    context.connect_fd(
+        fd,
+        Some(pw::properties! {
+            "media.category" => "Manager",
+        }),
+    )
+}
+
 #[cfg(feature = "xdg_desktop_portals")]
 pub mod portals {
     use std::os::fd::{FromRawFd, OwnedFd};
