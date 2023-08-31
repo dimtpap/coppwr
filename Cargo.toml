@@ -36,6 +36,7 @@ bench = false
 
 [package.metadata.deb]
 depends = "pipewire"
+suggests = "xdg-desktop-portal"
 assets = [
 	["target/release/coppwr", "/usr/bin/coppwr", "755"],
 	["LICENSE", "/usr/share/licenses/coppwr/LICENSE", "644"],
@@ -49,6 +50,7 @@ assets = [
 	["assets/icon/48.png", "/usr/share/icons/hicolor/48x48/apps/xyz.dimtpap.coppwr.png", "644"],
 	["assets/icon/32.png", "/usr/share/icons/hicolor/32x32/apps/xyz.dimtpap.coppwr.png", "644"],
 ]
+features = ["xdg_desktop_portals"]
 
 [package.metadata.generate-rpm]
 assets = [
