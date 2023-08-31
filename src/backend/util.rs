@@ -48,7 +48,9 @@ pub fn manager_core(
     remote_name: &str,
 ) -> Result<pw::Core, pw::Error> {
     let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
-    std::env::remove_var("PIPEWIRE_REMOTE");
+    if env_remote.is_some() {
+        std::env::remove_var("PIPEWIRE_REMOTE");
+    }
 
     let core = context.connect(Some(key_val_to_props(
         [("media.category", "Manager"), ("remote.name", remote_name)].into_iter(),
