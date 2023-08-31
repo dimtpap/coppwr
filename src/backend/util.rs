@@ -47,7 +47,7 @@ pub fn manager_core(
     context: &pw::Context<pw::MainLoop>,
     remote_name: &str,
 ) -> Result<pw::Core, pw::Error> {
-    let env_remote = std::env::var("PIPEWIRE_REMOTE").ok();
+    let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
     std::env::remove_var("PIPEWIRE_REMOTE");
 
     let core = context.connect(Some(key_val_to_props(
