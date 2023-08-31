@@ -56,12 +56,12 @@ pub struct BoundGlobal {
 
 pub enum Error {
     Unimplemented,
-    PipeWireError(pw::Error),
+    PipeWire(pw::Error),
 }
 
 impl From<pw::Error> for Error {
     fn from(value: pw::Error) -> Self {
-        Self::PipeWireError(value)
+        Self::PipeWire(value)
     }
 }
 

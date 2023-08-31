@@ -265,7 +265,7 @@ pub fn pipewire_thread(
                         Error::Unimplemented => {
                             eprintln!("Unsupported object type {}", global.type_);
                         }
-                        Error::PipeWireError(e) => {
+                        Error::PipeWire(e) => {
                             eprintln!("Error binding object {id}: {e}");
                         }
                     },
