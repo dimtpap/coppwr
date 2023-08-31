@@ -70,7 +70,7 @@ pub fn pipewire_thread(
                 }
                 #[cfg(feature = "xdg_desktop_portals")]
                 Error::Ashpd(e) => {
-                    eprintln!("Error requesting portal remote: {e}")
+                    eprintln!("Error accessing portal: {e}")
                 }
             }
             sx.send(Event::Stop).ok();
