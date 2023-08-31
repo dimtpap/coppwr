@@ -28,7 +28,7 @@ pub enum Error {
     PipeWire(pw::Error),
 
     #[cfg(feature = "xdg_desktop_portals")]
-    MissingFd,
+    PortalUnavailable,
     #[cfg(feature = "xdg_desktop_portals")]
     Ashpd(ashpd::Error),
 }
@@ -83,7 +83,7 @@ impl<'s> Connection<'s> {
             }
             RemoteInfo::Camera => Ok(Self::Simple(util::manager_core_fd(
                 context,
-                portals::open_camera_remote()?.ok_or(Error::MissingFd)?,
+                portals::open_camera_remote()?.ok_or(Error::PortalUnavailable)?,
             )?)),
         }
     }

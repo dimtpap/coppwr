@@ -65,8 +65,8 @@ pub fn pipewire_thread(
                     eprintln!("Error initializing PipeWire: {e}");
                 }
                 #[cfg(feature = "xdg_desktop_portals")]
-                Error::MissingFd => {
-                    eprintln!("Portal PipeWire remote unavailable");
+                Error::PortalUnavailable => {
+                    eprintln!("Portal unavailable");
                 }
                 #[cfg(feature = "xdg_desktop_portals")]
                 Error::Ashpd(e) => {
