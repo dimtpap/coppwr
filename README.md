@@ -49,7 +49,7 @@ coppwr does **not** self-update.
 - bindgen [requirements](https://rust-lang.github.io/rust-bindgen/requirements.html)
 - PipeWire library headers/PipeWire development packages
 
-Available [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html) (Enable by passing `--feature feature-name` to Cargo)
+### Available [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html)
 - `pw_v0_3_77` - Used for the Link permission on PipeWire globals. Enable this if you're building with libpipewire 0.3.77 or later.
 - `xdg_desktop_portals` - Allows connecting to PipeWire remotes opened by the Camera and Screencast XDG Desktop Portals.
 ### Build
@@ -57,6 +57,7 @@ In the repository's root directory
 ```sh
 cargo build --release
 ```
+See the [Cargo reference](https://doc.rust-lang.org/cargo/reference/features.html#command-line-feature-options) for info on how to use any of the above features
 ### Arch
 `coppwr` is available from the [AUR](https://aur.archlinux.org/packages/coppwr)
 ```sh
