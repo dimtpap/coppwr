@@ -109,7 +109,7 @@ jobs:
               *)      NAME=coppwr-$GITHUB_REF_NAME-$GITHUB_SHA ;;
           esac
           mkdir out/
-          cargo deb -v --output out/$NAME.deb -- --all-features
+          cargo deb -v --no-build --output out/$NAME.deb
           cargo generate-rpm -o out/$NAME.rpm
           mkdir .cargo
           cargo vendor -v > .cargo/config.toml
