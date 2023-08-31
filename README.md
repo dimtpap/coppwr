@@ -51,7 +51,8 @@ coppwr does **not** self-update.
 
 ### Available [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html)
 - `pw_v0_3_77` - Used for the Link permission on PipeWire globals. Enable this if you're building with libpipewire 0.3.77 or later.
-- `xdg_desktop_portals` - Allows connecting to PipeWire remotes opened by the Camera and Screencast XDG Desktop Portals.
+- `xdg_desktop_portals` - Allows connecting to PipeWire remotes opened by the [Camera](https://flatpak.github.io/xdg-desktop-portal/#gdbus-org.freedesktop.portal.Camera)
+and [Screencast](https://flatpak.github.io/xdg-desktop-portal/#gdbus-org.freedesktop.impl.portal.ScreenCast) XDG Desktop Portals.
 ### Build
 In the repository's root directory
 ```sh
