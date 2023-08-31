@@ -33,15 +33,12 @@ pub fn pipewire_thread(
     // Proxies created by core.create_object
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
-    let Ok((mainloop, context, connection, registry)): Result<
-        (
-            pw::MainLoop,
-            Rc<pw::Context<pw::MainLoop>>,
-            Connection,
-            Rc<pw::registry::Registry>,
-        ),
-        super::connection::Error,
-    > = (|| {
+    let (mainloop, context, connection, registry): (
+        pw::MainLoop,
+        Rc<pw::Context<pw::MainLoop>>,
+        Connection,
+        Rc<pw::registry::Registry>,
+    ) = match (|| {
         let mainloop = pw::MainLoop::new()?;
 
         let context = pw::Context::new(&mainloop)?;
@@ -59,10 +56,26 @@ pub fn pipewire_thread(
         // Context needs to be moved to the loop listener
         // but must outlive it to prevent resource leaks
         Ok((mainloop, Rc::new(context), connection, Rc::new(registry)))
-    })() else {
-        eprintln!("Error while initializing PipeWire");
-        sx.send(Event::Stop).ok();
-        return;
+    })() {
+        Ok(instance) => instance,
+        Err(e) => {
+            use crate::backend::connection::Error;
+            match e {
+                Error::PipeWire(e) => {
+                    eprintln!("Error initializing PipeWire: {e}");
+                }
+                #[cfg(feature = "xdg_desktop_portals")]
+                Error::MissingFd => {
+                    eprintln!("Portal PipeWire remote unavailable");
+                }
+                #[cfg(feature = "xdg_desktop_portals")]
+                Error::Ashpd(e) => {
+                    eprintln!("Error requesting portal remote: {e}")
+                }
+            }
+            sx.send(Event::Stop).ok();
+            return;
+        }
     };
     let core = connection.core();
 
