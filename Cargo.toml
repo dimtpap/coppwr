@@ -1,6 +1,6 @@
 [package]
 name = "coppwr"
-version = "1.1.1"
+version = "1.2.0"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
 edition = "2021"
 license = "GPL-3.0-only"
