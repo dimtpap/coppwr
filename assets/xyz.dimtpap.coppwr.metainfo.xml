@@ -15,6 +15,14 @@
       of the PipeWire multimedia server as possible. It can be used as a diagnostic tool for PipeWire
       and to help develop software that interacts with it.
     </p>
+    <p>Features</p>
+    <ul>
+      <li>Object inspection, creation and destruction</li>
+      <li>Process monitoring and profiler statistics</li>
+      <li>Metadata editing</li>
+      <li>Module loading</li>
+      <li>Connecting to XDG Desktop Portal remotes</li>
+    </ul>
   </description>
   
   <provides>
