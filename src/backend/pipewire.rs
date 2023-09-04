@@ -27,6 +27,7 @@ use super::REMOTE_VERSION;
 
 pub fn pipewire_thread(
     remote: RemoteInfo,
+    context_properties: Vec<(String, String)>,
     sx: mpsc::Sender<Event>,
     pwrx: pw::channel::Receiver<Request>,
 ) {
@@ -49,7 +50,7 @@ pub fn pipewire_thread(
             eprintln!("Failed to load the profiler module. No profiler data will be available");
         };
 
-        let connection = Connection::connect(&context, remote)?;
+        let connection = Connection::connect(&context, context_properties, remote)?;
 
         let registry = connection.core().get_registry()?;
 

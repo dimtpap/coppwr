@@ -21,8 +21,8 @@ use pipewire::types::ObjectType;
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
 use super::{
-    globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader, ObjectCreator, Profiler,
-    WindowedTool,
+    common::EditableKVList, globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader,
+    ObjectCreator, Profiler, WindowedTool,
 };
 use crate::backend::{self, Event, RemoteInfo};
 
@@ -57,9 +57,9 @@ struct Inspector {
 }
 
 impl Inspector {
-    pub fn new(remote: RemoteInfo) -> Self {
+    pub fn new(remote: RemoteInfo, context_properties: Vec<(String, String)>) -> Self {
         Self {
-            handle: backend::Handle::run(remote),
+            handle: backend::Handle::run(remote, context_properties),
 
             open_tabs: View::GlobalTracker as u8,
 
@@ -301,28 +301,43 @@ enum State {
         inspector: Inspector,
         about: bool,
     },
-    Unconnected(RemoteInfo),
+    Unconnected {
+        remote: RemoteInfo,
+        context_properties: EditableKVList,
+    },
 }
 
 impl State {
     pub fn unconnected_from_env() -> Self {
-        Self::Unconnected(RemoteInfo::default())
+        let mut context_properties = EditableKVList::new();
+        context_properties
+            .list_mut()
+            .push(("media.category".to_owned(), "Manager".to_owned()));
+
+        Self::Unconnected {
+            remote: RemoteInfo::default(),
+            context_properties,
+        }
     }
 
-    pub fn new_connected(remote: RemoteInfo) -> Self {
+    pub fn new_connected(remote: RemoteInfo, context_properties: Vec<(String, String)>) -> Self {
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
             tabs_tree: egui_dock::Tree::new(tabs),
-            inspector: Inspector::new(remote),
+            inspector: Inspector::new(remote, context_properties),
             about: false,
         }
     }
 
     pub fn connect(&mut self) {
-        if let Self::Unconnected(remote) = self {
-            *self = Self::new_connected(std::mem::take(remote));
+        if let Self::Unconnected {
+            remote,
+            context_properties,
+        } = self
+        {
+            *self = Self::new_connected(std::mem::take(remote), context_properties.take());
         }
     }
 
@@ -337,7 +352,10 @@ pub struct CoppwrApp(State);
 
 impl CoppwrApp {
     pub fn new() -> Self {
-        Self(State::new_connected(RemoteInfo::default()))
+        Self(State::new_connected(
+            RemoteInfo::default(),
+            vec![("media.category".to_owned(), "Manager".to_owned())],
+        ))
     }
 }
 
@@ -427,14 +445,17 @@ impl eframe::App for CoppwrApp {
                     .scroll_area_in_tabs(false)
                     .show(ctx, inspector);
             }
-            State::Unconnected(remote) => {
+            State::Unconnected {
+                remote,
+                context_properties,
+            } => {
                 let mut connect = false;
                 egui::CentralPanel::default().show(ctx, |_| {});
                 egui::Window::new("Connect to PipeWire")
-                    .fixed_size([300., 100.])
-                    .fixed_pos([
+                    .fixed_size([300., 200.])
+                    .default_pos([
                         (frame.info().window_info.size.x - 300.) / 2.,
-                        (frame.info().window_info.size.y - 100.) / 2.,
+                        (frame.info().window_info.size.y - 200.) / 2.,
                     ])
                     .collapsible(false)
                     .show(ctx, |ui| {
@@ -497,14 +518,23 @@ impl eframe::App for CoppwrApp {
                                 #[cfg(feature = "xdg_desktop_portals")]
                                 RemoteInfo::Camera => {}
                             }
+                        });
 
-                            ui.with_layout(
-                                egui::Layout::top_down_justified(egui::Align::Center),
-                                |ui| {
-                                    connect = ui.button("Connect").clicked();
-                                },
-                            );
-                        })
+                        ui.separator();
+
+                        egui::CollapsingHeader::new("Context Properties").show_unindented(
+                            ui,
+                            |ui| {
+                                context_properties.draw(ui);
+                            },
+                        );
+
+                        ui.with_layout(
+                            egui::Layout::top_down_justified(egui::Align::Center),
+                            |ui| {
+                                connect = ui.button("Connect").clicked();
+                            },
+                        );
                     });
 
                 if connect {

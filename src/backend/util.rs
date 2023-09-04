@@ -43,37 +43,25 @@ pub fn key_val_to_props(
     props
 }
 
-pub fn manager_core(
+pub fn connect_override_env(
     context: &pw::Context<pw::MainLoop>,
-    remote_name: &str,
+    mut context_properties: Vec<(String, String)>,
+    remote_name: String,
 ) -> Result<pw::Core, pw::Error> {
     let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
     if env_remote.is_some() {
         std::env::remove_var("PIPEWIRE_REMOTE");
     }
 
-    let core = context.connect(Some(key_val_to_props(
-        [("media.category", "Manager"), ("remote.name", remote_name)].into_iter(),
-    )))?;
+    context_properties.push(("remote.name".to_owned(), remote_name));
+
+    let core = context.connect(Some(key_val_to_props(context_properties.into_iter())))?;
 
     if let Some(env_remote) = env_remote {
         std::env::set_var("PIPEWIRE_REMOTE", env_remote);
     }
 
     Ok(core)
-}
-
-#[cfg(feature = "xdg_desktop_portals")]
-pub fn manager_core_fd(
-    context: &pw::Context<pw::MainLoop>,
-    fd: std::os::fd::OwnedFd,
-) -> Result<pw::Core, pw::Error> {
-    context.connect_fd(
-        fd,
-        Some(pw::properties! {
-            "media.category" => "Manager",
-        }),
-    )
 }
 
 #[cfg(feature = "xdg_desktop_portals")]

@@ -54,6 +54,10 @@ impl EditableKVList {
         &self.list
     }
 
+    pub fn list_mut(&mut self) -> &mut Vec<(String, String)> {
+        &mut self.list
+    }
+
     pub fn take(&mut self) -> Vec<(String, String)> {
         std::mem::take(&mut self.list)
     }

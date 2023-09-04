@@ -50,9 +50,17 @@ impl From<ashpd::Error> for Error {
 pub struct Connection(pw::Core);
 #[cfg(not(feature = "xdg_desktop_portals"))]
 impl Connection {
-    pub fn connect(context: &pw::Context<pw::MainLoop>, remote: RemoteInfo) -> Result<Self, Error> {
+    pub fn connect(
+        context: &pw::Context<pw::MainLoop>,
+        context_properties: Vec<(String, String)>,
+        remote: RemoteInfo,
+    ) -> Result<Self, Error> {
         let RemoteInfo::Regular(remote) = remote;
-        Ok(Self(util::manager_core(context, remote.as_str())?))
+        Ok(Self(util::connect_override_env(
+            context,
+            context_properties,
+            remote,
+        )?))
     }
 
     pub fn core(&self) -> &pw::Core {
@@ -68,22 +76,31 @@ pub enum Connection<'s> {
 
 #[cfg(feature = "xdg_desktop_portals")]
 impl<'s> Connection<'s> {
-    pub fn connect(context: &pw::Context<pw::MainLoop>, remote: RemoteInfo) -> Result<Self, Error> {
+    pub fn connect(
+        context: &pw::Context<pw::MainLoop>,
+        context_properties: Vec<(String, String)>,
+        remote: RemoteInfo,
+    ) -> Result<Self, Error> {
         match remote {
-            RemoteInfo::Regular(name) => {
-                Ok(Self::Simple(util::manager_core(context, name.as_str())?))
-            }
+            RemoteInfo::Regular(remote_name) => Ok(Self::Simple(util::connect_override_env(
+                context,
+                context_properties,
+                remote_name,
+            )?)),
             RemoteInfo::Screencast { types, multiple } => {
                 let (fd, session) = portals::open_screencast_remote(types, multiple)?;
 
                 Ok(Self::PortalWithSession(
-                    util::manager_core_fd(context, fd)?,
+                    context.connect_fd(
+                        fd,
+                        Some(util::key_val_to_props(context_properties.into_iter())),
+                    )?,
                     session,
                 ))
             }
-            RemoteInfo::Camera => Ok(Self::Simple(util::manager_core_fd(
-                context,
+            RemoteInfo::Camera => Ok(Self::Simple(context.connect_fd(
                 portals::open_camera_remote()?.ok_or(Error::PortalUnavailable)?,
+                Some(util::key_val_to_props(context_properties.into_iter())),
             )?)),
         }
     }
