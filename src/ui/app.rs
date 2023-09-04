@@ -529,6 +529,8 @@ impl eframe::App for CoppwrApp {
                             },
                         );
 
+                        ui.separator();
+
                         ui.with_layout(
                             egui::Layout::top_down_justified(egui::Align::Center),
                             |ui| {
