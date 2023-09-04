@@ -45,7 +45,7 @@ pub fn key_val_to_props(
 
 pub fn connect_override_env(
     context: &pw::Context<pw::MainLoop>,
-    mut context_properties: Vec<(String, String)>,
+    mut context_properties: pw::Properties,
     remote_name: String,
 ) -> Result<pw::Core, pw::Error> {
     let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
@@ -53,9 +53,9 @@ pub fn connect_override_env(
         std::env::remove_var("PIPEWIRE_REMOTE");
     }
 
-    context_properties.push(("remote.name".to_owned(), remote_name));
+    context_properties.insert("remote.name", remote_name);
 
-    let core = context.connect(Some(key_val_to_props(context_properties.into_iter())))?;
+    let core = context.connect(Some(context_properties))?;
 
     if let Some(env_remote) = env_remote {
         std::env::set_var("PIPEWIRE_REMOTE", env_remote);

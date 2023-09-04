@@ -58,7 +58,7 @@ impl Connection {
         let RemoteInfo::Regular(remote) = remote;
         Ok(Self(util::connect_override_env(
             context,
-            context_properties,
+            util::key_val_to_props(context_properties.into_iter()),
             remote,
         )?))
     }
@@ -81,6 +81,8 @@ impl<'s> Connection<'s> {
         context_properties: Vec<(String, String)>,
         remote: RemoteInfo,
     ) -> Result<Self, Error> {
+        let context_properties = util::key_val_to_props(context_properties.into_iter());
+
         match remote {
             RemoteInfo::Regular(remote_name) => Ok(Self::Simple(util::connect_override_env(
                 context,
@@ -91,16 +93,13 @@ impl<'s> Connection<'s> {
                 let (fd, session) = portals::open_screencast_remote(types, multiple)?;
 
                 Ok(Self::PortalWithSession(
-                    context.connect_fd(
-                        fd,
-                        Some(util::key_val_to_props(context_properties.into_iter())),
-                    )?,
+                    context.connect_fd(fd, Some(context_properties))?,
                     session,
                 ))
             }
             RemoteInfo::Camera => Ok(Self::Simple(context.connect_fd(
                 portals::open_camera_remote()?.ok_or(Error::PortalUnavailable)?,
-                Some(util::key_val_to_props(context_properties.into_iter())),
+                Some(context_properties),
             )?)),
         }
     }
