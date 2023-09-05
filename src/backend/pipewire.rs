@@ -303,6 +303,11 @@ pub fn pipewire_thread(
         })
         .register();
 
+    sx.send(Event::ContextProperties(util::dict_to_map(
+        &context.properties(),
+    )))
+    .ok();
+
     mainloop.run();
 
     sx.send(Event::Stop).ok();
