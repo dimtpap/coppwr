@@ -330,9 +330,8 @@ impl Global {
                             ui.separator();
 
                             if ui.button("Update properties").clicked() {
-                                for (k, v) in new_properties.take() {
-                                    self.props.insert(k, v);
-                                }
+                                self.props.extend(new_properties.take());
+
                                 sx.send(Request::CallObjectMethod(
                                     self.id,
                                     ObjectMethod::ClientUpdateProperties(self.props.clone()),

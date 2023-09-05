@@ -157,9 +157,7 @@ impl PropertiesEditor {
     }
 
     pub fn take_as_map(&mut self) -> BTreeMap<String, String> {
-        for (k, v) in self.user_additions.take() {
-            self.properties.insert(k, v);
-        }
+        self.properties.extend(self.user_additions.take());
 
         std::mem::take(&mut self.properties)
     }
