@@ -51,12 +51,12 @@ impl Default for View {
 pub struct ContextManager {
     view: View,
 
-    context_props: PropertiesEditor,
+    properties: PropertiesEditor,
 
     module_dir: String,
-    name: String,
-    args: String,
-    props: EditableKVList,
+    module_name: String,
+    module_args: String,
+    module_props: EditableKVList,
 }
 
 impl Tool for ContextManager {
@@ -69,7 +69,7 @@ impl Tool for ContextManager {
 
 impl ContextManager {
     pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
-        self.context_props.set_properties(properties);
+        self.properties.set_properties(properties);
     }
 
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
@@ -90,7 +90,7 @@ impl ContextManager {
 
         match self.view {
             View::PropertiesEditor => {
-                self.context_props.draw(ui);
+                self.properties.draw(ui);
 
                 ui.separator();
 
@@ -101,7 +101,7 @@ impl ContextManager {
 
                     if ui.small_button("Update Properties").clicked() {
                         sx.send(Request::UpdateContextProperties(
-                            self.context_props.take_as_map(),
+                            self.properties.take_as_map(),
                         ))
                         .ok();
 
@@ -117,12 +117,12 @@ impl ContextManager {
                 )
                 .on_hover_text("The path of the directory where the module can be found");
                 ui.add(
-                    egui::TextEdit::singleline(&mut self.name)
+                    egui::TextEdit::singleline(&mut self.module_name)
                         .hint_text("Name")
                         .desired_width(f32::INFINITY),
                 );
                 ui.add(
-                    egui::TextEdit::multiline(&mut self.args)
+                    egui::TextEdit::multiline(&mut self.module_args)
                         .hint_text("Arguments")
                         .desired_width(f32::INFINITY),
                 );
@@ -131,12 +131,12 @@ impl ContextManager {
 
                 ui.label("Properties");
 
-                self.props.draw(ui);
+                self.module_props.draw(ui);
 
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    ui.add_enabled_ui(!self.name.is_empty(), |ui| {
+                    ui.add_enabled_ui(!self.module_name.is_empty(), |ui| {
                         if ui
                             .button("Load")
                             .on_disabled_hover_text("Provide a module name first")
@@ -148,23 +148,27 @@ impl ContextManager {
                                     .is_empty()
                                     .not()
                                     .then(|| self.module_dir.clone()),
-                                name: self.name.clone(),
-                                args: self.args.is_empty().not().then(|| self.args.clone()),
+                                name: self.module_name.clone(),
+                                args: self
+                                    .module_args
+                                    .is_empty()
+                                    .not()
+                                    .then(|| self.module_args.clone()),
                                 props: self
-                                    .props
+                                    .module_props
                                     .list()
                                     .is_empty()
                                     .not()
-                                    .then(|| self.props.list().clone()),
+                                    .then(|| self.module_props.list().clone()),
                             })
                             .ok();
                         }
                     });
                     if ui.button("Clear").clicked() {
                         self.module_dir.clear();
-                        self.name.clear();
-                        self.args.clear();
-                        self.props.clear();
+                        self.module_name.clear();
+                        self.module_args.clear();
+                        self.module_props.clear();
                     }
                 });
             }
