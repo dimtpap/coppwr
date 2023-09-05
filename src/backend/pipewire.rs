@@ -170,7 +170,7 @@ pub fn pipewire_thread(
             } => {
                 let props = props.map(|props| util::key_val_to_props(props.into_iter()));
 
-                let prev = std::env::var("PIPEWIRE_MODULE_DIR").ok();
+                let prev = std::env::var_os("PIPEWIRE_MODULE_DIR");
                 if let Some(ref module_dir) = module_dir {
                     std::env::set_var("PIPEWIRE_MODULE_DIR", module_dir);
                 }
