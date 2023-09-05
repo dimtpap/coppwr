@@ -16,8 +16,6 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
-use crate::backend::util::dict_to_map;
-
 use super::{
     bind::{BoundGlobal, Error},
     pw::{self, proxy::ProxyT, types::ObjectType},
@@ -193,7 +191,7 @@ pub fn pipewire_thread(
                 }
             }
             Request::GetContextProperties => {
-                sx.send(Event::ContextProperties(dict_to_map(&context.properties()))).ok();
+                sx.send(Event::ContextProperties(util::dict_to_map(&context.properties()))).ok();
             }
             Request::UpdateContextProperties(props) => {
                 context.update_properties(&util::key_val_to_props(props.into_iter()));

@@ -20,11 +20,12 @@ use pipewire::types::ObjectType;
 #[cfg(feature = "xdg_desktop_portals")]
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
+use crate::backend::{self, Event, RemoteInfo};
+
 use super::{
     common::EditableKVList, globals_store::ObjectData, ContextManager, GlobalsStore,
     MetadataEditor, ObjectCreator, Profiler, WindowedTool,
 };
-use crate::backend::{self, Event, RemoteInfo};
 
 #[derive(Clone, Copy)]
 enum View {

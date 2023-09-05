@@ -18,12 +18,11 @@ use std::{collections::BTreeMap, ops::Not};
 
 use eframe::egui;
 
-use crate::{
-    backend::Request,
-    ui::{
-        common::{EditableKVList, PropertiesEditor},
-        Tool,
-    },
+use crate::backend::Request;
+
+use super::{
+    common::{EditableKVList, PropertiesEditor},
+    Tool,
 };
 
 #[derive(PartialEq, Eq)]
