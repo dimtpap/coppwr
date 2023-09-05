@@ -14,6 +14,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::collections::BTreeMap;
+
 use eframe::egui;
 
 #[derive(Default)]
@@ -92,4 +94,57 @@ pub fn key_val_display<'a>(
             }
         });
     });
+}
+
+pub fn properties_editor(
+    ui: &mut egui::Ui,
+    properties: &mut BTreeMap<String, String>,
+    user_additions: &mut EditableKVList,
+) {
+    key_val_table(ui, |ui| {
+        properties.retain(|k, v| {
+            ui.label(k);
+            let keep = ui
+                .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    let keep = !ui.button("Delete").clicked();
+                    egui::TextEdit::singleline(v)
+                        .hint_text("Value")
+                        .desired_width(f32::INFINITY)
+                        .show(ui);
+                    keep
+                })
+                .inner;
+            ui.end_row();
+            keep
+        });
+    });
+
+    ui.separator();
+
+    ui.label("Add properties");
+    user_additions.draw(ui);
+}
+
+#[derive(Default)]
+pub struct PropertiesEditor {
+    properties: BTreeMap<String, String>,
+    user_additions: EditableKVList,
+}
+
+impl PropertiesEditor {
+    pub fn set_properties(&mut self, properties: BTreeMap<String, String>) {
+        self.properties = properties;
+    }
+
+    pub fn draw(&mut self, ui: &mut egui::Ui) {
+        properties_editor(ui, &mut self.properties, &mut self.user_additions);
+    }
+
+    pub fn take_as_map(&mut self) -> BTreeMap<String, String> {
+        for (k, v) in self.user_additions.take() {
+            self.properties.insert(k, v);
+        }
+
+        std::mem::take(&mut self.properties)
+    }
 }

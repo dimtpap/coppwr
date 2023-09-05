@@ -21,7 +21,7 @@ use eframe::egui;
 use crate::{
     backend::Request,
     ui::{
-        common::{key_val_table, EditableKVList},
+        common::{EditableKVList, PropertiesEditor},
         Tool,
     },
 };
@@ -51,8 +51,7 @@ impl Default for View {
 pub struct ContextManager {
     view: View,
 
-    context_props: BTreeMap<String, String>,
-    user_context_props: EditableKVList,
+    context_props: PropertiesEditor,
 
     module_dir: String,
     name: String,
@@ -70,7 +69,7 @@ impl Tool for ContextManager {
 
 impl ContextManager {
     pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
-        self.context_props = properties;
+        self.context_props.set_properties(properties);
     }
 
     fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
@@ -91,28 +90,7 @@ impl ContextManager {
 
         match self.view {
             View::PropertiesEditor => {
-                key_val_table(ui, |ui| {
-                    self.context_props.retain(|k, v| {
-                        ui.label(k);
-                        let keep = ui
-                            .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                                let keep = !ui.button("Delete").clicked();
-                                egui::TextEdit::singleline(v)
-                                    .hint_text("Value")
-                                    .desired_width(f32::INFINITY)
-                                    .show(ui);
-                                keep
-                            })
-                            .inner;
-                        ui.end_row();
-                        keep
-                    });
-                });
-
-                ui.separator();
-
-                ui.label("Add Properties");
-                self.user_context_props.draw(ui);
+                self.context_props.draw(ui);
 
                 ui.separator();
 
@@ -122,12 +100,9 @@ impl ContextManager {
                     }
 
                     if ui.small_button("Update Properties").clicked() {
-                        for (k, v) in self.user_context_props.take() {
-                            self.context_props.insert(k, v);
-                        }
-                        sx.send(Request::UpdateContextProperties(std::mem::take(
-                            &mut self.context_props,
-                        )))
+                        sx.send(Request::UpdateContextProperties(
+                            self.context_props.take_as_map(),
+                        ))
                         .ok();
 
                         sx.send(Request::GetContextProperties).ok();

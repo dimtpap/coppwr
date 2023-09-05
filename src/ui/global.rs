@@ -26,7 +26,7 @@ use pipewire::{self as pw, permissions::Permissions, registry::Permission, types
 
 use crate::{
     backend::{ObjectMethod, Request},
-    ui::common::{key_val_display, key_val_table, EditableKVList},
+    ui::common::{key_val_display, properties_editor, EditableKVList},
 };
 
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
@@ -313,31 +313,7 @@ impl Global {
                     } = self.object_data
                     {
                         egui::CollapsingHeader::new("Properties").show(ui, |ui| {
-                            key_val_table(ui, |ui| {
-                                self.props.retain(|k, v| {
-                                    ui.label(k);
-                                    let keep = ui
-                                        .with_layout(
-                                            egui::Layout::right_to_left(egui::Align::Min),
-                                            |ui| {
-                                                let keep = !ui.button("Delete").clicked();
-                                                egui::TextEdit::singleline(v)
-                                                    .hint_text("Value")
-                                                    .desired_width(f32::INFINITY)
-                                                    .show(ui);
-                                                keep
-                                            },
-                                        )
-                                        .inner;
-                                    ui.end_row();
-                                    keep
-                                });
-                            });
-                            ui.separator();
-
-                            ui.label("Add properties");
-
-                            new_properties.draw(ui);
+                            properties_editor(ui, &mut self.props, new_properties);
 
                             ui.separator();
 
