@@ -18,10 +18,10 @@ use std::collections::BTreeMap;
 
 use pipewire::{
     self as pw,
-    spa::{ForeignDict, ReadableDict, WritableDict},
+    spa::{ReadableDict, WritableDict},
 };
 
-pub fn dict_to_map<'a, K, V>(dict: &'a ForeignDict) -> BTreeMap<K, V>
+pub fn dict_to_map<'a, K, V>(dict: &'a impl ReadableDict) -> BTreeMap<K, V>
 where
     K: From<&'a str> + Ord,
     V: From<&'a str>,
