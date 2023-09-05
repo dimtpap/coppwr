@@ -464,12 +464,12 @@ impl eframe::App for CoppwrApp {
                     .show(ctx, |ui| {
                         ui.with_layout(egui::Layout::default().with_cross_justify(true), |ui| {
                             #[cfg(feature = "xdg_desktop_portals")]
-                            egui::ComboBox::new("remote_type", "Remote Kind")
+                            egui::ComboBox::new("remote_type", "Remote kind")
                                 .selected_text({
                                     match remote {
                                         RemoteInfo::Regular(..) => "Regular",
-                                        RemoteInfo::Screencast { .. } => "Screencast Portal",
-                                        RemoteInfo::Camera => "Camera Portal",
+                                        RemoteInfo::Screencast { .. } => "Screencast portal",
+                                        RemoteInfo::Camera => "Camera portal",
                                     }
                                 })
                                 .show_ui(ui, |ui| {
@@ -480,12 +480,12 @@ impl eframe::App for CoppwrApp {
                                             types: BitFlags::EMPTY,
                                             multiple: false,
                                         },
-                                        "Screencast Portal",
+                                        "Screencast portal",
                                     );
                                     ui.selectable_value(
                                         remote,
                                         RemoteInfo::Camera,
-                                        "Camera Portal",
+                                        "Camera portal",
                                     );
                                 });
 
@@ -499,7 +499,7 @@ impl eframe::App for CoppwrApp {
                                 #[cfg(feature = "xdg_desktop_portals")]
                                 RemoteInfo::Screencast { types, multiple } => {
                                     ui.horizontal(|ui| {
-                                        ui.label("Source Types");
+                                        ui.label("Source types");
                                         for (label, source_type) in [
                                             ("Monitor", SourceType::Monitor),
                                             ("Window", SourceType::Window),
@@ -516,7 +516,7 @@ impl eframe::App for CoppwrApp {
                                             }
                                         }
                                     });
-                                    ui.checkbox(multiple, "Multiple Sources");
+                                    ui.checkbox(multiple, "Multiple sources");
                                 }
                                 #[cfg(feature = "xdg_desktop_portals")]
                                 RemoteInfo::Camera => {}
@@ -525,7 +525,7 @@ impl eframe::App for CoppwrApp {
 
                         ui.separator();
 
-                        egui::CollapsingHeader::new("Context Properties").show_unindented(
+                        egui::CollapsingHeader::new("Context properties").show_unindented(
                             ui,
                             |ui| {
                                 context_properties.show(ui);

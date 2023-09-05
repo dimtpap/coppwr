@@ -35,8 +35,8 @@ enum View {
 impl View {
     fn as_str(&self) -> &'static str {
         match self {
-            Self::PropertiesEditor => "Properties Editor",
-            Self::ModuleLoader => "Module Loader",
+            Self::PropertiesEditor => "Properties editor",
+            Self::ModuleLoader => "Module loader",
         }
     }
 }
@@ -95,11 +95,11 @@ impl ContextManager {
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    if ui.small_button("Get Properties").clicked() {
+                    if ui.small_button("Get properties").clicked() {
                         sx.send(Request::GetContextProperties).ok();
                     }
 
-                    if ui.small_button("Update Properties").clicked() {
+                    if ui.small_button("Update properties").clicked() {
                         sx.send(Request::UpdateContextProperties(
                             self.properties.take_as_map(),
                         ))
