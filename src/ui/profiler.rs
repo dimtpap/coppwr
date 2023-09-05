@@ -361,7 +361,7 @@ impl Profiler {
                 info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
         }
 
-        if ui.horizontal(|ui| {
+        let clear = ui.horizontal(|ui| {
             ui.label("Profilings");
             ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
                 .on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
@@ -371,7 +371,8 @@ impl Profiler {
             ui.toggle_value(&mut self.pause, "Pause");
 
             clear
-        }).inner {
+        }).inner;
+        if clear {
             self.drivers.get_mut(&id).unwrap().clear();
             return;
         }
