@@ -215,10 +215,10 @@ pub fn pipewire_thread(
                 if REMOTE_VERSION.get().is_none() {
                     let mut version = info.version().split('.').filter_map(|v| v.parse().ok());
 
-                    if let (Some(major), Some(minor), Some(micro)) =
+                    if let (Some(major), Some(minor), Some(patch)) =
                         (version.next(), version.next(), version.next())
                     {
-                        REMOTE_VERSION.set((major, minor, micro)).ok();
+                        REMOTE_VERSION.set((major, minor, patch)).ok();
                     }
                 }
 
