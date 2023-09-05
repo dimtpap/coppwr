@@ -66,3 +66,30 @@ impl EditableKVList {
         self.list.clear();
     }
 }
+
+pub fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
+    egui::ScrollArea::vertical()
+        .min_scrolled_height(400f32)
+        .show(ui, |ui| {
+            egui::Grid::new("kvtable")
+                .num_columns(2)
+                .striped(true)
+                .show(ui, add_contents);
+        });
+}
+
+pub fn key_val_display<'a>(
+    ui: &mut egui::Ui,
+    header: &str,
+    kv: impl Iterator<Item = (&'a str, &'a str)>,
+) {
+    egui::CollapsingHeader::new(header).show(ui, |ui| {
+        key_val_table(ui, |ui| {
+            for (k, v) in kv {
+                ui.label(k);
+                ui.label(v).on_hover_text(v);
+                ui.end_row();
+            }
+        });
+    });
+}

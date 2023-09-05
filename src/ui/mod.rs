@@ -15,16 +15,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod common;
+mod context_manager;
 mod globals_store;
 mod metadata_editor;
-mod module_loader;
 mod object_creator;
 mod profiler;
 mod tool;
 
+use context_manager::ContextManager;
 use globals_store::GlobalsStore;
 use metadata_editor::MetadataEditor;
-use module_loader::ModuleLoader;
 use object_creator::ObjectCreator;
 use profiler::Profiler;
 use tool::{Tool, WindowedTool};

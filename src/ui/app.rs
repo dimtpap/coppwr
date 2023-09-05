@@ -21,8 +21,8 @@ use pipewire::types::ObjectType;
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
 use super::{
-    common::EditableKVList, globals_store::ObjectData, GlobalsStore, MetadataEditor, ModuleLoader,
-    ObjectCreator, Profiler, WindowedTool,
+    common::EditableKVList, globals_store::ObjectData, ContextManager, GlobalsStore,
+    MetadataEditor, ObjectCreator, Profiler, WindowedTool,
 };
 use crate::backend::{self, Event, RemoteInfo};
 
@@ -53,7 +53,7 @@ struct Inspector {
 
     object_creator: WindowedTool<ObjectCreator>,
     metadata_editor: WindowedTool<MetadataEditor>,
-    module_loader: WindowedTool<ModuleLoader>,
+    context_manager: WindowedTool<ContextManager>,
 }
 
 impl Inspector {
@@ -68,7 +68,7 @@ impl Inspector {
 
             object_creator: WindowedTool::default(),
             metadata_editor: WindowedTool::default(),
-            module_loader: WindowedTool::default(),
+            context_manager: WindowedTool::default(),
         }
     }
 
@@ -116,9 +116,9 @@ impl Inspector {
                     "Edit remote metadata",
                 ),
                 (
-                    &mut self.module_loader.open,
-                    "🗄 Module Loader",
-                    "Load a module in the local context",
+                    &mut self.context_manager.open,
+                    "🗄 Context Manager",
+                    "Manage the PipeWire context",
                 ),
             ] {
                 if ui
@@ -135,7 +135,7 @@ impl Inspector {
     pub fn tool_windows(&mut self, ctx: &egui::Context) {
         self.object_creator.window(ctx, &self.handle.sx);
         self.metadata_editor.window(ctx, &self.handle.sx);
-        self.module_loader.window(ctx, &self.handle.sx);
+        self.context_manager.window(ctx, &self.handle.sx);
     }
 
     #[must_use = "Indicates whether the connection to the backend has ended"]
@@ -259,7 +259,9 @@ impl Inspector {
                     }
                 }
             }
-            Event::ContextProperties(_) => {}
+            Event::ContextProperties(properties) => {
+                self.context_manager.tool.set_context_properties(properties);
+            }
             Event::Stop => unreachable!(),
         }
     }
