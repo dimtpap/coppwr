@@ -294,13 +294,7 @@ impl Global {
 
                 ui.push_id(self.id, |ui| {
                     if let Some(info) = self.info() {
-                        key_val_display(
-                            ui,
-                            400f32,
-                            f32::INFINITY,
-                            "Info",
-                            info.iter().map(|(k, v)| (*k, v.as_str())),
-                        );
+                        key_val_display(ui, 400f32, f32::INFINITY, "Info", info.iter().cloned());
                     }
 
                     if !searched_property.is_empty() {
@@ -345,7 +339,7 @@ impl Global {
                             400f32,
                             f32::INFINITY,
                             "Properties",
-                            self.props().iter().map(|(k, v)| (k.as_str(), v.as_str())),
+                            self.props().iter(),
                         );
                     }
 

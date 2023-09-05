@@ -16,7 +16,7 @@
 
 use std::collections::BTreeMap;
 
-use eframe::egui;
+use eframe::egui::{self, WidgetText};
 
 #[derive(Default)]
 pub struct EditableKVList {
@@ -86,18 +86,20 @@ pub fn key_val_table(
         });
 }
 
-pub fn key_val_display<'a>(
+pub fn key_val_display(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
     max_height: f32,
     header: &str,
-    kv: impl Iterator<Item = (&'a str, &'a str)>,
+    kv: impl Iterator<Item = (impl Into<WidgetText>, impl Into<WidgetText>)>,
 ) {
     egui::CollapsingHeader::new(header).show(ui, |ui| {
         key_val_table(ui, min_scrolled_height, max_height, |ui| {
             for (k, v) in kv {
+                let v = v.into();
+
                 ui.label(k);
-                ui.label(v).on_hover_text(v);
+                ui.label(v.clone()).on_hover_text(v);
                 ui.end_row();
             }
         });
