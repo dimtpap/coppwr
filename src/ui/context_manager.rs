@@ -32,7 +32,7 @@ enum View {
 }
 
 impl View {
-    fn as_str(&self) -> &'static str {
+    const fn as_str(&self) -> &'static str {
         match self {
             Self::PropertiesEditor => "Properties editor",
             Self::ModuleLoader => "Module loader",

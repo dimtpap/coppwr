@@ -63,7 +63,7 @@ impl Connection {
         )?))
     }
 
-    pub fn core(&self) -> &pw::Core {
+    pub const fn core(&self) -> &pw::Core {
         &self.0
     }
 }
@@ -104,7 +104,7 @@ impl<'s> Connection<'s> {
         }
     }
 
-    pub fn core(&self) -> &pw::Core {
+    pub const fn core(&self) -> &pw::Core {
         match self {
             Self::Simple(core) | Self::PortalWithSession(core, _) => core,
         }

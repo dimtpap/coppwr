@@ -54,7 +54,7 @@ mod data {
     }
 
     impl ClientMeasurement {
-        fn empty() -> Self {
+        const fn empty() -> Self {
             Self {
                 end_date: f64::NAN,
                 scheduling_latency: f64::NAN,
@@ -62,7 +62,7 @@ mod data {
             }
         }
 
-        fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
+        const fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
             Self {
                 end_date: (follower.finish - driver.signal) as f64,
                 scheduling_latency: (follower.awake - follower.signal) as f64,
@@ -120,7 +120,7 @@ mod data {
             self.last_non_empty_pos -= 1;
         }
 
-        fn is_empty(&self) -> bool {
+        const fn is_empty(&self) -> bool {
             self.last_non_empty_pos == 0
         }
 
@@ -210,7 +210,7 @@ mod data {
             self.last_profiling = Some(profiling);
         }
 
-        pub fn last_profling(&self) -> Option<&Profiling> {
+        pub const fn last_profling(&self) -> Option<&Profiling> {
             self.last_profiling.as_ref()
         }
 
