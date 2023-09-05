@@ -314,7 +314,7 @@ impl Global {
 
                     // Clients can have their properties updated
                     if let ObjectData::Client {
-                        user_properties: ref mut new_properties,
+                        ref mut user_properties,
                         ..
                     } = self.object_data
                     {
@@ -324,13 +324,13 @@ impl Global {
                                 400f32,
                                 f32::INFINITY,
                                 &mut self.props,
-                                new_properties,
+                                user_properties,
                             );
 
                             ui.separator();
 
                             if ui.button("Update properties").clicked() {
-                                self.props.extend(new_properties.take());
+                                self.props.extend(user_properties.take());
 
                                 sx.send(Request::CallObjectMethod(
                                     self.id,
