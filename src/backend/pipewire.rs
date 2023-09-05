@@ -16,6 +16,8 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
+use crate::backend::util::dict_to_map;
+
 use super::{
     bind::{BoundGlobal, Error},
     pw::{self, proxy::ProxyT, types::ObjectType},
@@ -83,6 +85,7 @@ pub fn pipewire_thread(
     let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 
     let _receiver = pwrx.attach(&mainloop, {
+        let sx = sx.clone();
         let mainloop = mainloop.clone();
         let context = Rc::clone(&context);
         let core = core.clone();
@@ -188,6 +191,12 @@ pub fn pipewire_thread(
                         std::env::remove_var("PIPEWIRE_MODULE_DIR");
                     }
                 }
+            }
+            Request::GetContextProperties => {
+                sx.send(Event::ContextProperties(dict_to_map(&context.properties()))).ok();
+            }
+            Request::UpdateContextProperties(props) => {
+                context.update_properties(&util::key_val_to_props(props.into_iter()));
             }
             Request::CallObjectMethod(id, method) => {
                 if let Some(object) = binds.borrow().get(&id) {

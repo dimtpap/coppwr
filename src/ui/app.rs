@@ -259,6 +259,7 @@ impl Inspector {
                     }
                 }
             }
+            Event::ContextProperties(_) => {}
             Event::Stop => unreachable!(),
         }
     }

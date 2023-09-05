@@ -49,6 +49,8 @@ pub enum Request {
         args: Option<String>,
         props: Option<Vec<(String, String)>>,
     },
+    GetContextProperties,
+    UpdateContextProperties(std::collections::BTreeMap<String, String>),
     CallObjectMethod(u32, ObjectMethod),
 }
 
@@ -70,6 +72,7 @@ pub enum Event {
         type_: Option<String>,
         value: Option<String>,
     },
+    ContextProperties(std::collections::BTreeMap<String, String>),
     Stop,
 }
 
