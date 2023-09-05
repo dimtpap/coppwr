@@ -16,7 +16,75 @@
 
 use std::collections::BTreeMap;
 
-use eframe::egui::{self, WidgetText};
+use eframe::egui;
+
+pub fn key_val_table(
+    ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
+    add_contents: impl FnOnce(&mut egui::Ui),
+) {
+    egui::ScrollArea::vertical()
+        .min_scrolled_height(min_scrolled_height)
+        .max_height(max_height)
+        .show(ui, |ui| {
+            egui::Grid::new("kvtable")
+                .num_columns(2)
+                .striped(true)
+                .show(ui, add_contents);
+        });
+}
+
+pub fn key_val_display(
+    ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
+    header: &str,
+    kv: impl Iterator<Item = (impl Into<egui::WidgetText>, impl Into<egui::WidgetText>)>,
+) {
+    egui::CollapsingHeader::new(header).show(ui, |ui| {
+        key_val_table(ui, min_scrolled_height, max_height, |ui| {
+            for (k, v) in kv {
+                let v = v.into();
+
+                ui.label(k);
+                ui.label(v.clone()).on_hover_text(v);
+                ui.end_row();
+            }
+        });
+    });
+}
+
+pub fn properties_editor(
+    ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
+    properties: &mut BTreeMap<String, String>,
+    user_additions: &mut EditableKVList,
+) {
+    key_val_table(ui, min_scrolled_height, max_height, |ui| {
+        properties.retain(|k, v| {
+            ui.label(k);
+            let keep = ui
+                .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    let keep = !ui.button("Delete").clicked();
+                    egui::TextEdit::singleline(v)
+                        .hint_text("Value")
+                        .desired_width(f32::INFINITY)
+                        .show(ui);
+                    keep
+                })
+                .inner;
+            ui.end_row();
+            keep
+        });
+    });
+
+    ui.separator();
+
+    ui.label("Add properties");
+    user_additions.show(ui);
+}
 
 #[derive(Default)]
 pub struct EditableKVList {
@@ -67,74 +135,6 @@ impl EditableKVList {
     pub fn clear(&mut self) {
         self.list.clear();
     }
-}
-
-pub fn key_val_table(
-    ui: &mut egui::Ui,
-    min_scrolled_height: f32,
-    max_height: f32,
-    add_contents: impl FnOnce(&mut egui::Ui),
-) {
-    egui::ScrollArea::vertical()
-        .min_scrolled_height(min_scrolled_height)
-        .max_height(max_height)
-        .show(ui, |ui| {
-            egui::Grid::new("kvtable")
-                .num_columns(2)
-                .striped(true)
-                .show(ui, add_contents);
-        });
-}
-
-pub fn key_val_display(
-    ui: &mut egui::Ui,
-    min_scrolled_height: f32,
-    max_height: f32,
-    header: &str,
-    kv: impl Iterator<Item = (impl Into<WidgetText>, impl Into<WidgetText>)>,
-) {
-    egui::CollapsingHeader::new(header).show(ui, |ui| {
-        key_val_table(ui, min_scrolled_height, max_height, |ui| {
-            for (k, v) in kv {
-                let v = v.into();
-
-                ui.label(k);
-                ui.label(v.clone()).on_hover_text(v);
-                ui.end_row();
-            }
-        });
-    });
-}
-
-pub fn properties_editor(
-    ui: &mut egui::Ui,
-    min_scrolled_height: f32,
-    max_height: f32,
-    properties: &mut BTreeMap<String, String>,
-    user_additions: &mut EditableKVList,
-) {
-    key_val_table(ui, min_scrolled_height, max_height, |ui| {
-        properties.retain(|k, v| {
-            ui.label(k);
-            let keep = ui
-                .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                    let keep = !ui.button("Delete").clicked();
-                    egui::TextEdit::singleline(v)
-                        .hint_text("Value")
-                        .desired_width(f32::INFINITY)
-                        .show(ui);
-                    keep
-                })
-                .inner;
-            ui.end_row();
-            keep
-        });
-    });
-
-    ui.separator();
-
-    ui.label("Add properties");
-    user_additions.show(ui);
 }
 
 #[derive(Default)]
