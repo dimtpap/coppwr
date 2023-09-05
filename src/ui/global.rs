@@ -100,7 +100,7 @@ impl ObjectData {
         }
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>, id: u32) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>, id: u32) {
         match self {
             Self::Client {
                 permissions,
@@ -268,7 +268,7 @@ impl Global {
         self.name = name.cloned();
     }
 
-    pub fn draw(
+    pub fn show(
         &mut self,
         ui: &mut egui::Ui,
         draw_subobjects: bool,
@@ -355,7 +355,7 @@ impl Global {
                                 match self.object_type() {
                                     ObjectType::Device | ObjectType::Client => {
                                         for sub in subobjects {
-                                            sub.borrow_mut().draw(ui, true, searched_property, sx);
+                                            sub.borrow_mut().show(ui, true, searched_property, sx);
                                         }
                                     }
                                     ObjectType::Node => {
@@ -387,7 +387,7 @@ impl Global {
                                             ui.label(label);
                                             ui.columns(ports.len(), |ui| {
                                                 for (i, port) in ports.into_iter().enumerate() {
-                                                    port.borrow_mut().draw(
+                                                    port.borrow_mut().show(
                                                         &mut ui[i],
                                                         true,
                                                         searched_property,
@@ -400,7 +400,7 @@ impl Global {
                                     ObjectType::Port => {
                                         ui.columns(self.subobjects.len(), |ui| {
                                             for (i, sub) in subobjects.enumerate() {
-                                                sub.borrow_mut().draw(
+                                                sub.borrow_mut().show(
                                                     &mut ui[i],
                                                     true,
                                                     searched_property,
@@ -419,7 +419,7 @@ impl Global {
                         });
                     }
 
-                    self.object_data.draw(ui, sx, self.id);
+                    self.object_data.show(ui, sx, self.id);
                 });
             });
         });

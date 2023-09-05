@@ -21,7 +21,7 @@ use crate::backend::Request;
 pub trait Tool {
     const NAME: &'static str;
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>);
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>);
 }
 
 #[derive(Default)]
@@ -36,7 +36,7 @@ impl<T: Tool> WindowedTool<T> {
             .vscroll(true)
             .open(&mut self.open)
             .show(ctx, |ui| {
-                self.tool.draw(ui, sx);
+                self.tool.show(ui, sx);
             });
     }
 }

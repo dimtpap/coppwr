@@ -28,7 +28,7 @@ impl EditableKVList {
         Self::default()
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&mut self, ui: &mut egui::Ui) {
         self.list.retain_mut(|(k, v)| {
             ui.horizontal(|ui| {
                 let keep = !ui.button("Delete").clicked();
@@ -122,7 +122,7 @@ pub fn properties_editor(
     ui.separator();
 
     ui.label("Add properties");
-    user_additions.draw(ui);
+    user_additions.show(ui);
 }
 
 #[derive(Default)]
@@ -136,7 +136,7 @@ impl PropertiesEditor {
         self.properties = properties;
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&mut self, ui: &mut egui::Ui) {
         properties_editor(ui, &mut self.properties, &mut self.user_additions);
     }
 

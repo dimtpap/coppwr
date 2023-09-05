@@ -63,8 +63,8 @@ pub struct MetadataEditor {
 impl Tool for MetadataEditor {
     const NAME: &'static str = "Metadata Editor";
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, sx);
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.show(ui, sx);
     }
 }
 
@@ -123,7 +123,7 @@ impl MetadataEditor {
         });
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         for (id, metadata) in &mut self.metadatas {
             ui.group(|ui| {
                 ui.heading(&metadata.name);

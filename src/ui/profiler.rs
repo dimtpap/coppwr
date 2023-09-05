@@ -306,7 +306,7 @@ impl Profiler {
         }
     }
 
-    pub fn draw_profiler(&mut self, ui: &mut egui::Ui) {
+    pub fn show_profiler(&mut self, ui: &mut egui::Ui) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")
@@ -481,7 +481,7 @@ impl Profiler {
         });
     }
 
-    pub fn draw_process_viewer(&mut self, ui: &mut egui::Ui) {
+    pub fn show_process_viewer(&mut self, ui: &mut egui::Ui) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")

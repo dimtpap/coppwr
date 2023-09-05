@@ -274,16 +274,16 @@ impl egui_dock::TabViewer for Inspector {
         match *tab {
             View::Profiler => {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.profiler.draw_profiler(ui);
+                    self.profiler.show_profiler(ui);
                 });
             }
             View::ProcessViewer => {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.profiler.draw_process_viewer(ui);
+                    self.profiler.show_process_viewer(ui);
                 });
             }
             View::GlobalTracker => {
-                self.globals.draw(ui, &self.handle.sx);
+                self.globals.show(ui, &self.handle.sx);
             }
         }
     }
@@ -528,7 +528,7 @@ impl eframe::App for CoppwrApp {
                         egui::CollapsingHeader::new("Context Properties").show_unindented(
                             ui,
                             |ui| {
-                                context_properties.draw(ui);
+                                context_properties.show(ui);
                             },
                         );
 

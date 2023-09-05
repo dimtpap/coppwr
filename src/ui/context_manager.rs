@@ -62,8 +62,8 @@ pub struct ContextManager {
 impl Tool for ContextManager {
     const NAME: &'static str = "Context Manager";
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, sx);
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.show(ui, sx);
     }
 }
 
@@ -72,7 +72,7 @@ impl ContextManager {
         self.properties.set_properties(properties);
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         egui::ComboBox::new("view", "View")
             .selected_text(self.view.as_str())
             .show_ui(ui, |ui| {
@@ -90,7 +90,7 @@ impl ContextManager {
 
         match self.view {
             View::PropertiesEditor => {
-                self.properties.draw(ui);
+                self.properties.show(ui);
 
                 ui.separator();
 
@@ -131,7 +131,7 @@ impl ContextManager {
 
                 ui.label("Properties");
 
-                self.module_props.draw(ui);
+                self.module_props.show(ui);
 
                 ui.separator();
 

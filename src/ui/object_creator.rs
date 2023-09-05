@@ -40,8 +40,8 @@ pub struct ObjectCreator {
 impl Tool for ObjectCreator {
     const NAME: &'static str = "Object Creator";
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
-        self.draw(ui, sx);
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+        self.show(ui, sx);
     }
 }
 
@@ -60,7 +60,7 @@ impl ObjectCreator {
         self.factories.remove(&id);
     }
 
-    fn draw(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
         let factory = if let Some(id) = self.selected_factory {
             let factory = self.factories.get(&id);
             if factory.is_none() {
@@ -95,7 +95,7 @@ impl ObjectCreator {
 
         ui.label("Properties");
 
-        self.props.draw(ui);
+        self.props.show(ui);
 
         ui.separator();
 
