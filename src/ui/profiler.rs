@@ -339,7 +339,7 @@ impl Profiler {
                 for (id, driver) in &self.drivers {
                     let name = driver
                         .name()
-                        .map_or_else(|| format!("Unnamed driver {id}"), str::to_string);
+                        .map_or_else(|| format!("Unnamed driver {id}"), ToOwned::to_owned);
 
                     ui.selectable_value(&mut self.selected_driver_id, Some(*id), name);
                 }

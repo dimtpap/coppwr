@@ -71,7 +71,7 @@ impl Tool for MetadataEditor {
 impl MetadataEditor {
     pub fn add_metadata(&mut self, id: u32, name: &str) {
         self.metadatas.entry(id).or_insert(Metadata {
-            name: name.to_string(),
+            name: name.to_owned(),
             properties: BTreeMap::new(),
             user_properties: Vec::new(),
         });

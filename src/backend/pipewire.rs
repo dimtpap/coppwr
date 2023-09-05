@@ -223,10 +223,10 @@ pub fn pipewire_thread(
                 }
 
                 let infos = Box::new([
-                    ("Name", info.name().to_string()),
-                    ("Hostname", info.host_name().to_string()),
-                    ("Username", info.user_name().to_string()),
-                    ("Version", info.version().to_string()),
+                    ("Name", info.name().to_owned()),
+                    ("Hostname", info.host_name().to_owned()),
+                    ("Username", info.user_name().to_owned()),
+                    ("Version", info.version().to_owned()),
                     ("Cookie", info.cookie().to_string()),
                 ]);
 

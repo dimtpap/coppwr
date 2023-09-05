@@ -25,11 +25,11 @@ pub fn module(module: pw::module::Module, id: u32, sx: std::sync::mpsc::Sender<E
         .add_listener_local()
         .info({
             move |info| {
-                let name = ("Name", info.name().to_string());
-                let filename = ("Filename", info.filename().to_string());
+                let name = ("Name", info.name().to_owned());
+                let filename = ("Filename", info.filename().to_owned());
 
                 let infos: Box<[(&str, String)]> = if let Some(args) = info.args() {
-                    Box::new([name, filename, ("Arguments", args.to_string())])
+                    Box::new([name, filename, ("Arguments", args.to_owned())])
                 } else {
                     Box::new([name, filename])
                 };
@@ -133,7 +133,7 @@ pub fn node(node: pw::node::Node, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                     pw::node::NodeState::Running => "Running",
                     pw::node::NodeState::Error(e) => e,
                 }
-                .to_string();
+                .to_owned();
                 let infos = Box::new([
                     ("Max Input Ports", info.max_input_ports().to_string()),
                     ("Max Output Ports", info.max_output_ports().to_string()),
@@ -167,7 +167,7 @@ pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                     pw::spa::Direction::Output => "Output",
                     _ => "Invalid",
                 }
-                .to_string();
+                .to_owned();
 
                 sx.send(Event::GlobalInfo(id, Box::new([("Direction", direction)])))
                     .ok();
@@ -199,7 +199,7 @@ pub fn link(link: pw::link::Link, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                     pw::link::LinkState::Unlinked => "Unlinked",
                     pw::link::LinkState::Error(e) => e,
                 }
-                .to_string();
+                .to_owned();
                 let infos = Box::new([
                     ("Input Node ID", info.input_node_id().to_string()),
                     ("Intput Port ID", info.input_port_id().to_string()),
@@ -258,9 +258,9 @@ pub fn metadata(
                 sx.send(Event::MetadataProperty {
                     id,
                     subject,
-                    key: key.map(str::to_string),
-                    type_: type_.map(str::to_string),
-                    value: value.map(str::to_string),
+                    key: key.map(ToOwned::to_owned),
+                    type_: type_.map(ToOwned::to_owned),
+                    value: value.map(ToOwned::to_owned),
                 })
                 .ok();
                 0

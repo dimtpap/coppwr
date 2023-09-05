@@ -50,7 +50,7 @@ impl ObjectCreator {
         self.factories.insert(
             id,
             Factory {
-                name: name.to_string(),
+                name: name.to_owned(),
                 object_type,
             },
         );
