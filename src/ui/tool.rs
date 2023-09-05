@@ -16,12 +16,12 @@
 
 use eframe::egui;
 
-use crate::backend::Request;
+use crate::backend;
 
 pub trait Tool {
     const NAME: &'static str;
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>);
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender);
 }
 
 #[derive(Default)]
@@ -31,7 +31,7 @@ pub struct WindowedTool<T: Tool> {
 }
 
 impl<T: Tool> WindowedTool<T> {
-    pub fn window(&mut self, ctx: &egui::Context, sx: &pipewire::channel::Sender<Request>) {
+    pub fn window(&mut self, ctx: &egui::Context, sx: &backend::Sender) {
         egui::Window::new(T::NAME)
             .vscroll(true)
             .open(&mut self.open)

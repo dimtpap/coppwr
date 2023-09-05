@@ -20,7 +20,7 @@ use eframe::egui;
 use pipewire::types::ObjectType;
 
 use crate::{
-    backend::Request,
+    backend::{self, Request},
     ui::{common::EditableKVList, Tool},
 };
 
@@ -40,7 +40,7 @@ pub struct ObjectCreator {
 impl Tool for ObjectCreator {
     const NAME: &'static str = "Object Creator";
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         self.show(ui, sx);
     }
 }
@@ -60,7 +60,7 @@ impl ObjectCreator {
         self.factories.remove(&id);
     }
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         let factory = if let Some(id) = self.selected_factory {
             let factory = self.factories.get(&id);
             if factory.is_none() {

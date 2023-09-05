@@ -25,7 +25,7 @@ use eframe::egui;
 use pipewire::{self as pw, permissions::Permissions, registry::Permission, types::ObjectType};
 
 use crate::{
-    backend::{ObjectMethod, Request},
+    backend::{self, ObjectMethod, Request},
     ui::common::{key_val_display, properties_editor, EditableKVList},
 };
 
@@ -100,7 +100,7 @@ impl ObjectData {
         }
     }
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pw::channel::Sender<Request>, id: u32) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender, id: u32) {
         match self {
             Self::Client {
                 permissions,
@@ -273,7 +273,7 @@ impl Global {
         ui: &mut egui::Ui,
         draw_subobjects: bool,
         searched_property: &str,
-        sx: &pw::channel::Sender<Request>,
+        sx: &backend::Sender,
     ) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());

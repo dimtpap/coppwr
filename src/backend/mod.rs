@@ -24,6 +24,8 @@ use ::pipewire as pw;
 
 use connection::Connection;
 
+pub type Sender = pw::channel::Sender<Request>;
+
 pub enum ObjectMethod {
     ClientGetPermissions {
         index: u32,
@@ -113,7 +115,7 @@ impl Default for RemoteInfo {
 pub struct Handle {
     thread: Option<std::thread::JoinHandle<()>>,
     pub rx: std::sync::mpsc::Receiver<Event>,
-    pub sx: pw::channel::Sender<Request>,
+    pub sx: Sender,
 }
 
 impl Handle {

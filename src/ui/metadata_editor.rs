@@ -19,7 +19,7 @@ use std::collections::{btree_map::Entry, BTreeMap};
 use eframe::egui;
 
 use crate::{
-    backend::{ObjectMethod, Request},
+    backend::{self, ObjectMethod, Request},
     ui::Tool,
 };
 
@@ -63,7 +63,7 @@ pub struct MetadataEditor {
 impl Tool for MetadataEditor {
     const NAME: &'static str = "Metadata Editor";
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         self.show(ui, sx);
     }
 }
@@ -123,7 +123,7 @@ impl MetadataEditor {
         });
     }
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         for (id, metadata) in &mut self.metadatas {
             ui.group(|ui| {
                 ui.heading(&metadata.name);

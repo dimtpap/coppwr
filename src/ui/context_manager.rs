@@ -18,7 +18,7 @@ use std::{collections::BTreeMap, ops::Not};
 
 use eframe::egui;
 
-use crate::backend::Request;
+use crate::backend::{self, Request};
 
 use super::{
     common::{EditableKVList, PropertiesEditor},
@@ -61,7 +61,7 @@ pub struct ContextManager {
 impl Tool for ContextManager {
     const NAME: &'static str = "Context Manager";
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         self.show(ui, sx);
     }
 }
@@ -71,7 +71,7 @@ impl ContextManager {
         self.properties.set_properties(properties);
     }
 
-    fn show(&mut self, ui: &mut egui::Ui, sx: &pipewire::channel::Sender<Request>) {
+    fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         egui::ComboBox::new("view", "View")
             .selected_text(self.view.as_str())
             .show_ui(ui, |ui| {
