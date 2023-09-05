@@ -69,9 +69,15 @@ impl EditableKVList {
     }
 }
 
-pub fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
+pub fn key_val_table(
+    ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
+    add_contents: impl FnOnce(&mut egui::Ui),
+) {
     egui::ScrollArea::vertical()
-        .min_scrolled_height(400f32)
+        .min_scrolled_height(min_scrolled_height)
+        .max_height(max_height)
         .show(ui, |ui| {
             egui::Grid::new("kvtable")
                 .num_columns(2)
@@ -82,11 +88,13 @@ pub fn key_val_table(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)
 
 pub fn key_val_display<'a>(
     ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
     header: &str,
     kv: impl Iterator<Item = (&'a str, &'a str)>,
 ) {
     egui::CollapsingHeader::new(header).show(ui, |ui| {
-        key_val_table(ui, |ui| {
+        key_val_table(ui, min_scrolled_height, max_height, |ui| {
             for (k, v) in kv {
                 ui.label(k);
                 ui.label(v).on_hover_text(v);
@@ -98,10 +106,12 @@ pub fn key_val_display<'a>(
 
 pub fn properties_editor(
     ui: &mut egui::Ui,
+    min_scrolled_height: f32,
+    max_height: f32,
     properties: &mut BTreeMap<String, String>,
     user_additions: &mut EditableKVList,
 ) {
-    key_val_table(ui, |ui| {
+    key_val_table(ui, min_scrolled_height, max_height, |ui| {
         properties.retain(|k, v| {
             ui.label(k);
             let keep = ui
@@ -136,8 +146,14 @@ impl PropertiesEditor {
         self.properties = properties;
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui) {
-        properties_editor(ui, &mut self.properties, &mut self.user_additions);
+    pub fn show(&mut self, ui: &mut egui::Ui, min_scrolled_height: f32, max_height: f32) {
+        properties_editor(
+            ui,
+            min_scrolled_height,
+            max_height,
+            &mut self.properties,
+            &mut self.user_additions,
+        );
     }
 
     pub fn take_as_map(&mut self) -> BTreeMap<String, String> {

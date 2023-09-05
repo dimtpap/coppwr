@@ -294,7 +294,13 @@ impl Global {
 
                 ui.push_id(self.id, |ui| {
                     if let Some(info) = self.info() {
-                        key_val_display(ui, "Info", info.iter().map(|(k, v)| (*k, v.as_str())));
+                        key_val_display(
+                            ui,
+                            400f32,
+                            f32::INFINITY,
+                            "Info",
+                            info.iter().map(|(k, v)| (*k, v.as_str())),
+                        );
                     }
 
                     if !searched_property.is_empty() {
@@ -313,7 +319,13 @@ impl Global {
                     } = self.object_data
                     {
                         egui::CollapsingHeader::new("Properties").show(ui, |ui| {
-                            properties_editor(ui, &mut self.props, new_properties);
+                            properties_editor(
+                                ui,
+                                400f32,
+                                f32::INFINITY,
+                                &mut self.props,
+                                new_properties,
+                            );
 
                             ui.separator();
 
@@ -331,6 +343,8 @@ impl Global {
                     } else {
                         key_val_display(
                             ui,
+                            400f32,
+                            f32::INFINITY,
                             "Properties",
                             self.props().iter().map(|(k, v)| (k.as_str(), v.as_str())),
                         );
