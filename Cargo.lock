@@ -595,6 +595,7 @@ checksum = "c688fc74432808e3eb684cae8830a86be1d66a2bd58e1f248ed0960a590baf6f"
 dependencies = [
  "glob",
  "libc",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -1457,8 +1458,8 @@ dependencies = [
 
 [[package]]
 name = "libspa"
-version = "0.7.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=82836f9cec23891911a5e0d1ffb6eaac98e86c0c#82836f9cec23891911a5e0d1ffb6eaac98e86c0c"
+version = "0.7.2"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f#7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"
 dependencies = [
  "bitflags 2.4.0",
  "cc",
@@ -1473,8 +1474,8 @@ dependencies = [
 
 [[package]]
 name = "libspa-sys"
-version = "0.7.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=82836f9cec23891911a5e0d1ffb6eaac98e86c0c#82836f9cec23891911a5e0d1ffb6eaac98e86c0c"
+version = "0.7.2"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f#7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"
 dependencies = [
  "bindgen",
  "cc",
@@ -1887,8 +1888,8 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pipewire"
-version = "0.7.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=82836f9cec23891911a5e0d1ffb6eaac98e86c0c#82836f9cec23891911a5e0d1ffb6eaac98e86c0c"
+version = "0.7.2"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f#7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"
 dependencies = [
  "anyhow",
  "bitflags 2.4.0",
@@ -1903,8 +1904,8 @@ dependencies = [
 
 [[package]]
 name = "pipewire-sys"
-version = "0.7.0"
-source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=82836f9cec23891911a5e0d1ffb6eaac98e86c0c#82836f9cec23891911a5e0d1ffb6eaac98e86c0c"
+version = "0.7.2"
+source = "git+https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git?rev=7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f#7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"
 dependencies = [
  "bindgen",
  "libspa-sys",

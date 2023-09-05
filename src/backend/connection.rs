@@ -51,7 +51,7 @@ pub struct Connection(pw::Core);
 #[cfg(not(feature = "xdg_desktop_portals"))]
 impl Connection {
     pub fn connect(
-        context: &pw::Context<pw::MainLoop>,
+        context: &pw::Context,
         context_properties: Vec<(String, String)>,
         remote: RemoteInfo,
     ) -> Result<Self, Error> {
@@ -77,7 +77,7 @@ pub enum Connection<'s> {
 #[cfg(feature = "xdg_desktop_portals")]
 impl<'s> Connection<'s> {
     pub fn connect(
-        context: &pw::Context<pw::MainLoop>,
+        context: &pw::Context,
         context_properties: Vec<(String, String)>,
         remote: RemoteInfo,
     ) -> Result<Self, Error> {

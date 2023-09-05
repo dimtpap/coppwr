@@ -14,7 +14,7 @@ categories = ["gui", "multimedia"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "82836f9cec23891911a5e0d1ffb6eaac98e86c0c"}
+pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"}
 eframe = {version = "0.22.0", features = ["wayland"]}
 egui_dock = "0.6.3"
 ashpd = {version = "0.6.2", optional = true}

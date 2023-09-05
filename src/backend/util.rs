@@ -44,7 +44,7 @@ pub fn key_val_to_props(
 }
 
 pub fn connect_override_env(
-    context: &pw::Context<pw::MainLoop>,
+    context: &pw::Context,
     mut context_properties: pw::Properties,
     remote_name: String,
 ) -> Result<pw::Core, pw::Error> {

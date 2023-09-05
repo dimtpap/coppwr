@@ -36,7 +36,7 @@ pub fn pipewire_thread(
 
     let (mainloop, context, connection, registry): (
         pw::MainLoop,
-        Rc<pw::Context<pw::MainLoop>>,
+        Rc<pw::Context>,
         Connection,
         Rc<pw::registry::Registry>,
     ) = match (|| {
