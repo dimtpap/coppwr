@@ -99,10 +99,8 @@ impl ContextManager {
                     }
 
                     if ui.small_button("Update properties").clicked() {
-                        sx.send(Request::UpdateContextProperties(
-                            self.properties.take_as_map(),
-                        ))
-                        .ok();
+                        sx.send(Request::UpdateContextProperties(self.properties.take()))
+                            .ok();
 
                         sx.send(Request::GetContextProperties).ok();
                     }

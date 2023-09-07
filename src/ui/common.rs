@@ -158,7 +158,7 @@ impl MapEditor {
         );
     }
 
-    pub fn take_as_map(&mut self) -> BTreeMap<String, String> {
+    pub fn take(&mut self) -> BTreeMap<String, String> {
         self.properties.extend(self.user_additions.take());
 
         std::mem::take(&mut self.properties)
