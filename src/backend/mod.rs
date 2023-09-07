@@ -119,13 +119,23 @@ pub struct Handle {
 }
 
 impl Handle {
-    pub fn run(remote: RemoteInfo, context_properties: Vec<(String, String)>) -> Self {
+    pub fn run(
+        remote: RemoteInfo,
+        mainloop_properties: Vec<(String, String)>,
+        context_properties: Vec<(String, String)>,
+    ) -> Self {
         let (sx, rx) = std::sync::mpsc::channel::<Event>();
         let (pwsx, pwrx) = pw::channel::channel::<Request>();
 
         Self {
             thread: Some(std::thread::spawn(move || {
-                self::pipewire::pipewire_thread(remote, context_properties, sx, pwrx);
+                self::pipewire::pipewire_thread(
+                    remote,
+                    mainloop_properties,
+                    context_properties,
+                    sx,
+                    pwrx,
+                );
             })),
             rx,
             sx: pwsx,

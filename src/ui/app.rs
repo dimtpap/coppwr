@@ -58,9 +58,13 @@ struct Inspector {
 }
 
 impl Inspector {
-    pub fn new(remote: RemoteInfo, context_properties: Vec<(String, String)>) -> Self {
+    pub fn new(
+        remote: RemoteInfo,
+        mainloop_properties: Vec<(String, String)>,
+        context_properties: Vec<(String, String)>,
+    ) -> Self {
         Self {
-            handle: backend::Handle::run(remote, context_properties),
+            handle: backend::Handle::run(remote, mainloop_properties, context_properties),
 
             open_tabs: View::GlobalTracker as u8,
 
@@ -307,6 +311,7 @@ enum State {
     },
     Unconnected {
         remote: RemoteInfo,
+        mainloop_properties: EditableKVList,
         context_properties: EditableKVList,
     },
 }
@@ -320,17 +325,22 @@ impl State {
 
         Self::Unconnected {
             remote: RemoteInfo::default(),
+            mainloop_properties: EditableKVList::new(),
             context_properties,
         }
     }
 
-    pub fn new_connected(remote: RemoteInfo, context_properties: Vec<(String, String)>) -> Self {
+    pub fn new_connected(
+        remote: RemoteInfo,
+        mainloop_properties: Vec<(String, String)>,
+        context_properties: Vec<(String, String)>,
+    ) -> Self {
         let mut tabs = Vec::with_capacity(3 /* Number of views */);
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
             tabs_tree: egui_dock::Tree::new(tabs),
-            inspector: Inspector::new(remote, context_properties),
+            inspector: Inspector::new(remote, mainloop_properties, context_properties),
             about: false,
         }
     }
@@ -338,10 +348,15 @@ impl State {
     pub fn connect(&mut self) {
         if let Self::Unconnected {
             remote,
+            mainloop_properties,
             context_properties,
         } = self
         {
-            *self = Self::new_connected(std::mem::take(remote), context_properties.take());
+            *self = Self::new_connected(
+                std::mem::take(remote),
+                mainloop_properties.take(),
+                context_properties.take(),
+            );
         }
     }
 
@@ -358,6 +373,7 @@ impl CoppwrApp {
     pub fn new() -> Self {
         Self(State::new_connected(
             RemoteInfo::default(),
+            Vec::new(),
             vec![("media.category".to_owned(), "Manager".to_owned())],
         ))
     }
@@ -451,6 +467,7 @@ impl eframe::App for CoppwrApp {
             }
             State::Unconnected {
                 remote,
+                mainloop_properties,
                 context_properties,
             } => {
                 let mut connect = false;
@@ -526,12 +543,13 @@ impl eframe::App for CoppwrApp {
 
                         ui.separator();
 
-                        egui::CollapsingHeader::new("Context properties").show_unindented(
-                            ui,
-                            |ui| {
-                                context_properties.show(ui);
-                            },
-                        );
+                        for (heading, properties) in [
+                            ("Mainloop properties", mainloop_properties),
+                            ("Context properties", context_properties),
+                        ] {
+                            egui::CollapsingHeader::new(heading)
+                                .show_unindented(ui, |ui| properties.show(ui));
+                        }
 
                         ui.separator();
 

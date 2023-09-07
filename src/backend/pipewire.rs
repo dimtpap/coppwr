@@ -27,6 +27,7 @@ use super::REMOTE_VERSION;
 
 pub fn pipewire_thread(
     remote: RemoteInfo,
+    mainloop_properties: Vec<(String, String)>,
     context_properties: Vec<(String, String)>,
     sx: mpsc::Sender<Event>,
     pwrx: pw::channel::Receiver<Request>,
@@ -40,7 +41,11 @@ pub fn pipewire_thread(
         Connection,
         Rc<pw::registry::Registry>,
     ) = match (|| {
-        let mainloop = pw::MainLoop::new()?;
+        let mainloop = if mainloop_properties.is_empty() {
+            pw::MainLoop::new()?
+        } else {
+            pw::MainLoop::with_properties(&util::key_val_to_props(mainloop_properties.into_iter()))?
+        };
 
         let context = pw::Context::new(&mainloop)?;
         if context
