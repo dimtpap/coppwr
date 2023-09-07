@@ -76,12 +76,8 @@ impl ContextManager {
             .selected_text(self.view.as_str())
             .show_ui(ui, |ui| {
                 for view in [View::PropertiesEditor, View::ModuleLoader] {
-                    if ui
-                        .selectable_label(self.view == view, view.as_str())
-                        .clicked()
-                    {
-                        self.view = view;
-                    }
+                    let text = view.as_str();
+                    ui.selectable_value(&mut self.view, view, text);
                 }
             });
 

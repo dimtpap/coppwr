@@ -126,13 +126,7 @@ impl Inspector {
                     "Manage the PipeWire context",
                 ),
             ] {
-                if ui
-                    .selectable_label(*open, name)
-                    .on_hover_text(description)
-                    .clicked()
-                {
-                    *open = !*open;
-                }
+                ui.toggle_value(open, name).on_hover_text(description);
             }
         });
     }
