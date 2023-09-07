@@ -214,14 +214,14 @@ impl MetadataEditor {
                             });
                             let keep = ui
                                 .horizontal(|ui| {
-                                    if ui.button("Set").clicked() {
+                                    if ui.small_button("Set").clicked() {
                                         sx.send(Request::CallObjectMethod(
                                             *id,
                                             prop.set_request(key.clone()),
                                         ))
                                         .ok();
                                     }
-                                    !ui.button("Delete").clicked()
+                                    !ui.small_button("Delete").clicked()
                                 })
                                 .inner;
 
