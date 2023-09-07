@@ -177,85 +177,87 @@ impl MetadataEditor {
 
                 ui.separator();
 
-                ui.label("Add properties");
+                egui::CollapsingHeader::new("Add properites")
+                    .id_source(*id)
+                    .show(ui, |ui| {
+                        metadata.user_properties.retain_mut(|(key, prop)| {
+                            ui.horizontal(|ui| {
+                                ui.add(
+                                    egui::TextEdit::singleline(key)
+                                        .hint_text("Key")
+                                        .desired_width(ui.available_width() / 2.),
+                                );
+                                ui.add(
+                                    egui::TextEdit::singleline(&mut prop.value)
+                                        .hint_text("Value")
+                                        .desired_width(f32::INFINITY),
+                                );
+                            });
+                            ui.horizontal(|ui| {
+                                ui.label("Subject");
+                                ui.add(egui::widgets::DragValue::new(&mut prop.subject));
 
-                metadata.user_properties.retain_mut(|(key, prop)| {
-                    ui.horizontal(|ui| {
-                        ui.add(
-                            egui::TextEdit::singleline(key)
-                                .hint_text("Key")
-                                .desired_width(ui.available_width() / 2.),
-                        );
-                        ui.add(
-                            egui::TextEdit::singleline(&mut prop.value)
-                                .hint_text("Value")
-                                .desired_width(f32::INFINITY),
-                        );
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Subject");
-                        ui.add(egui::widgets::DragValue::new(&mut prop.subject));
+                                if ui.checkbox(&mut prop.type_.is_some(), "Type").changed() {
+                                    if prop.type_.is_none() {
+                                        prop.type_ = Some(String::new());
+                                    } else {
+                                        prop.type_ = None;
+                                    }
+                                }
+                                if let Some(ref mut type_) = prop.type_ {
+                                    ui.add(
+                                        egui::TextEdit::singleline(type_)
+                                            .hint_text("Type")
+                                            .desired_width(f32::INFINITY),
+                                    );
+                                }
+                            });
+                            let keep = ui
+                                .horizontal(|ui| {
+                                    if ui.button("Set").clicked() {
+                                        sx.send(Request::CallObjectMethod(
+                                            *id,
+                                            prop.set_request(key.clone()),
+                                        ))
+                                        .ok();
+                                    }
+                                    !ui.button("Delete").clicked()
+                                })
+                                .inner;
 
-                        if ui.checkbox(&mut prop.type_.is_some(), "Type").changed() {
-                            if prop.type_.is_none() {
-                                prop.type_ = Some(String::new());
-                            } else {
-                                prop.type_ = None;
+                            ui.separator();
+
+                            keep
+                        });
+
+                        ui.horizontal(|ui| {
+                            if ui.button("Add").clicked() {
+                                metadata.user_properties.push((
+                                    String::new(),
+                                    Property {
+                                        subject: 0,
+                                        type_: None,
+                                        value: String::new(),
+                                    },
+                                ));
                             }
-                        }
-                        if let Some(ref mut type_) = prop.type_ {
-                            ui.add(
-                                egui::TextEdit::singleline(type_)
-                                    .hint_text("Type")
-                                    .desired_width(f32::INFINITY),
-                            );
-                        }
-                    });
-                    let keep = ui
-                        .horizontal(|ui| {
-                            if ui.button("Set").clicked() {
-                                sx.send(Request::CallObjectMethod(
-                                    *id,
-                                    prop.set_request(key.clone()),
-                                ))
-                                .ok();
+
+                            ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
+                                if ui.button("Clear").clicked() {
+                                    metadata.user_properties.clear();
+                                }
+                            });
+                        });
+
+                        ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
+                            if ui.button("Set all").clicked() {
+                                for (key, prop) in std::mem::take(&mut metadata.user_properties) {
+                                    sx.send(Request::CallObjectMethod(*id, prop.set_request(key)))
+                                        .ok();
+                                }
                             }
-                            !ui.button("Delete").clicked()
-                        })
-                        .inner;
-
-                    ui.separator();
-
-                    keep
-                });
-
-                ui.horizontal(|ui| {
-                    if ui.button("Add").clicked() {
-                        metadata.user_properties.push((
-                            String::new(),
-                            Property {
-                                subject: 0,
-                                type_: None,
-                                value: String::new(),
-                            },
-                        ));
-                    }
-
-                    ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
-                        if ui.button("Clear").clicked() {
-                            metadata.user_properties.clear();
-                        }
+                        });
                     });
-                });
-
-                ui.add_enabled_ui(!metadata.user_properties.is_empty(), |ui| {
-                    if ui.button("Set all").clicked() {
-                        for (key, prop) in std::mem::take(&mut metadata.user_properties) {
-                            sx.send(Request::CallObjectMethod(*id, prop.set_request(key)))
-                                .ok();
-                        }
-                    }
-                });
             });
         }
     }
