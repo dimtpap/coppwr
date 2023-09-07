@@ -26,7 +26,7 @@ use pipewire::{self as pw, permissions::Permissions, registry::Permission, types
 
 use crate::{
     backend::{self, ObjectMethod, Request},
-    ui::common::{key_val_display, properties_editor, EditableKVList},
+    ui::common::{key_val_display, map_editor, EditableKVList},
 };
 
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
@@ -313,13 +313,7 @@ impl Global {
                     } = self.object_data
                     {
                         egui::CollapsingHeader::new("Properties").show(ui, |ui| {
-                            properties_editor(
-                                ui,
-                                400f32,
-                                f32::INFINITY,
-                                &mut self.props,
-                                user_properties,
-                            );
+                            map_editor(ui, 400f32, f32::INFINITY, &mut self.props, user_properties);
 
                             ui.separator();
 

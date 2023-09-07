@@ -21,7 +21,7 @@ use eframe::egui;
 use crate::backend::{self, Request};
 
 use super::{
-    common::{EditableKVList, PropertiesEditor},
+    common::{EditableKVList, MapEditor},
     Tool,
 };
 
@@ -50,7 +50,7 @@ impl Default for View {
 pub struct ContextManager {
     view: View,
 
-    properties: PropertiesEditor,
+    properties: MapEditor,
 
     module_dir: String,
     module_name: String,
@@ -68,7 +68,7 @@ impl Tool for ContextManager {
 
 impl ContextManager {
     pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
-        self.properties.set_properties(properties);
+        self.properties.set_map(properties);
     }
 
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {

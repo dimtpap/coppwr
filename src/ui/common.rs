@@ -55,15 +55,15 @@ pub fn key_val_display(
     });
 }
 
-pub fn properties_editor(
+pub fn map_editor(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
     max_height: f32,
-    properties: &mut BTreeMap<String, String>,
+    map: &mut BTreeMap<String, String>,
     user_additions: &mut EditableKVList,
 ) {
     key_val_table(ui, min_scrolled_height, max_height, |ui| {
-        properties.retain(|k, v| {
+        map.retain(|k, v| {
             ui.label(k);
             let keep = ui
                 .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
@@ -82,7 +82,7 @@ pub fn properties_editor(
 
     ui.separator();
 
-    ui.label("Add properties");
+    ui.label("Add items");
     user_additions.show(ui);
 }
 
@@ -138,18 +138,18 @@ impl EditableKVList {
 }
 
 #[derive(Default)]
-pub struct PropertiesEditor {
+pub struct MapEditor {
     properties: BTreeMap<String, String>,
     user_additions: EditableKVList,
 }
 
-impl PropertiesEditor {
-    pub fn set_properties(&mut self, properties: BTreeMap<String, String>) {
-        self.properties = properties;
+impl MapEditor {
+    pub fn set_map(&mut self, map: BTreeMap<String, String>) {
+        self.properties = map;
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, min_scrolled_height: f32, max_height: f32) {
-        properties_editor(
+        map_editor(
             ui,
             min_scrolled_height,
             max_height,
