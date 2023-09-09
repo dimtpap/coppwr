@@ -77,10 +77,7 @@ pub mod portals {
         types: BitFlags<SourceType>,
         multiple: bool,
     ) -> Result<(OwnedFd, Session<'s>), ashpd::Error> {
-        async fn async_inner<'s>(
-            types: BitFlags<SourceType>,
-            multiple: bool,
-        ) -> Result<(OwnedFd, Session<'s>), ashpd::Error> {
+        pollster::block_on(async {
             use ashpd::desktop::screencast::{CursorMode, PersistMode, Screencast};
 
             let proxy = Screencast::new().await?;
@@ -104,9 +101,7 @@ pub mod portals {
             let fd = proxy.open_pipe_wire_remote(&session).await?;
 
             Ok((unsafe { OwnedFd::from_raw_fd(fd) }, session))
-        }
-
-        pollster::block_on(async_inner(types, multiple))
+        })
     }
 
     pub fn open_camera_remote() -> Result<Option<OwnedFd>, ashpd::Error> {
