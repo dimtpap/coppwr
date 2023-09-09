@@ -22,7 +22,50 @@ use pipewire as pw;
 use super::{util, RemoteInfo};
 
 #[cfg(feature = "xdg_desktop_portals")]
-use super::util::portals;
+mod portals {
+    use std::os::fd::{FromRawFd, OwnedFd};
+
+    use ashpd::{
+        desktop::{screencast::SourceType, Session},
+        enumflags2::BitFlags,
+    };
+
+    pub fn open_screencast_remote<'s>(
+        types: BitFlags<SourceType>,
+        multiple: bool,
+    ) -> Result<(OwnedFd, Session<'s>), ashpd::Error> {
+        pollster::block_on(async {
+            use ashpd::desktop::screencast::{CursorMode, PersistMode, Screencast};
+
+            let proxy = Screencast::new().await?;
+            let session = proxy.create_session().await?;
+
+            proxy
+                .select_sources(
+                    &session,
+                    CursorMode::Hidden,
+                    types,
+                    multiple,
+                    None,
+                    PersistMode::DoNot,
+                )
+                .await?;
+
+            proxy
+                .start(&session, &ashpd::WindowIdentifier::default())
+                .await?;
+
+            let fd = proxy.open_pipe_wire_remote(&session).await?;
+
+            Ok((unsafe { OwnedFd::from_raw_fd(fd) }, session))
+        })
+    }
+
+    pub fn open_camera_remote() -> Result<Option<OwnedFd>, ashpd::Error> {
+        pollster::block_on(ashpd::desktop::camera::request())
+            .map(|fd| fd.map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }))
+    }
+}
 
 pub enum Error {
     PipeWire(pw::Error),
