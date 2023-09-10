@@ -124,13 +124,11 @@ impl ObjectData {
                     };
 
                     ui.group(|ui| {
-                        permissions.retain_mut(|p| {
+                        for p in permissions.iter_mut() {
                             ui.horizontal(|ui| {
                                 draw_permissions(ui, p);
-                                !ui.small_button("Delete").clicked()
-                            })
-                            .inner
-                        });
+                            });
+                        }
 
                         ui.separator();
 
