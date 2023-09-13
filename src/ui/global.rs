@@ -276,130 +276,111 @@ impl Global {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
 
-            ui.vertical(|ui| {
-                if let Some(name) = self.name() {
-                    ui.label(name);
-                }
+            if let Some(name) = self.name() {
+                ui.label(name);
+            }
 
-                ui.horizontal(|ui| {
-                    ui.label(self.id.to_string());
-                    ui.label(self.object_type().to_str());
-                });
+            ui.horizontal(|ui| {
+                ui.label(self.id.to_string());
+                ui.label(self.object_type().to_str());
+            });
 
+            ui.with_layout(egui::Layout::default(), |ui| {
                 if ui.small_button("Destroy").clicked() {
                     sx.send(Request::DestroyObject(self.id)).ok();
                 }
+            });
 
-                ui.push_id(self.id, |ui| {
-                    if let Some(info) = self.info() {
-                        key_val_display(ui, 400f32, f32::INFINITY, "Info", info.iter().cloned());
-                    }
+            ui.push_id(self.id, |ui| {
+                if let Some(info) = self.info() {
+                    key_val_display(ui, 400f32, f32::INFINITY, "Info", info.iter().cloned());
+                }
 
-                    if !searched_property.is_empty() {
-                        if let Some(val) = self.props().get(searched_property) {
-                            ui.horizontal(|ui| {
-                                ui.label(searched_property);
-                                ui.label(val);
-                            });
-                        }
-                    }
-
-                    // Clients can have their properties updated
-                    if let ObjectData::Client {
-                        ref mut user_properties,
-                        ..
-                    } = self.object_data
-                    {
-                        egui::CollapsingHeader::new("Properties").show(ui, |ui| {
-                            map_editor(ui, 400f32, f32::INFINITY, &mut self.props, user_properties);
-
-                            ui.separator();
-
-                            if ui.button("Update properties").clicked() {
-                                self.props.extend(user_properties.take());
-
-                                sx.send(Request::CallObjectMethod(
-                                    self.id,
-                                    ObjectMethod::ClientUpdateProperties(self.props.clone()),
-                                ))
-                                .ok();
-                            }
+                if !searched_property.is_empty() {
+                    if let Some(val) = self.props().get(searched_property) {
+                        ui.horizontal(|ui| {
+                            ui.label(searched_property);
+                            ui.label(val);
                         });
-                    } else {
-                        key_val_display(
-                            ui,
-                            400f32,
-                            f32::INFINITY,
-                            "Properties",
-                            self.props().iter(),
-                        );
                     }
+                }
 
-                    let subobjects_header = match self.object_type() {
-                        ObjectType::Device | ObjectType::Client => "Nodes",
-                        ObjectType::Node => "Ports",
-                        ObjectType::Port => "Links",
-                        _ => {
-                            return;
+                // Clients can have their properties updated
+                if let ObjectData::Client {
+                    ref mut user_properties,
+                    ..
+                } = self.object_data
+                {
+                    egui::CollapsingHeader::new("Properties").show(ui, |ui| {
+                        map_editor(ui, 400f32, f32::INFINITY, &mut self.props, user_properties);
+
+                        ui.separator();
+
+                        if ui.button("Update properties").clicked() {
+                            self.props.extend(user_properties.take());
+
+                            sx.send(Request::CallObjectMethod(
+                                self.id,
+                                ObjectMethod::ClientUpdateProperties(self.props.clone()),
+                            ))
+                            .ok();
                         }
-                    };
+                    });
+                } else {
+                    key_val_display(ui, 400f32, f32::INFINITY, "Properties", self.props().iter());
+                }
 
-                    if !self.subobjects.is_empty() {
-                        self.subobjects.retain(|sub| sub.upgrade().is_some());
+                let subobjects_header = match self.object_type() {
+                    ObjectType::Device | ObjectType::Client => "Nodes",
+                    ObjectType::Node => "Ports",
+                    ObjectType::Port => "Links",
+                    _ => {
+                        return;
+                    }
+                };
 
-                        egui::CollapsingHeader::new(subobjects_header).show(ui, |ui| {
-                            let subobjects =
-                                self.subobjects.iter().filter_map(std::rc::Weak::upgrade);
-                            if draw_subobjects {
-                                match self.object_type() {
-                                    ObjectType::Device | ObjectType::Client => {
-                                        for sub in subobjects {
-                                            sub.borrow_mut().show(ui, true, searched_property, sx);
+                if !self.subobjects.is_empty() {
+                    self.subobjects.retain(|sub| sub.upgrade().is_some());
+
+                    egui::CollapsingHeader::new(subobjects_header).show(ui, |ui| {
+                        let subobjects = self.subobjects.iter().filter_map(std::rc::Weak::upgrade);
+                        if draw_subobjects {
+                            match self.object_type() {
+                                ObjectType::Device | ObjectType::Client => {
+                                    for sub in subobjects {
+                                        sub.borrow_mut().show(ui, true, searched_property, sx);
+                                    }
+                                }
+                                ObjectType::Node => {
+                                    let mut outs = Vec::with_capacity(self.subobjects.len());
+                                    let mut ins = Vec::with_capacity(self.subobjects.len());
+                                    let mut unk = Vec::with_capacity(self.subobjects.len());
+
+                                    for port in subobjects {
+                                        match port
+                                            .borrow()
+                                            .props
+                                            .get("port.direction")
+                                            .map(String::as_str)
+                                        {
+                                            Some("in") => ins.push(Rc::clone(&port)),
+                                            Some("out") => outs.push(Rc::clone(&port)),
+                                            _ => unk.push(Rc::clone(&port)),
                                         }
                                     }
-                                    ObjectType::Node => {
-                                        let mut outs = Vec::with_capacity(self.subobjects.len());
-                                        let mut ins = Vec::with_capacity(self.subobjects.len());
-                                        let mut unk = Vec::with_capacity(self.subobjects.len());
 
-                                        for port in subobjects {
-                                            match port
-                                                .borrow()
-                                                .props
-                                                .get("port.direction")
-                                                .map(String::as_str)
-                                            {
-                                                Some("in") => ins.push(Rc::clone(&port)),
-                                                Some("out") => outs.push(Rc::clone(&port)),
-                                                _ => unk.push(Rc::clone(&port)),
-                                            }
+                                    for (label, ports) in [
+                                        ("Outputs", outs),
+                                        ("Inputs", ins),
+                                        ("Unknown direction", unk),
+                                    ] {
+                                        if ports.is_empty() {
+                                            continue;
                                         }
-
-                                        for (label, ports) in [
-                                            ("Outputs", outs),
-                                            ("Inputs", ins),
-                                            ("Unknown direction", unk),
-                                        ] {
-                                            if ports.is_empty() {
-                                                continue;
-                                            }
-                                            ui.label(label);
-                                            ui.columns(ports.len(), |ui| {
-                                                for (i, port) in ports.into_iter().enumerate() {
-                                                    port.borrow_mut().show(
-                                                        &mut ui[i],
-                                                        true,
-                                                        searched_property,
-                                                        sx,
-                                                    );
-                                                }
-                                            });
-                                        }
-                                    }
-                                    ObjectType::Port => {
-                                        ui.columns(self.subobjects.len(), |ui| {
-                                            for (i, sub) in subobjects.enumerate() {
-                                                sub.borrow_mut().show(
+                                        ui.label(label);
+                                        ui.columns(ports.len(), |ui| {
+                                            for (i, port) in ports.into_iter().enumerate() {
+                                                port.borrow_mut().show(
                                                     &mut ui[i],
                                                     true,
                                                     searched_property,
@@ -408,18 +389,30 @@ impl Global {
                                             }
                                         });
                                     }
-                                    _ => {}
                                 }
-                            } else {
-                                for sub in subobjects {
-                                    ui.label(sub.borrow().id.to_string());
+                                ObjectType::Port => {
+                                    ui.columns(self.subobjects.len(), |ui| {
+                                        for (i, sub) in subobjects.enumerate() {
+                                            sub.borrow_mut().show(
+                                                &mut ui[i],
+                                                true,
+                                                searched_property,
+                                                sx,
+                                            );
+                                        }
+                                    });
                                 }
+                                _ => {}
                             }
-                        });
-                    }
+                        } else {
+                            for sub in subobjects {
+                                ui.label(sub.borrow().id.to_string());
+                            }
+                        }
+                    });
+                }
 
-                    self.object_data.show(ui, sx, self.id);
-                });
+                self.object_data.show(ui, sx, self.id);
             });
         });
     }
