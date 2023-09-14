@@ -30,6 +30,7 @@ pub fn key_val_table(
         .show(ui, |ui| {
             egui::Grid::new("kvtable")
                 .num_columns(2)
+                .max_col_width(ui.available_width())
                 .striped(true)
                 .show(ui, add_contents);
         });
@@ -45,10 +46,8 @@ pub fn key_val_display(
     egui::CollapsingHeader::new(header).show(ui, |ui| {
         key_val_table(ui, min_scrolled_height, max_height, |ui| {
             for (k, v) in kv {
-                let v = v.into();
-
                 ui.label(k);
-                ui.label(v.clone()).on_hover_text(v);
+                ui.label(v);
                 ui.end_row();
             }
         });
