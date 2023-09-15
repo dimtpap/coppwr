@@ -7,7 +7,7 @@ rust-version = "1.70"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
-homepage = "https://dimtpap.xyz/coppwr"
+homepage = "https://dimtpap.ovh/coppwr"
 readme = "README.md"
 keywords =  ["pipewire", "egui", "gui", "utility"]
 categories = ["gui", "multimedia"]
@@ -41,30 +41,30 @@ suggests = "xdg-desktop-portal"
 assets = [
 	["target/release/coppwr", "/usr/bin/coppwr", "755"],
 	["LICENSE", "/usr/share/licenses/coppwr/LICENSE", "644"],
-	["assets/xyz.dimtpap.coppwr.desktop", "/usr/share/applications/xyz.dimtpap.coppwr.desktop", "644"],
-	["assets/xyz.dimtpap.coppwr.metainfo.xml", "/usr/share/metainfo/xyz.dimtpap.coppwr.metainfo.xml", "644"],
-	["assets/icon/scalable.svg", "/usr/share/icons/hicolor/scalable/apps/xyz.dimtpap.coppwr.svg", "644"],
-	["assets/icon/512.png", "/usr/share/icons/hicolor/512x512/apps/xyz.dimtpap.coppwr.png", "644"],
-	["assets/icon/256.png", "/usr/share/icons/hicolor/256x256/apps/xyz.dimtpap.coppwr.png", "644"],
-	["assets/icon/128.png", "/usr/share/icons/hicolor/128x128/apps/xyz.dimtpap.coppwr.png", "644"],
-	["assets/icon/64.png", "/usr/share/icons/hicolor/64x64/apps/xyz.dimtpap.coppwr.png", "644"],
-	["assets/icon/48.png", "/usr/share/icons/hicolor/48x48/apps/xyz.dimtpap.coppwr.png", "644"],
-	["assets/icon/32.png", "/usr/share/icons/hicolor/32x32/apps/xyz.dimtpap.coppwr.png", "644"],
+	["assets/io.github.dimtpap.coppwr.desktop", "/usr/share/applications/io.github.dimtpap.coppwr.desktop", "644"],
+	["assets/io.github.dimtpap.coppwr.metainfo.xml", "/usr/share/metainfo/io.github.dimtpap.coppwr.metainfo.xml", "644"],
+	["assets/icon/scalable.svg", "/usr/share/icons/hicolor/scalable/apps/io.github.dimtpap.coppwr.svg", "644"],
+	["assets/icon/512.png", "/usr/share/icons/hicolor/512x512/apps/io.github.dimtpap.coppwr.png", "644"],
+	["assets/icon/256.png", "/usr/share/icons/hicolor/256x256/apps/io.github.dimtpap.coppwr.png", "644"],
+	["assets/icon/128.png", "/usr/share/icons/hicolor/128x128/apps/io.github.dimtpap.coppwr.png", "644"],
+	["assets/icon/64.png", "/usr/share/icons/hicolor/64x64/apps/io.github.dimtpap.coppwr.png", "644"],
+	["assets/icon/48.png", "/usr/share/icons/hicolor/48x48/apps/io.github.dimtpap.coppwr.png", "644"],
+	["assets/icon/32.png", "/usr/share/icons/hicolor/32x32/apps/io.github.dimtpap.coppwr.png", "644"],
 ]
 features = ["xdg_desktop_portals"]
 
 [package.metadata.generate-rpm]
 assets = [
 	{ source = "target/release/coppwr", dest = "/usr/bin/coppwr", mode = "755" },
-	{ source = "assets/xyz.dimtpap.coppwr.desktop", dest = "/usr/share/applications/xyz.dimtpap.coppwr.desktop", mode = "644" },
-	{ source = "assets/xyz.dimtpap.coppwr.metainfo.xml", dest = "/usr/share/metainfo/xyz.dimtpap.coppwr.metainfo.xml", mode = "644"},
-	{ source = "assets/icon/scalable.svg", dest = "/usr/share/icons/hicolor/scalable/apps/xyz.dimtpap.coppwr.svg", mode = "644" },
-	{ source = "assets/icon/512.png", dest = "/usr/share/icons/hicolor/512x512/apps/xyz.dimtpap.coppwr.png", mode = "644" },
-	{ source = "assets/icon/256.png", dest = "/usr/share/icons/hicolor/256x256/apps/xyz.dimtpap.coppwr.png", mode = "644" },
-	{ source = "assets/icon/128.png", dest = "/usr/share/icons/hicolor/128x128/apps/xyz.dimtpap.coppwr.png", mode = "644" },
-	{ source = "assets/icon/64.png", dest = "/usr/share/icons/hicolor/64x64/apps/xyz.dimtpap.coppwr.png", mode = "644" },
-	{ source = "assets/icon/48.png", dest = "/usr/share/icons/hicolor/48x48/apps/xyz.dimtpap.coppwr.png", mode = "644" },
-	{ source = "assets/icon/32.png", dest = "/usr/share/icons/hicolor/32x32/apps/xyz.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/io.github.dimtpap.coppwr.desktop", dest = "/usr/share/applications/io.github.dimtpap.coppwr.desktop", mode = "644" },
+	{ source = "assets/io.github.dimtpap.coppwr.metainfo.xml", dest = "/usr/share/metainfo/io.github.dimtpap.coppwr.metainfo.xml", mode = "644"},
+	{ source = "assets/icon/scalable.svg", dest = "/usr/share/icons/hicolor/scalable/apps/io.github.dimtpap.coppwr.svg", mode = "644" },
+	{ source = "assets/icon/512.png", dest = "/usr/share/icons/hicolor/512x512/apps/io.github.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/icon/256.png", dest = "/usr/share/icons/hicolor/256x256/apps/io.github.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/icon/128.png", dest = "/usr/share/icons/hicolor/128x128/apps/io.github.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/icon/64.png", dest = "/usr/share/icons/hicolor/64x64/apps/io.github.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/icon/48.png", dest = "/usr/share/icons/hicolor/48x48/apps/io.github.dimtpap.coppwr.png", mode = "644" },
+	{ source = "assets/icon/32.png", dest = "/usr/share/icons/hicolor/32x32/apps/io.github.dimtpap.coppwr.png", mode = "644" },
 ]
 [package.metadata.generate-rpm.requires]
 pipewire = ">= 0.3"

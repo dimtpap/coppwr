@@ -25,7 +25,7 @@ fn main() {
     if let Err(e) = eframe::run_native(
         env!("CARGO_PKG_NAME"),
         eframe::NativeOptions {
-            app_id: Some(String::from("xyz.dimtpap.coppwr")),
+            app_id: Some(String::from("io.github.dimtpap.coppwr")),
             icon_data: eframe::IconData::try_from_png_bytes(
                 include_bytes!("../assets/icon/256.png").as_slice(),
             )
