@@ -62,11 +62,11 @@ mod data {
             }
         }
 
-        const fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
+        fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
             Self {
-                end_date: (follower.finish - driver.signal) as f64,
-                scheduling_latency: (follower.awake - follower.signal) as f64,
-                duration: (follower.finish - follower.awake) as f64,
+                end_date: (follower.finish - driver.signal) as f64 / 1000.,
+                scheduling_latency: (follower.awake - follower.signal) as f64 / 1000.,
+                duration: (follower.finish - follower.awake) as f64 / 1000.,
             }
         }
     }
