@@ -75,7 +75,7 @@ impl BoundGlobal {
         let sx = sx.clone();
 
         let id = global.id;
-        let (global, _object_listener): (_, Box<dyn pw::proxy::Listener>) = match global.type_ {
+        let (global, object_listener): (_, Box<dyn pw::proxy::Listener>) = match global.type_ {
             ObjectType::Module => {
                 listeners::module(registry.bind::<pw::module::Module, _>(global)?, id, sx)
             }
@@ -108,7 +108,7 @@ impl BoundGlobal {
             }
         };
 
-        let _proxy_listener = global
+        let proxy_listener = global
             .as_proxy()
             .add_listener_local()
             .removed(proxy_removed)
@@ -116,8 +116,8 @@ impl BoundGlobal {
 
         Ok(Self {
             global,
-            _object_listener,
-            _proxy_listener,
+            _object_listener: object_listener,
+            _proxy_listener: proxy_listener,
         })
     }
 

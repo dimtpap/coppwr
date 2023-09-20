@@ -30,4 +30,4 @@ use profiler::Profiler;
 use tool::{Tool, WindowedTool};
 
 mod app;
-pub use app::CoppwrApp;
+pub use app::App as CoppwrApp;

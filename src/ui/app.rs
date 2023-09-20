@@ -361,9 +361,9 @@ impl State {
     }
 }
 
-pub struct CoppwrApp(State);
+pub struct App(State);
 
-impl CoppwrApp {
+impl App {
     pub fn new() -> Self {
         Self(State::new_connected(
             RemoteInfo::default(),
@@ -373,7 +373,7 @@ impl CoppwrApp {
     }
 }
 
-impl eframe::App for CoppwrApp {
+impl eframe::App for App {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
         self.0.disconnect();
     }
