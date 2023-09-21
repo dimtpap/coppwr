@@ -362,18 +362,39 @@ impl Global {
                                             continue;
                                         }
                                         ui.label(label);
-                                        ui.columns(ports.len(), |ui| {
-                                            for (i, port) in ports.into_iter().enumerate() {
-                                                port.borrow_mut().show(&mut ui[i], true, sx);
-                                            }
-                                        });
+
+                                        egui::ScrollArea::horizontal().id_source(label).show(
+                                            ui,
+                                            |ui| {
+                                                ui.horizontal(|ui| {
+                                                    let width = ui.available_width()
+                                                        / ports.len() as f32
+                                                        - 8.;
+                                                    for port in ports {
+                                                        ui.vertical(|ui| {
+                                                            ui.set_max_width(width);
+                                                            port.borrow_mut().show(ui, true, sx);
+                                                        });
+                                                    }
+                                                });
+                                            },
+                                        );
                                     }
                                 }
                                 ObjectType::Port => {
-                                    ui.columns(self.subobjects.len(), |ui| {
-                                        for (i, sub) in subobjects.enumerate() {
-                                            sub.borrow_mut().show(&mut ui[i], true, sx);
-                                        }
+                                    egui::ScrollArea::horizontal().show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            let width = ui.available_width()
+                                                / self.subobjects.len() as f32
+                                                - 8.;
+
+                                            for sub in subobjects {
+                                                ui.vertical(|ui| {
+                                                    ui.set_max_width(width);
+                                                    sub.borrow_mut().show(ui, true, sx);
+                                                });
+                                            }
+                                        });
                                     });
                                 }
                                 _ => {}
