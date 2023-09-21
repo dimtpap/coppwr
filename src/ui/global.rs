@@ -269,19 +269,23 @@ impl Global {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
 
-            if let Some(name) = self.name() {
-                ui.label(name);
-            }
+            ui.scope(|ui| {
+                ui.style_mut().wrap = Some(false);
 
-            ui.horizontal(|ui| {
-                ui.label(self.id.to_string());
-                ui.label(self.object_type().to_str());
-            });
-
-            ui.with_layout(egui::Layout::default(), |ui| {
-                if ui.small_button("Destroy").clicked() {
-                    sx.send(Request::DestroyObject(self.id)).ok();
+                if let Some(name) = self.name() {
+                    ui.label(name);
                 }
+
+                ui.horizontal(|ui| {
+                    ui.label(self.id.to_string());
+                    ui.label(self.object_type().to_str());
+                });
+
+                ui.with_layout(egui::Layout::default(), |ui| {
+                    if ui.small_button("Destroy").clicked() {
+                        sx.send(Request::DestroyObject(self.id)).ok();
+                    }
+                });
             });
 
             ui.push_id(self.id, |ui| {
