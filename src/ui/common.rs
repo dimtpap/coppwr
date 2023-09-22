@@ -43,7 +43,7 @@ pub fn key_val_display(
     header: &str,
     kv: impl Iterator<Item = (impl Into<egui::WidgetText>, impl Into<egui::WidgetText>)>,
 ) {
-    egui::CollapsingHeader::new(header).show(ui, |ui| {
+    ui.collapsing(header, |ui| {
         key_val_table(ui, min_scrolled_height, max_height, |ui| {
             for (k, v) in kv {
                 ui.label(k);

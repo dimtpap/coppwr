@@ -107,7 +107,7 @@ impl ObjectData {
                 user_permissions,
                 ..
             } => {
-                egui::CollapsingHeader::new("Permissions").show(ui, |ui| {
+                ui.collapsing("Permissions", |ui| {
                     if ui.small_button("Get permissions").clicked() {
                         sx.send(Request::CallObjectMethod(
                             id,
@@ -342,7 +342,7 @@ impl Global {
                 if !self.subobjects.is_empty() {
                     self.subobjects.retain(|sub| sub.upgrade().is_some());
 
-                    egui::CollapsingHeader::new(subobjects_header).show(ui, |ui| {
+                    ui.collapsing(subobjects_header, |ui| {
                         let subobjects = self.subobjects.iter().filter_map(std::rc::Weak::upgrade);
                         if draw_subobjects {
                             match self.object_type() {
