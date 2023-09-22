@@ -266,8 +266,39 @@ impl Global {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, draw_subobjects: bool, sx: &backend::Sender) {
+        fn subobjects_display(
+            ui: &mut egui::Ui,
+            id_source: Option<&str>,
+            len: usize,
+            subobjects: impl Iterator<Item = Rc<RefCell<Global>>>,
+            sx: &backend::Sender,
+        ) {
+            let width = ui.available_width() / len as f32 - 6.;
+
+            let sc = egui::ScrollArea::horizontal();
+
+            if let Some(id_source) = id_source {
+                sc.id_source(id_source)
+            } else {
+                sc
+            }
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    for sub in subobjects {
+                        ui.with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
+                            ui.set_max_width(width);
+                            sub.borrow_mut().show(ui, true, sx);
+                        });
+                    }
+                });
+            });
+        }
+
         ui.group(|ui| {
-            ui.set_width(ui.available_width());
+            if ui.layout().cross_justify {
+                // Frames don't expand unless the children do
+                ui.set_width(ui.available_width());
+            }
 
             ui.scope(|ui| {
                 ui.style_mut().wrap = Some(false);
@@ -367,39 +398,23 @@ impl Global {
                                         }
                                         ui.label(label);
 
-                                        egui::ScrollArea::horizontal().id_source(label).show(
+                                        subobjects_display(
                                             ui,
-                                            |ui| {
-                                                ui.horizontal(|ui| {
-                                                    let width = ui.available_width()
-                                                        / ports.len() as f32
-                                                        - 8.;
-                                                    for port in ports {
-                                                        ui.vertical(|ui| {
-                                                            ui.set_max_width(width);
-                                                            port.borrow_mut().show(ui, true, sx);
-                                                        });
-                                                    }
-                                                });
-                                            },
+                                            Some(label),
+                                            ports.len(),
+                                            ports.into_iter(),
+                                            sx,
                                         );
                                     }
                                 }
                                 ObjectType::Port => {
-                                    egui::ScrollArea::horizontal().show(ui, |ui| {
-                                        ui.horizontal(|ui| {
-                                            let width = ui.available_width()
-                                                / self.subobjects.len() as f32
-                                                - 8.;
-
-                                            for sub in subobjects {
-                                                ui.vertical(|ui| {
-                                                    ui.set_max_width(width);
-                                                    sub.borrow_mut().show(ui, true, sx);
-                                                });
-                                            }
-                                        });
-                                    });
+                                    subobjects_display(
+                                        ui,
+                                        None,
+                                        self.subobjects.len(),
+                                        subobjects,
+                                        sx,
+                                    );
                                 }
                                 _ => {}
                             }

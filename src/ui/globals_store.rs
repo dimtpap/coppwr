@@ -200,12 +200,14 @@ impl GlobalsStore {
         ui.separator();
 
         egui::ScrollArea::vertical().show(ui, |ui| {
-            for mut global in self.globals.values().filter_map(|global| {
-                let global = global.borrow_mut();
-                self.satisfies_filters(&global).then_some(global)
-            }) {
-                global.show(ui, self.group_subobjects, sx);
-            }
+            ui.with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
+                for mut global in self.globals.values().filter_map(|global| {
+                    let global = global.borrow_mut();
+                    self.satisfies_filters(&global).then_some(global)
+                }) {
+                    global.show(ui, self.group_subobjects, sx);
+                }
+            });
         });
     }
 }
