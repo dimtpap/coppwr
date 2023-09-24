@@ -17,6 +17,7 @@
 mod common;
 mod context_manager;
 mod globals_store;
+mod graph;
 mod metadata_editor;
 mod object_creator;
 mod profiler;
@@ -24,6 +25,7 @@ mod tool;
 
 use context_manager::ContextManager;
 use globals_store::GlobalsStore;
+use graph::Graph;
 use metadata_editor::MetadataEditor;
 use object_creator::ObjectCreator;
 use profiler::Profiler;

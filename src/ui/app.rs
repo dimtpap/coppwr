@@ -23,7 +23,7 @@ use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 use crate::backend::{self, Event, RemoteInfo};
 
 use super::{
-    common::EditableKVList, globals_store::ObjectData, ContextManager, GlobalsStore,
+    common::EditableKVList, globals_store::ObjectData, ContextManager, GlobalsStore, Graph,
     MetadataEditor, ObjectCreator, Profiler, WindowedTool,
 };
 
@@ -32,6 +32,7 @@ enum View {
     GlobalTracker = 1 << 0,
     Profiler = 1 << 1,
     ProcessViewer = 1 << 2,
+    Graph = 1 << 3,
 }
 
 impl View {
@@ -40,6 +41,7 @@ impl View {
             Self::Profiler => "Profiler",
             Self::ProcessViewer => "Process Viewer",
             Self::GlobalTracker => "Global Tracker",
+            Self::Graph => "Graph",
         }
     }
 }
@@ -51,6 +53,7 @@ struct Inspector {
 
     globals: GlobalsStore,
     profiler: Profiler,
+    graph: Graph,
 
     object_creator: WindowedTool<ObjectCreator>,
     metadata_editor: WindowedTool<MetadataEditor>,
@@ -70,6 +73,7 @@ impl Inspector {
 
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
+            graph: Graph::new(),
 
             object_creator: WindowedTool::default(),
             metadata_editor: WindowedTool::default(),
@@ -91,6 +95,7 @@ impl Inspector {
                     "⏱ Process Viewer",
                     "Performance measurements of running nodes",
                 ),
+                (View::Graph, "🖧 Graph", "Visual representation of the graph"),
             ] {
                 let bit = tab as u8;
                 ui.add_enabled_ui(self.open_tabs & bit == 0, |ui| {
@@ -191,6 +196,7 @@ impl Inspector {
                             self.metadata_editor.tool.add_metadata(id, name);
                         }
                     }
+
                     _ => {}
                 }
             }
@@ -206,9 +212,45 @@ impl Inspector {
                         _ => {}
                     }
                 }
+                self.graph.remove_item(id);
             }
             Event::GlobalInfo(id, info) => {
-                self.globals.set_global_info(id, Some(info));
+                let Some(global) = self.globals.get_global(id) else {
+                    return;
+                };
+
+                global.borrow_mut().set_info(Some(info));
+
+                let global_borrow = global.borrow();
+                match *global_borrow.object_type() {
+                    ObjectType::Node => {
+                        self.graph.add_node(id, global);
+                    }
+                    ObjectType::Port => {
+                        if let (Some(parent), Some(direction), name) = (
+                            global_borrow.parent_id(),
+                            global_borrow.info().map(|i| i[0].1.clone()),
+                            global_borrow.name().cloned().unwrap_or_default(),
+                        ) {
+                            match direction.as_str() {
+                                "Input" => {
+                                    self.graph.add_input_port(id, parent, name);
+                                }
+                                "Output" => self.graph.add_output_port(id, parent, name),
+                                _ => {}
+                            }
+                        }
+                    }
+                    ObjectType::Link => {
+                        let info = global_borrow.info().unwrap();
+                        if let Some((output, input)) =
+                            info[3].1.parse().ok().zip(info[1].1.parse().ok())
+                        {
+                            self.graph.add_link(id, output, input);
+                        }
+                    }
+                    _ => {}
+                }
             }
             Event::GlobalProperties(id, props) => {
                 self.globals.set_global_props(id, props);
@@ -283,6 +325,9 @@ impl egui_dock::TabViewer for Inspector {
             }
             View::GlobalTracker => {
                 self.globals.show(ui, &self.handle.sx);
+            }
+            View::Graph => {
+                self.graph.show(ui, &mut self.handle.sx);
             }
         }
     }
