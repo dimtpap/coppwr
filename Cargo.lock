@@ -687,6 +687,7 @@ dependencies = [
  "ashpd",
  "eframe",
  "egui_dock",
+ "egui_node_graph",
  "pipewire",
  "pollster",
 ]
@@ -911,6 +912,17 @@ dependencies = [
  "memoffset 0.6.5",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "egui_node_graph"
+version = "0.4.0"
+source = "git+https://github.com/dimtpap/egui_node_graph.git?rev=30ff168d45b96211b216bf4179571607776bebc0#30ff168d45b96211b216bf4179571607776bebc0"
+dependencies = [
+ "egui",
+ "slotmap",
+ "smallvec",
+ "thiserror",
 ]
 
 [[package]]
