@@ -85,10 +85,7 @@ impl ObjectCreator {
         });
 
         if let Some(factory) = factory {
-            ui.horizontal(|ui| {
-                ui.label("Creates ");
-                ui.label(factory.object_type.to_str());
-            });
+            ui.label(format!("Creates {}", factory.object_type.to_str()));
         }
 
         ui.separator();
