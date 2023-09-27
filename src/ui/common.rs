@@ -186,7 +186,7 @@ mod kv_matcher {
         }
 
         fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl std::hash::Hash) {
-            fn as_user_str(mode: &StringMatchMode) -> &'static str {
+            const fn as_user_str(mode: &StringMatchMode) -> &'static str {
                 match mode {
                     StringMatchMode::Substring => "contains",
                     StringMatchMode::StartsWith => "starts with",
@@ -196,7 +196,7 @@ mod kv_matcher {
             }
 
             egui::ComboBox::from_id_source(id_source)
-                .selected_text(as_user_str(&self))
+                .selected_text(as_user_str(self))
                 .show_ui(ui, |ui| {
                     for mode in [
                         Self::Substring,
