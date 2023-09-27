@@ -163,3 +163,138 @@ impl MapEditor {
         std::mem::take(&mut self.properties)
     }
 }
+
+mod kv_matcher {
+    use eframe::egui;
+
+    #[derive(PartialEq, Eq)]
+    enum StringMatchMode {
+        Substring,
+        StartsWith,
+        EndsWith,
+        Exact,
+    }
+
+    impl StringMatchMode {
+        fn matches(&self, haystack: &str, needle: &str) -> bool {
+            match self {
+                Self::Substring => haystack.contains(needle),
+                Self::StartsWith => haystack.starts_with(needle),
+                Self::EndsWith => haystack.ends_with(needle),
+                Self::Exact => haystack == needle,
+            }
+        }
+
+        fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl std::hash::Hash) {
+            fn as_user_str(mode: &StringMatchMode) -> &'static str {
+                match mode {
+                    StringMatchMode::Substring => "contains",
+                    StringMatchMode::StartsWith => "starts with",
+                    StringMatchMode::EndsWith => "ends with",
+                    StringMatchMode::Exact => "is",
+                }
+            }
+
+            egui::ComboBox::from_id_source(id_source)
+                .selected_text(as_user_str(&self))
+                .show_ui(ui, |ui| {
+                    for mode in [
+                        Self::Substring,
+                        Self::StartsWith,
+                        Self::EndsWith,
+                        Self::Exact,
+                    ] {
+                        let text = as_user_str(&mode);
+                        ui.selectable_value(self, mode, text);
+                    }
+                });
+        }
+    }
+
+    struct StringFilter {
+        needle: String,
+        match_mode: StringMatchMode,
+    }
+
+    impl StringFilter {
+        fn test(&self, value: &str) -> bool {
+            self.match_mode.matches(value, &self.needle)
+        }
+
+        fn show(&mut self, ui: &mut egui::Ui, label: &str, text_edit_width: f32) {
+            ui.label(label);
+            self.match_mode.show_selector(ui, label);
+            egui::TextEdit::singleline(&mut self.needle)
+                .hint_text(label)
+                .desired_width(text_edit_width)
+                .show(ui);
+        }
+    }
+
+    impl Default for StringFilter {
+        fn default() -> Self {
+            Self {
+                needle: String::new(),
+                match_mode: StringMatchMode::Substring,
+            }
+        }
+    }
+
+    pub struct KvMatcher {
+        filters: Vec<(StringFilter, StringFilter)>,
+    }
+
+    impl KvMatcher {
+        pub const fn new() -> Self {
+            Self {
+                filters: Vec::new(),
+            }
+        }
+
+        pub fn matches(
+            &self,
+            iter: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
+        ) -> bool {
+            'outer: for (key_filter, value_filter) in &self.filters {
+                for (key, value) in iter.clone() {
+                    if key_filter.test(key.as_ref()) && value_filter.test(value.as_ref()) {
+                        continue 'outer;
+                    }
+                }
+                return false;
+            }
+
+            true
+        }
+
+        pub fn show(&mut self, ui: &mut egui::Ui) {
+            let mut i = 0usize;
+            self.filters.retain_mut(|(key_filter, value_filter)| {
+                let keep = ui
+                    .push_id(i, |ui| {
+                        ui.horizontal(|ui| {
+                            let keep = !ui.button("Delete").clicked();
+
+                            key_filter.show(ui, "Key", ui.available_width() / 4.);
+                            value_filter.show(ui, "Value", f32::INFINITY);
+
+                            keep
+                        })
+                        .inner
+                    })
+                    .inner;
+
+                i += 1;
+
+                keep
+            });
+
+            if ui.button("Add").clicked() {
+                self.filters
+                    .push((StringFilter::default(), StringFilter::default()));
+            }
+        }
+    }
+}
+
+pub use kv_matcher::KvMatcher;
