@@ -19,7 +19,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use eframe::egui;
 use pipewire::types::ObjectType;
 
-use crate::backend;
+use crate::{backend, ui::common::KvMatcher};
 
 #[path = "global.rs"]
 mod global;
@@ -29,8 +29,9 @@ pub struct GlobalsStore {
     globals: BTreeMap<u32, Rc<RefCell<Global>>>,
 
     group_subobjects: bool,
+
     shown_types: u16,
-    searched_property: String,
+    properties_filter: KvMatcher,
 }
 
 const fn object_type_flag(t: &ObjectType) -> u16 {
@@ -56,7 +57,8 @@ impl GlobalsStore {
 
             group_subobjects: true,
             shown_types: u16::MAX,
-            searched_property: String::new(),
+
+            properties_filter: KvMatcher::new(),
         }
     }
 
@@ -145,9 +147,7 @@ impl GlobalsStore {
             return false;
         }
 
-        if !self.searched_property.is_empty()
-            && !global.props().contains_key(&self.searched_property)
-        {
+        if !self.properties_filter.matches(global.props().iter()) {
             return false;
         }
 
@@ -188,14 +188,13 @@ impl GlobalsStore {
                     }
                 });
             });
-            ui.horizontal(|ui| {
-                egui::TextEdit::singleline(&mut self.searched_property)
-                    .hint_text("Has property")
-                    .show(ui);
-                if ui.small_button("Clear").clicked() {
-                    self.searched_property.clear();
-                }
-            });
+
+            ui.separator();
+
+            ui.label("Properties").on_hover_text(
+                "Only globals with properties that match the below filters will be shown",
+            );
+            self.properties_filter.show(ui);
         });
 
         ui.separator();
@@ -205,7 +204,7 @@ impl GlobalsStore {
                 let global = global.borrow_mut();
                 self.satisfies_filters(&global).then_some(global)
             }) {
-                global.show(ui, self.group_subobjects, &self.searched_property, sx);
+                global.show(ui, self.group_subobjects, sx);
             }
         });
     }

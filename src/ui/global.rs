@@ -266,13 +266,7 @@ impl Global {
         self.name = name.cloned();
     }
 
-    pub fn show(
-        &mut self,
-        ui: &mut egui::Ui,
-        draw_subobjects: bool,
-        searched_property: &str,
-        sx: &backend::Sender,
-    ) {
+    pub fn show(&mut self, ui: &mut egui::Ui, draw_subobjects: bool, sx: &backend::Sender) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
 
@@ -294,15 +288,6 @@ impl Global {
             ui.push_id(self.id, |ui| {
                 if let Some(info) = self.info() {
                     key_val_display(ui, 400f32, f32::INFINITY, "Info", info.iter().cloned());
-                }
-
-                if !searched_property.is_empty() {
-                    if let Some(val) = self.props().get(searched_property) {
-                        ui.horizontal(|ui| {
-                            ui.label(searched_property);
-                            ui.label(val);
-                        });
-                    }
                 }
 
                 // Clients can have their properties updated
@@ -348,7 +333,7 @@ impl Global {
                             match self.object_type() {
                                 ObjectType::Device | ObjectType::Client => {
                                     for sub in subobjects {
-                                        sub.borrow_mut().show(ui, true, searched_property, sx);
+                                        sub.borrow_mut().show(ui, true, sx);
                                     }
                                 }
                                 ObjectType::Node => {
@@ -380,12 +365,7 @@ impl Global {
                                         ui.label(label);
                                         ui.columns(ports.len(), |ui| {
                                             for (i, port) in ports.into_iter().enumerate() {
-                                                port.borrow_mut().show(
-                                                    &mut ui[i],
-                                                    true,
-                                                    searched_property,
-                                                    sx,
-                                                );
+                                                port.borrow_mut().show(&mut ui[i], true, sx);
                                             }
                                         });
                                     }
@@ -393,12 +373,7 @@ impl Global {
                                 ObjectType::Port => {
                                     ui.columns(self.subobjects.len(), |ui| {
                                         for (i, sub) in subobjects.enumerate() {
-                                            sub.borrow_mut().show(
-                                                &mut ui[i],
-                                                true,
-                                                searched_property,
-                                                sx,
-                                            );
+                                            sub.borrow_mut().show(&mut ui[i], true, sx);
                                         }
                                     });
                                 }
