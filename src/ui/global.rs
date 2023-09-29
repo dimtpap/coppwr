@@ -366,9 +366,14 @@ impl Global {
                         if draw_subobjects {
                             match self.object_type() {
                                 ObjectType::Device | ObjectType::Client => {
-                                    for sub in subobjects {
-                                        sub.borrow_mut().show(ui, true, sx);
-                                    }
+                                    ui.with_layout(
+                                        egui::Layout::top_down_justified(egui::Align::Min),
+                                        |ui| {
+                                            for sub in subobjects {
+                                                sub.borrow_mut().show(ui, true, sx);
+                                            }
+                                        },
+                                    );
                                 }
                                 ObjectType::Node => {
                                     let mut outs = Vec::with_capacity(self.subobjects.len());
