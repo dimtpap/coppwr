@@ -253,18 +253,12 @@ mod kv_matcher {
 
         pub fn matches(
             &self,
-            iter: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
+            kv: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
         ) -> bool {
-            for (key_filter, value_filter) in &self.filters {
-                if !iter
-                    .clone()
+            self.filters.iter().all(|(key_filter, value_filter)| {
+                kv.clone()
                     .any(|(k, v)| key_filter.test(k.as_ref()) && value_filter.test(v.as_ref()))
-                {
-                    return false;
-                }
-            }
-
-            true
+            })
         }
 
         pub fn show(&mut self, ui: &mut egui::Ui) {
