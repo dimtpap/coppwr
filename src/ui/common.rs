@@ -255,13 +255,15 @@ mod kv_matcher {
             &self,
             iter: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
         ) -> bool {
-            'outer: for (key_filter, value_filter) in &self.filters {
-                for (key, value) in iter.clone() {
-                    if key_filter.test(key.as_ref()) && value_filter.test(value.as_ref()) {
-                        continue 'outer;
-                    }
+            for (key_filter, value_filter) in &self.filters {
+                if iter
+                    .clone()
+                    .any(|(k, v)| key_filter.test(k.as_ref()) && value_filter.test(v.as_ref()))
+                {
+                    continue;
+                } else {
+                    return false;
                 }
-                return false;
             }
 
             true
