@@ -228,7 +228,7 @@ impl Global {
         }
         .and_then(|id| id.parse().ok());
 
-        let mut name = 'name: {
+        let mut name = {
             match self.object_type() {
                 t @ (ObjectType::Device | ObjectType::Node) => {
                     let lookups = match t {
@@ -238,12 +238,9 @@ impl Global {
                             unreachable!();
                         }
                     };
-                    for l in lookups {
-                        if let Some(n) = self.props.get(l) {
-                            break 'name Some(n);
-                        }
-                    }
-                    None
+                    lookups
+                        .into_iter()
+                        .find_map(|lookup| self.props.get(lookup))
                 }
                 ObjectType::Port => self.props.get("port.name"),
                 ObjectType::Core => self.props.get("core.name"),
@@ -252,10 +249,12 @@ impl Global {
         };
 
         if name.is_none() {
-            for (k, v) in self.props.iter().filter(|(k, _)| k.contains(".name")) {
-                if k == "library.name"
-                    || k == "factory.name" && *self.object_type() != ObjectType::Factory
-                {
+            for (k, v) in self
+                .props
+                .iter()
+                .filter(|(k, _)| k.ends_with(".name") && k.as_str() != "library.name")
+            {
+                if *self.object_type() != ObjectType::Factory && k == "factory.name" {
                     continue;
                 }
                 name = Some(v);
