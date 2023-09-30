@@ -256,12 +256,10 @@ mod kv_matcher {
             iter: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
         ) -> bool {
             for (key_filter, value_filter) in &self.filters {
-                if iter
+                if !iter
                     .clone()
                     .any(|(k, v)| key_filter.test(k.as_ref()) && value_filter.test(v.as_ref()))
                 {
-                    continue;
-                } else {
                     return false;
                 }
             }
