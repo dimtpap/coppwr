@@ -216,8 +216,6 @@ pub struct Graph {
 }
 
 impl Graph {
-    const NODE_SPACING: egui::Vec2 = egui::vec2(200f32, 100f32);
-
     pub fn new() -> Self {
         Self {
             editor: GraphEditorState::default(),
@@ -364,24 +362,20 @@ impl Graph {
         }
         ui.separator();
 
+        const NODE_SPACING: egui::Vec2 = egui::vec2(200f32, 100f32);
+
         let mut next_outputs_only_pos = egui::Pos2::ZERO;
         let mut next_default_pos =
-            egui::Pos2::new((ui.available_width() - Self::NODE_SPACING.x) / 2., 0f32);
+            egui::Pos2::new((ui.available_width() - NODE_SPACING.x) / 2., 0f32);
         let mut next_inputs_only_pos = egui::Pos2::new(
-            ui.available_width() - Self::NODE_SPACING.x - ui.style().spacing.window_margin.right,
+            ui.available_width() - NODE_SPACING.x - ui.style().spacing.window_margin.right,
             0f32,
         );
 
         for pos in self.editor.node_positions.values_mut() {
             // Adjust existing nodes' positions so that they're inside the drawable area
-            pos.x = f32::min(
-                f32::max(0., pos.x),
-                ui.available_width() - Self::NODE_SPACING.x,
-            );
-            pos.y = f32::min(
-                f32::max(0., pos.y),
-                ui.available_height() - Self::NODE_SPACING.y,
-            );
+            pos.x = f32::min(f32::max(0., pos.x), ui.available_width() - NODE_SPACING.x);
+            pos.y = f32::min(f32::max(0., pos.y), ui.available_height() - NODE_SPACING.y);
 
             // Determine next available position for this node's kind
             for next in [
@@ -390,9 +384,9 @@ impl Graph {
                 &mut next_outputs_only_pos,
             ] {
                 if (pos.x - 50f32..=pos.x + 50f32).contains(&next.x)
-                    && (next.y..next.y + Self::NODE_SPACING.y).contains(&pos.y)
+                    && (next.y..next.y + NODE_SPACING.y).contains(&pos.y)
                 {
-                    next.y += Self::NODE_SPACING.y;
+                    next.y += NODE_SPACING.y;
                     break;
                 }
             }
@@ -434,7 +428,7 @@ impl Graph {
 
             self.editor.node_positions.insert(id, *pos);
 
-            pos.y += Self::NODE_SPACING.y;
+            pos.y += NODE_SPACING.y;
         }
 
         ui.scope(|ui| {
