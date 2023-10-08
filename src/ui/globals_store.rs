@@ -114,12 +114,6 @@ impl GlobalsStore {
         self.globals.remove(&id)
     }
 
-    pub fn set_global_info(&mut self, id: u32, info: Option<Box<[(&'static str, String)]>>) {
-        self.globals
-            .entry(id)
-            .and_modify(|global| global.borrow_mut().set_info(info));
-    }
-
     pub fn set_global_props(&mut self, id: u32, props: BTreeMap<String, String>) {
         self.globals
             .entry(id)
