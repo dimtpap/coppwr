@@ -374,8 +374,12 @@ impl Graph {
 
         for pos in self.editor.node_positions.values_mut() {
             // Adjust existing nodes' positions so that they're inside the drawable area
-            pos.x = f32::min(f32::max(0., pos.x), ui.available_width() - NODE_SPACING.x);
-            pos.y = f32::min(f32::max(0., pos.y), ui.available_height() - NODE_SPACING.y);
+            pos.x = pos
+                .x
+                .clamp(0., f32::max(0., ui.available_width() - NODE_SPACING.x));
+            pos.y = pos
+                .y
+                .clamp(0., f32::max(0., ui.available_height() - NODE_SPACING.y));
 
             // Determine next available position for this node's kind
             for next in [
