@@ -219,38 +219,37 @@ impl Inspector {
                     return;
                 };
 
-                global.borrow_mut().set_info(Some(info));
-
-                let global_borrow = global.borrow();
-                match *global_borrow.object_type() {
-                    ObjectType::Node => {
-                        self.graph.add_node(id, global);
-                    }
-                    ObjectType::Port => {
-                        if let (Some(parent), Some(direction), name) = (
-                            global_borrow.parent_id(),
-                            global_borrow.info().map(|i| i[0].1.clone()),
-                            global_borrow.name().cloned().unwrap_or_default(),
-                        ) {
-                            match direction.as_str() {
-                                "Input" => {
-                                    self.graph.add_input_port(id, parent, name);
+                // Add to graph
+                {
+                    let global_borrow = global.borrow();
+                    match *global_borrow.object_type() {
+                        ObjectType::Node => {
+                            self.graph.add_node(id, global);
+                        }
+                        ObjectType::Port => {
+                            if let Some(parent) = global_borrow.parent_id() {
+                                let name = global_borrow.name().cloned().unwrap_or_default();
+                                match info[0].1.as_str() {
+                                    "Input" => {
+                                        self.graph.add_input_port(id, parent, name);
+                                    }
+                                    "Output" => self.graph.add_output_port(id, parent, name),
+                                    _ => {}
                                 }
-                                "Output" => self.graph.add_output_port(id, parent, name),
-                                _ => {}
                             }
                         }
-                    }
-                    ObjectType::Link => {
-                        let info = global_borrow.info().unwrap();
-                        if let Some((output, input)) =
-                            info[3].1.parse().ok().zip(info[1].1.parse().ok())
-                        {
-                            self.graph.add_link(id, output, input);
+                        ObjectType::Link => {
+                            if let Some((output, input)) =
+                                info[3].1.parse().ok().zip(info[1].1.parse().ok())
+                            {
+                                self.graph.add_link(id, output, input);
+                            }
                         }
+                        _ => {}
                     }
-                    _ => {}
                 }
+
+                global.borrow_mut().set_info(Some(info));
             }
             Event::GlobalProperties(id, props) => {
                 self.globals.set_global_props(id, props);
