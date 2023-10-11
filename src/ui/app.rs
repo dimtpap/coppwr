@@ -81,7 +81,11 @@ impl Inspector {
         }
     }
 
-    pub fn views_menu_buttons(&mut self, ui: &mut egui::Ui, tree: &mut egui_dock::Tree<View>) {
+    pub fn views_menu_buttons(
+        &mut self,
+        ui: &mut egui::Ui,
+        dock_state: &mut egui_dock::DockState<View>,
+    ) {
         ui.menu_button("View", |ui| {
             for (tab, title, description) in [
                 (
@@ -105,7 +109,7 @@ impl Inspector {
                         .clicked()
                     {
                         self.open_tabs |= bit;
-                        tree.push_to_focused_leaf(tab);
+                        dock_state.push_to_focused_leaf(tab);
                     }
                 });
             }
@@ -339,11 +343,15 @@ impl egui_dock::TabViewer for Inspector {
         self.open_tabs &= !(*tab as u8);
         true
     }
+
+    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
+        [false, false]
+    }
 }
 
 enum State {
     Connected {
-        tabs_tree: egui_dock::Tree<View>,
+        dock_state: egui_dock::DockState<View>,
         inspector: Inspector,
         about: bool,
     },
@@ -377,7 +385,7 @@ impl State {
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
-            tabs_tree: egui_dock::Tree::new(tabs),
+            dock_state: egui_dock::DockState::new(tabs),
             inspector: Inspector::new(remote, mainloop_properties, context_properties),
             about: false,
         }
@@ -428,7 +436,7 @@ impl eframe::App for App {
 
         match &mut self.0 {
             State::Connected {
-                tabs_tree,
+                dock_state: tabs_tree,
                 inspector,
                 about,
             } => {
@@ -499,10 +507,9 @@ impl eframe::App for App {
                 inspector.tool_windows(ctx);
 
                 let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
-                style.tabs.inner_margin = egui::Margin::symmetric(5., 5.);
+                style.tab.tab_body.inner_margin = egui::Margin::symmetric(5., 5.);
                 egui_dock::DockArea::new(tabs_tree)
                     .style(style)
-                    .scroll_area_in_tabs(false)
                     .show(ctx, inspector);
             }
             State::Unconnected {

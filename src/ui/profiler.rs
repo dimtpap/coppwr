@@ -16,10 +16,8 @@
 
 use std::collections::{hash_map::Entry, HashMap};
 
-use eframe::egui::{
-    self,
-    plot::{self, Plot, PlotPoints},
-};
+use eframe::egui;
+use egui_plot::{self, Plot, PlotPoints};
 
 use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 
@@ -31,7 +29,7 @@ use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
 mod data {
     use std::collections::{btree_map::Entry, BTreeMap, VecDeque};
 
-    use eframe::egui::plot::PlotPoints;
+    use egui_plot::PlotPoints;
 
     use crate::backend::pods::profiler::{NodeBlock, Profiling};
 
@@ -387,28 +385,28 @@ impl Profiler {
 
             let plot = Plot::new(id)
                 .clamp_grid(true)
-                .legend(plot::Legend::default())
-                .allow_zoom(plot::AxisBools::new(true, false))
-                .allow_drag(plot::AxisBools::new(true, false))
+                .legend(egui_plot::Legend::default())
+                .allow_zoom(egui_plot::AxisBools::new(true, false))
+                .allow_drag(egui_plot::AxisBools::new(true, false))
                 .label_formatter(|name, value| {
                     if name.is_empty() {
                         String::new()
                     } else {
-                        format!("{name}: {:.0} us\nProcess cycle: {:.0}", value.y, value.x)
+                        format!("{name}: {:.0}us\nProcess cycle: {:.0}", value.y, value.x)
                     }
                 })
-                .x_axis_formatter(move |x, _| {
+                .x_axis_formatter(move |x, _, _| {
                     if x.is_sign_negative() || x > max_x as f64 || x % 1. != 0. {
                         String::new()
                     } else {
-                        format!("Process cycle {x:.0}")
+                        format!("{x:.0}")
                     }
                 })
-                .y_axis_formatter(|y, _| {
+                .y_axis_formatter(|y, _, _| {
                     if y.is_sign_negative() {
                         String::new()
                     } else {
-                        format!("{y} us")
+                        format!("{y}us")
                     }
                 });
 
@@ -435,7 +433,7 @@ impl Profiler {
                     ("Period", driver.period()),
                     ("Estimated", driver.estimated()),
                 ] {
-                    ui.line(plot::Line::new(plot_points).name(name));
+                    ui.line(egui_plot::Line::new(plot_points).name(name));
                 }
             });
 
@@ -447,7 +445,7 @@ impl Profiler {
             )
             .height(ui[1].available_height() / 2.)
             .show(&mut ui[1], |ui| {
-                ui.line(plot::Line::new(driver.end_date()).name("Driver End Date"));
+                ui.line(egui_plot::Line::new(driver.end_date()).name("Driver End Date"));
             });
         });
 
@@ -474,7 +472,7 @@ impl Profiler {
                     &mut ui[i],
                     |ui| {
                         for client in driver.clients() {
-                            ui.line(plot::Line::new(measurement(client)).name(client.title()));
+                            ui.line(egui_plot::Line::new(measurement(client)).name(client.title()));
                         }
                     },
                 );
