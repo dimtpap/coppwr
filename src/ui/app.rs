@@ -65,12 +65,12 @@ impl Inspector {
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
-        open_tabs: &[View],
+        open_tabs: impl Iterator<Item = View>,
     ) -> Self {
         Self {
             handle: backend::Handle::run(remote, mainloop_properties, context_properties),
 
-            open_tabs: open_tabs.into_iter().fold(0, |acc, &v| acc | v as u8),
+            open_tabs: open_tabs.fold(0, |acc, v| acc | v as u8),
 
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
@@ -387,7 +387,12 @@ impl State {
         tabs.push(View::GlobalTracker);
 
         Self::Connected {
-            inspector: Inspector::new(remote, mainloop_properties, context_properties, &tabs),
+            inspector: Inspector::new(
+                remote,
+                mainloop_properties,
+                context_properties,
+                tabs.iter().copied(),
+            ),
             dock_state: egui_dock::DockState::new(tabs),
             about: false,
         }
