@@ -18,6 +18,7 @@ If you want to learn the inner workings of PipeWire check out the [docs page on 
 and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 
 ## Features
+- Node graph editing
 - Object inspection, creation & destruction
 - Process monitoring & profiler statistics
 - Metadata editing

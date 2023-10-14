@@ -17,6 +17,7 @@
     </p>
     <p>Features</p>
     <ul>
+      <li>Node graph editing</li>
       <li>Object inspection, creation and destruction</li>
       <li>Process monitoring and profiler statistics</li>
       <li>Metadata editing</li>
