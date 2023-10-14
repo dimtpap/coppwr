@@ -51,6 +51,14 @@
   </keywords>
 
   <releases>
+    <release version="1.4.0" date="2023-10-14">
+      <description>
+        <ul>
+          <li>Added Graph view</li>
+          <li>Added filtering based on global properties in Global Tracker<li>
+        </ul>
+      </description>
+    </release>
     <release version="1.3.0" date="2023-09-15">
       <description>
         <ul>
