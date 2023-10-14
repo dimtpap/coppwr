@@ -517,6 +517,7 @@ impl eframe::App for App {
                 style.tab.tab_body.inner_margin = egui::Margin::symmetric(5., 5.);
                 egui_dock::DockArea::new(tabs_tree)
                     .style(style)
+                    .show_window_close_buttons(false) // Close buttons on windows do not call TabViewer::on_close
                     .show(ctx, inspector);
             }
             State::Unconnected {
