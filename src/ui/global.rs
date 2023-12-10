@@ -38,7 +38,7 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
     for (permission, label) in PERMISSIONS
         .get_or_init(|| {
             #[cfg(feature = "pw_v0_3_77")]
-            if crate::backend::remote_version().is_some_and(|ver| ver.2 >= 77) {
+            if crate::backend::remote_version().is_some_and(|ver| ver.0 > 0 || ver.2 >= 77) {
                 return [
                     (Permission::R, "Read"),
                     (Permission::W, "Write"),
