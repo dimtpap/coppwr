@@ -28,7 +28,7 @@ and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 
 ## Installing
 ### Flatpak
-<a href='https://flathub.org/apps/xyz.dimtpap.coppwr'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
+<a href='https://flathub.org/apps/io.github.dimtpap.coppwr'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
 ### Arch
 [![coppwr AUR version](https://img.shields.io/aur/version/coppwr?label=coppwr&logo=archlinux)](https://aur.archlinux.org/packages/coppwr)
 [![coppwr-bin AUR version](https://img.shields.io/aur/version/coppwr-bin?label=coppwr-bin&logo=archlinux)](https://aur.archlinux.org/packages/coppwr-bin)  
