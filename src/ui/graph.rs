@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     cell::RefCell,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap, VecDeque},
     rc::{Rc, Weak},
 };
 
@@ -14,7 +14,7 @@ use pipewire::types::ObjectType;
 
 use crate::{
     backend::{self, Request},
-    ui::globals_store::Global,
+    ui::{globals_store::Global, persistence::PersistentView},
 };
 
 // Used to satisfy trait bounds that provide unneded features
@@ -208,6 +208,8 @@ impl From<(OutputId, InputId)> for GraphItem {
 }
 
 pub struct Graph {
+    restored_positions: Option<HashMap<String, VecDeque<egui::Pos2>>>,
+
     editor: egui_node_graph::GraphEditorState<GraphNode, MediaType, NoOp, NoOp, backend::Sender>,
     responses: Vec<NodeResponse<NoOp, GraphNode>>,
 
@@ -218,6 +220,8 @@ pub struct Graph {
 impl Graph {
     pub fn new() -> Self {
         Self {
+            restored_positions: None,
+
             editor: GraphEditorState::default(),
             responses: Vec::new(),
             graph_items: BTreeMap::new(),
@@ -408,15 +412,30 @@ impl Graph {
 
             self.editor.node_order.push(id);
 
-            let ports = global.upgrade().and_then(|global| {
-                global.borrow().info().and_then(|info| {
+            let mut ports = None;
+
+            if let Some(global) = global.upgrade() {
+                let global = global.borrow();
+
+                if let Some(restored_positions) = &mut self.restored_positions {
+                    if let Some(name) = global.props().get("node.name") {
+                        if let Some(pos) =
+                            restored_positions.get_mut(name).and_then(|v| v.pop_front())
+                        {
+                            self.editor.node_positions.insert(id, pos);
+                            return;
+                        }
+                    }
+                }
+
+                ports = global.info().and_then(|info| {
                     info[2]
                         .1
                         .parse::<u32>()
                         .ok()
                         .zip(info[3].1.parse::<u32>().ok())
-                })
-            });
+                });
+            };
 
             let pos = if let Some((inputs, outputs)) = ports {
                 if outputs == 0 {
@@ -506,5 +525,43 @@ impl Graph {
                 }
             }
         });
+    }
+}
+
+impl PersistentView for Graph {
+    type Data = HashMap<String, VecDeque<egui::Pos2>>;
+
+    fn with_data(data: &Self::Data) -> Self {
+        Self {
+            restored_positions: Some(data.clone()),
+
+            ..Self::new()
+        }
+    }
+
+    fn save_data(&self) -> Option<Self::Data> {
+        if self.editor.node_positions.is_empty() {
+            // The graph hasn't been drawn, so nodes haven't been positioned
+            return None;
+        }
+
+        let mut positions: HashMap<String, VecDeque<egui::Pos2>> = HashMap::new();
+
+        for (&pos, node) in self.editor.graph.nodes.iter().filter_map(|(id, node)| {
+            if let GraphNode::Node { global, .. } = &node.user_data {
+                Some((self.editor.node_positions.get(id)?, global.upgrade()?))
+            } else {
+                None
+            }
+        }) {
+            if let Some(name) = node.borrow().props().get("node.name") {
+                positions
+                    .entry(name.clone())
+                    .and_modify(|e| e.push_back(pos))
+                    .or_insert_with(|| vec![pos].into());
+            }
+        }
+
+        Some(positions)
     }
 }
