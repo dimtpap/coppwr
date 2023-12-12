@@ -14,23 +14,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-mod common;
-mod context_manager;
-mod globals_store;
-mod graph;
-mod metadata_editor;
-mod object_creator;
-mod persistence;
-mod profiler;
-mod tool;
+/// Trait for views that would like to save some state between reconnections
+pub trait PersistentView {
+    #[cfg(feature = "persistence")]
+    type Data: serde::Serialize + serde::de::DeserializeOwned;
 
-use context_manager::ContextManager;
-use globals_store::GlobalsStore;
-use graph::Graph;
-use metadata_editor::MetadataEditor;
-use object_creator::ObjectCreator;
-use profiler::Profiler;
-use tool::{Tool, WindowedTool};
+    #[cfg(not(feature = "persistence"))]
+    type Data;
 
-mod app;
-pub use app::App as CoppwrApp;
+    fn with_data(data: &Self::Data) -> Self;
+    fn save_data(&self) -> Option<Self::Data>;
+}
