@@ -20,13 +20,17 @@ egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_gr
 eframe = {version = "0.23.0", features = ["wayland"]}
 egui_plot = "0.23.0"
 egui_dock = "0.8.1"
+serde = {version = "1.0", optional = true}
 ashpd = {version = "0.6.5", optional = true}
 pollster = {version = "0.3.0", optional = true}
 
 [features]
+default = ["persistence"]
+
 # Used for the Link permission
 pw_v0_3_77 = ["pipewire/v0_3_77"]
 xdg_desktop_portals = ["dep:ashpd", "dep:pollster"]
+persistence = ["dep:serde", "egui_dock/serde", "eframe/persistence"]
 
 [profile.release]
 lto = true
