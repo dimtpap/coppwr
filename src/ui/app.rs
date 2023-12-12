@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use eframe::egui;
+use egui_dock::DockState;
 use pipewire::types::ObjectType;
 
 #[cfg(feature = "xdg_desktop_portals")]
@@ -49,8 +50,6 @@ impl View {
 struct Inspector {
     handle: backend::Handle,
 
-    open_tabs: u8,
-
     globals: GlobalsStore,
     profiler: Profiler,
     graph: Graph,
@@ -65,12 +64,9 @@ impl Inspector {
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
-        open_tabs: impl Iterator<Item = View>,
     ) -> Self {
         Self {
             handle: backend::Handle::run(remote, mainloop_properties, context_properties),
-
-            open_tabs: open_tabs.fold(0, |acc, v| acc | v as u8),
 
             globals: GlobalsStore::new(),
             profiler: Profiler::with_max_profilings(250),
@@ -87,6 +83,12 @@ impl Inspector {
         ui: &mut egui::Ui,
         dock_state: &mut egui_dock::DockState<View>,
     ) {
+        let open_tabs = dock_state
+            .iter_nodes()
+            .filter_map(|node| node.tabs())
+            .flat_map(|tabs| tabs.iter())
+            .fold(0, |acc, &tab| acc | tab as u8);
+
         ui.menu_button("View", |ui| {
             for (tab, title, description) in [
                 (
@@ -102,14 +104,14 @@ impl Inspector {
                 ),
                 (View::Graph, "🖧 Graph", "Visual representation of the graph"),
             ] {
-                let bit = tab as u8;
-                ui.add_enabled_ui(self.open_tabs & bit == 0, |ui| {
+                let open = open_tabs & tab as u8 != 0;
+
+                ui.add_enabled_ui(!open, |ui| {
                     if ui
-                        .selectable_label(self.open_tabs & bit != 0, title)
+                        .selectable_label(open, title)
                         .on_hover_text(description)
                         .clicked()
                     {
-                        self.open_tabs |= bit;
                         dock_state.push_to_focused_leaf(tab);
                     }
                 });
@@ -340,8 +342,7 @@ impl egui_dock::TabViewer for Inspector {
         tab.as_str().into()
     }
 
-    fn on_close(&mut self, tab: &mut Self::Tab) -> bool {
-        self.open_tabs &= !(*tab as u8);
+    fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
         true
     }
 
@@ -352,7 +353,6 @@ impl egui_dock::TabViewer for Inspector {
 
 enum State {
     Connected {
-        dock_state: egui_dock::DockState<View>,
         inspector: Inspector,
         about: bool,
     },
@@ -382,18 +382,8 @@ impl State {
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
     ) -> Self {
-        let mut tabs = Vec::with_capacity(4 /* Number of views */);
-        tabs.push(View::Graph);
-        tabs.push(View::GlobalTracker);
-
         Self::Connected {
-            inspector: Inspector::new(
-                remote,
-                mainloop_properties,
-                context_properties,
-                tabs.iter().copied(),
-            ),
-            dock_state: egui_dock::DockState::new(tabs),
+            inspector: Inspector::new(remote, mainloop_properties, context_properties),
             about: false,
         }
     }
@@ -420,35 +410,37 @@ impl State {
     }
 }
 
-pub struct App(State);
+pub struct App {
+    dock_state: DockState<View>,
+    state: State,
+}
 
 impl App {
     pub fn new() -> Self {
-        Self(State::new_connected(
-            RemoteInfo::default(),
-            Vec::new(),
-            vec![("media.category".to_owned(), "Manager".to_owned())],
-        ))
+        Self {
+            dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
+            state: State::new_connected(
+                RemoteInfo::default(),
+                Vec::new(),
+                vec![("media.category".to_owned(), "Manager".to_owned())],
+            ),
+        }
     }
 }
 
 impl eframe::App for App {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        self.0.disconnect();
+        self.state.disconnect();
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         // egui won't update until there is interaction so data shown may be out of date
         ctx.request_repaint_after(std::time::Duration::from_millis(500));
 
-        match &mut self.0 {
-            State::Connected {
-                dock_state: tabs_tree,
-                inspector,
-                about,
-            } => {
+        match &mut self.state {
+            State::Connected { inspector, about } => {
                 if inspector.process_events_or_stop() {
-                    self.0.disconnect();
+                    self.state.disconnect();
                     return;
                 }
 
@@ -468,7 +460,7 @@ impl eframe::App for App {
                             }
                         });
 
-                        inspector.views_menu_buttons(ui, tabs_tree);
+                        inspector.views_menu_buttons(ui, &mut self.dock_state);
                         inspector.tools_menu_buttons(ui);
 
                         ui.menu_button("Help", |ui| {
@@ -480,7 +472,7 @@ impl eframe::App for App {
                 });
 
                 if disconnect {
-                    self.0.disconnect();
+                    self.state.disconnect();
                     return;
                 }
 
@@ -515,7 +507,7 @@ impl eframe::App for App {
 
                 let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
                 style.tab.tab_body.inner_margin = egui::Margin::symmetric(5., 5.);
-                egui_dock::DockArea::new(tabs_tree)
+                egui_dock::DockArea::new(&mut self.dock_state)
                     .style(style)
                     .show_window_close_buttons(false) // Close buttons on windows do not call TabViewer::on_close
                     .show(ctx, inspector);
@@ -617,7 +609,7 @@ impl eframe::App for App {
                     });
 
                 if connect {
-                    self.0.connect();
+                    self.state.connect();
                 }
             }
         }
