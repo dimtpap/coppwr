@@ -16,20 +16,16 @@
 
 use eframe::egui;
 use egui_dock::DockState;
-use pipewire::types::ObjectType;
 
 #[cfg(feature = "xdg_desktop_portals")]
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
-use crate::backend::{self, Event, RemoteInfo};
+use crate::backend::RemoteInfo;
 
-use super::{
-    common::EditableKVList, globals_store::ObjectData, ContextManager, GlobalsStore, Graph,
-    MetadataEditor, ObjectCreator, Profiler, WindowedTool,
-};
+use super::common::EditableKVList;
 
 #[derive(Clone, Copy)]
-enum View {
+pub enum View {
     GlobalTracker = 1 << 0,
     Profiler = 1 << 1,
     ProcessViewer = 1 << 2,
@@ -47,309 +43,331 @@ impl View {
     }
 }
 
-struct Inspector {
-    handle: backend::Handle,
+mod inspector {
+    use eframe::egui;
 
-    globals: GlobalsStore,
-    profiler: Profiler,
-    graph: Graph,
+    use pipewire::types::ObjectType;
 
-    object_creator: WindowedTool<ObjectCreator>,
-    metadata_editor: WindowedTool<MetadataEditor>,
-    context_manager: WindowedTool<ContextManager>,
-}
+    use crate::{
+        backend::{self, Event, RemoteInfo},
+        ui::{
+            globals_store::ObjectData, ContextManager, GlobalsStore, Graph, MetadataEditor,
+            ObjectCreator, Profiler, WindowedTool,
+        },
+    };
 
-impl Inspector {
-    pub fn new(
-        remote: RemoteInfo,
-        mainloop_properties: Vec<(String, String)>,
-        context_properties: Vec<(String, String)>,
-    ) -> Self {
-        Self {
-            handle: backend::Handle::run(remote, mainloop_properties, context_properties),
+    use super::View;
 
-            globals: GlobalsStore::new(),
-            profiler: Profiler::with_max_profilings(250),
-            graph: Graph::new(),
+    pub struct Inspector {
+        handle: backend::Handle,
 
-            object_creator: WindowedTool::default(),
-            metadata_editor: WindowedTool::default(),
-            context_manager: WindowedTool::default(),
-        }
+        globals: GlobalsStore,
+        profiler: Profiler,
+        graph: Graph,
+
+        object_creator: WindowedTool<ObjectCreator>,
+        metadata_editor: WindowedTool<MetadataEditor>,
+        context_manager: WindowedTool<ContextManager>,
     }
 
-    pub fn views_menu_buttons(
-        &mut self,
-        ui: &mut egui::Ui,
-        dock_state: &mut egui_dock::DockState<View>,
-    ) {
-        let open_tabs = dock_state
-            .iter_nodes()
-            .filter_map(|node| node.tabs())
-            .flat_map(|tabs| tabs.iter())
-            .fold(0, |acc, &tab| acc | tab as u8);
+    impl Inspector {
+        pub fn new(
+            remote: RemoteInfo,
+            mainloop_properties: Vec<(String, String)>,
+            context_properties: Vec<(String, String)>,
+        ) -> Self {
+            Self {
+                handle: backend::Handle::run(remote, mainloop_properties, context_properties),
 
-        ui.menu_button("View", |ui| {
-            for (tab, title, description) in [
-                (
-                    View::GlobalTracker,
-                    "📑 Global Tracker",
-                    "List of all the objects in the remote",
-                ),
-                (View::Profiler, "📈 Profiler", "Graphs of profiling data"),
-                (
-                    View::ProcessViewer,
-                    "⏱ Process Viewer",
-                    "Performance measurements of running nodes",
-                ),
-                (View::Graph, "🖧 Graph", "Visual representation of the graph"),
-            ] {
-                let open = open_tabs & tab as u8 != 0;
+                globals: GlobalsStore::new(),
+                profiler: Profiler::with_max_profilings(250),
+                graph: Graph::new(),
 
-                ui.add_enabled_ui(!open, |ui| {
-                    if ui
-                        .selectable_label(open, title)
-                        .on_hover_text(description)
-                        .clicked()
-                    {
-                        dock_state.push_to_focused_leaf(tab);
-                    }
-                });
-            }
-        });
-    }
-
-    pub fn tools_menu_buttons(&mut self, ui: &mut egui::Ui) {
-        ui.menu_button("Tools", |ui| {
-            for (open, name, description) in [
-                (
-                    &mut self.object_creator.open,
-                    "⛭ Object Creator",
-                    "Create an object on the remote",
-                ),
-                (
-                    &mut self.metadata_editor.open,
-                    "🗐 Metadata Editor",
-                    "Edit remote metadata",
-                ),
-                (
-                    &mut self.context_manager.open,
-                    "🗄 Context Manager",
-                    "Manage the PipeWire context",
-                ),
-            ] {
-                ui.toggle_value(open, name).on_hover_text(description);
-            }
-        });
-    }
-
-    pub fn tool_windows(&mut self, ctx: &egui::Context) {
-        self.object_creator.window(ctx, &self.handle.sx);
-        self.metadata_editor.window(ctx, &self.handle.sx);
-        self.context_manager.window(ctx, &self.handle.sx);
-    }
-
-    #[must_use = "Indicates whether the connection to the backend has ended"]
-    pub fn process_events_or_stop(&mut self) -> bool {
-        while let Ok(e) = self.handle.rx.try_recv() {
-            match e {
-                Event::Stop => return true,
-                e => self.process_event(e),
+                object_creator: WindowedTool::default(),
+                metadata_editor: WindowedTool::default(),
+                context_manager: WindowedTool::default(),
             }
         }
 
-        false
-    }
+        pub fn views_menu_buttons(
+            &mut self,
+            ui: &mut egui::Ui,
+            dock_state: &mut egui_dock::DockState<View>,
+        ) {
+            let open_tabs = dock_state
+                .iter_nodes()
+                .filter_map(|node| node.tabs())
+                .flat_map(|tabs| tabs.iter())
+                .fold(0, |acc, &tab| acc | tab as u8);
 
-    fn process_event(&mut self, e: Event) {
-        match e {
-            Event::GlobalAdded(id, object_type, props) => {
-                let global = self.globals.add_global(id, object_type, props).borrow();
+            ui.menu_button("View", |ui| {
+                for (tab, title, description) in [
+                    (
+                        View::GlobalTracker,
+                        "📑 Global Tracker",
+                        "List of all the objects in the remote",
+                    ),
+                    (View::Profiler, "📈 Profiler", "Graphs of profiling data"),
+                    (
+                        View::ProcessViewer,
+                        "⏱ Process Viewer",
+                        "Performance measurements of running nodes",
+                    ),
+                    (View::Graph, "🖧 Graph", "Visual representation of the graph"),
+                ] {
+                    let open = open_tabs & tab as u8 != 0;
 
-                if global.props().is_empty() {
-                    return;
-                }
-
-                match *global.object_type() {
-                    ObjectType::Factory => {
-                        if let (Some(name), Some(object_type)) =
-                            (global.name(), global.props().get("factory.type.name"))
+                    ui.add_enabled_ui(!open, |ui| {
+                        if ui
+                            .selectable_label(open, title)
+                            .on_hover_text(description)
+                            .clicked()
                         {
-                            let object_type = match object_type.as_str() {
-                                "PipeWire:Interface:Link" => ObjectType::Link,
-                                "PipeWire:Interface:Port" => ObjectType::Port,
-                                "PipeWire:Interface:Node" => ObjectType::Node,
-                                "PipeWire:Interface:Client" => ObjectType::Client,
-                                "PipeWire:Interface:Device" => ObjectType::Device,
-                                "PipeWire:Interface:Registry" => ObjectType::Registry,
-                                "PipeWire:Interface:Profiler" => ObjectType::Profiler,
-                                "PipeWire:Interface:Metadata" => ObjectType::Metadata,
-                                "PipeWire:Interface:Factory" => ObjectType::Factory,
-                                "PipeWire:Interface:Module" => ObjectType::Module,
-                                "PipeWire:Interface:Core" => ObjectType::Core,
-                                "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
-                                "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
-                                "PipeWire:Interface:EndpointStream" => ObjectType::EndpointStream,
-                                "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
-                                "PipeWire:Interface:ClientEndpoint" => ObjectType::ClientEndpoint,
-                                "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
-                                _ => ObjectType::Other(object_type.clone()),
-                            };
-                            self.object_creator.tool.add_factory(id, name, object_type);
+                            dock_state.push_to_focused_leaf(tab);
                         }
-                    }
-                    ObjectType::Metadata => {
-                        if let Some(name) = global.name() {
-                            self.metadata_editor.tool.add_metadata(id, name);
-                        }
-                    }
+                    });
+                }
+            });
+        }
 
-                    _ => {}
+        pub fn tools_menu_buttons(&mut self, ui: &mut egui::Ui) {
+            ui.menu_button("Tools", |ui| {
+                for (open, name, description) in [
+                    (
+                        &mut self.object_creator.open,
+                        "⛭ Object Creator",
+                        "Create an object on the remote",
+                    ),
+                    (
+                        &mut self.metadata_editor.open,
+                        "🗐 Metadata Editor",
+                        "Edit remote metadata",
+                    ),
+                    (
+                        &mut self.context_manager.open,
+                        "🗄 Context Manager",
+                        "Manage the PipeWire context",
+                    ),
+                ] {
+                    ui.toggle_value(open, name).on_hover_text(description);
+                }
+            });
+        }
+
+        pub fn tool_windows(&mut self, ctx: &egui::Context) {
+            self.object_creator.window(ctx, &self.handle.sx);
+            self.metadata_editor.window(ctx, &self.handle.sx);
+            self.context_manager.window(ctx, &self.handle.sx);
+        }
+
+        #[must_use = "Indicates whether the connection to the backend has ended"]
+        pub fn process_events_or_stop(&mut self) -> bool {
+            while let Ok(e) = self.handle.rx.try_recv() {
+                match e {
+                    Event::Stop => return true,
+                    e => self.process_event(e),
                 }
             }
-            Event::GlobalRemoved(id) => {
-                if let Some(removed) = self.globals.remove_global(id) {
-                    match *removed.borrow().object_type() {
-                        ObjectType::Metadata => {
-                            self.metadata_editor.tool.remove_metadata(id);
-                        }
+
+            false
+        }
+
+        fn process_event(&mut self, e: Event) {
+            match e {
+                Event::GlobalAdded(id, object_type, props) => {
+                    let global = self.globals.add_global(id, object_type, props).borrow();
+
+                    if global.props().is_empty() {
+                        return;
+                    }
+
+                    match *global.object_type() {
                         ObjectType::Factory => {
-                            self.object_creator.tool.remove_factory(id);
+                            if let (Some(name), Some(object_type)) =
+                                (global.name(), global.props().get("factory.type.name"))
+                            {
+                                let object_type = match object_type.as_str() {
+                                    "PipeWire:Interface:Link" => ObjectType::Link,
+                                    "PipeWire:Interface:Port" => ObjectType::Port,
+                                    "PipeWire:Interface:Node" => ObjectType::Node,
+                                    "PipeWire:Interface:Client" => ObjectType::Client,
+                                    "PipeWire:Interface:Device" => ObjectType::Device,
+                                    "PipeWire:Interface:Registry" => ObjectType::Registry,
+                                    "PipeWire:Interface:Profiler" => ObjectType::Profiler,
+                                    "PipeWire:Interface:Metadata" => ObjectType::Metadata,
+                                    "PipeWire:Interface:Factory" => ObjectType::Factory,
+                                    "PipeWire:Interface:Module" => ObjectType::Module,
+                                    "PipeWire:Interface:Core" => ObjectType::Core,
+                                    "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
+                                    "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
+                                    "PipeWire:Interface:EndpointStream" => {
+                                        ObjectType::EndpointStream
+                                    }
+                                    "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
+                                    "PipeWire:Interface:ClientEndpoint" => {
+                                        ObjectType::ClientEndpoint
+                                    }
+                                    "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
+                                    _ => ObjectType::Other(object_type.clone()),
+                                };
+                                self.object_creator.tool.add_factory(id, name, object_type);
+                            }
                         }
+                        ObjectType::Metadata => {
+                            if let Some(name) = global.name() {
+                                self.metadata_editor.tool.add_metadata(id, name);
+                            }
+                        }
+
                         _ => {}
                     }
                 }
-                self.graph.remove_item(id);
-            }
-            Event::GlobalInfo(id, info) => {
-                let Some(global) = self.globals.get_global(id) else {
-                    return;
-                };
-
-                // Add to graph
-                {
-                    let global_borrow = global.borrow();
-                    match *global_borrow.object_type() {
-                        ObjectType::Node => {
-                            self.graph.add_node(id, global);
+                Event::GlobalRemoved(id) => {
+                    if let Some(removed) = self.globals.remove_global(id) {
+                        match *removed.borrow().object_type() {
+                            ObjectType::Metadata => {
+                                self.metadata_editor.tool.remove_metadata(id);
+                            }
+                            ObjectType::Factory => {
+                                self.object_creator.tool.remove_factory(id);
+                            }
+                            _ => {}
                         }
-                        ObjectType::Port => {
-                            if let Some(parent) = global_borrow.parent_id() {
-                                let name = global_borrow.name().cloned().unwrap_or_default();
-                                match info[0].1.as_str() {
-                                    "Input" => {
-                                        self.graph.add_input_port(id, parent, name);
+                    }
+                    self.graph.remove_item(id);
+                }
+                Event::GlobalInfo(id, info) => {
+                    let Some(global) = self.globals.get_global(id) else {
+                        return;
+                    };
+
+                    // Add to graph
+                    {
+                        let global_borrow = global.borrow();
+                        match *global_borrow.object_type() {
+                            ObjectType::Node => {
+                                self.graph.add_node(id, global);
+                            }
+                            ObjectType::Port => {
+                                if let Some(parent) = global_borrow.parent_id() {
+                                    let name = global_borrow.name().cloned().unwrap_or_default();
+                                    match info[0].1.as_str() {
+                                        "Input" => {
+                                            self.graph.add_input_port(id, parent, name);
+                                        }
+                                        "Output" => self.graph.add_output_port(id, parent, name),
+                                        _ => {}
                                     }
-                                    "Output" => self.graph.add_output_port(id, parent, name),
-                                    _ => {}
                                 }
                             }
-                        }
-                        ObjectType::Link => {
-                            if let Some((output, input)) =
-                                info[3].1.parse().ok().zip(info[1].1.parse().ok())
-                            {
-                                self.graph.add_link(id, output, input);
+                            ObjectType::Link => {
+                                if let Some((output, input)) =
+                                    info[3].1.parse().ok().zip(info[1].1.parse().ok())
+                                {
+                                    self.graph.add_link(id, output, input);
+                                }
                             }
+                            _ => {}
                         }
-                        _ => {}
                     }
-                }
 
-                global.borrow_mut().set_info(Some(info));
-            }
-            Event::GlobalProperties(id, props) => {
-                self.globals.set_global_props(id, props);
-            }
-            Event::ProfilerProfile(samples) => {
-                self.profiler.add_profilings(samples);
-            }
-            Event::MetadataProperty {
-                id,
-                subject,
-                key,
-                type_,
-                value,
-            } => match key {
-                Some(key) => match value {
-                    Some(value) => {
-                        let Some(metadata) = self.globals.get_global(id) else {
-                            return;
-                        };
-                        self.metadata_editor.tool.add_property(
-                            id,
-                            metadata
-                                .borrow()
-                                .name()
-                                .cloned()
-                                .unwrap_or_else(|| format!("Unnamed metadata {id}")),
-                            subject,
-                            key,
-                            type_,
-                            value,
-                        );
-                    }
+                    global.borrow_mut().set_info(Some(info));
+                }
+                Event::GlobalProperties(id, props) => {
+                    self.globals.set_global_props(id, props);
+                }
+                Event::ProfilerProfile(samples) => {
+                    self.profiler.add_profilings(samples);
+                }
+                Event::MetadataProperty {
+                    id,
+                    subject,
+                    key,
+                    type_,
+                    value,
+                } => match key {
+                    Some(key) => match value {
+                        Some(value) => {
+                            let Some(metadata) = self.globals.get_global(id) else {
+                                return;
+                            };
+                            self.metadata_editor.tool.add_property(
+                                id,
+                                metadata
+                                    .borrow()
+                                    .name()
+                                    .cloned()
+                                    .unwrap_or_else(|| format!("Unnamed metadata {id}")),
+                                subject,
+                                key,
+                                type_,
+                                value,
+                            );
+                        }
+                        None => {
+                            self.metadata_editor.tool.remove_property(id, &key);
+                        }
+                    },
                     None => {
-                        self.metadata_editor.tool.remove_property(id, &key);
+                        self.metadata_editor.tool.clear_properties(id);
                     }
                 },
-                None => {
-                    self.metadata_editor.tool.clear_properties(id);
-                }
-            },
-            Event::ClientPermissions(id, _, perms) => {
-                if let Some(global) = self.globals.get_global(id) {
-                    if let ObjectData::Client { permissions, .. } =
-                        global.borrow_mut().object_data_mut()
-                    {
-                        *permissions = Some(perms);
+                Event::ClientPermissions(id, _, perms) => {
+                    if let Some(global) = self.globals.get_global(id) {
+                        if let ObjectData::Client { permissions, .. } =
+                            global.borrow_mut().object_data_mut()
+                        {
+                            *permissions = Some(perms);
+                        }
                     }
                 }
-            }
-            Event::ContextProperties(properties) => {
-                self.context_manager.tool.set_context_properties(properties);
-            }
-            Event::Stop => unreachable!(),
-        }
-    }
-}
-
-impl egui_dock::TabViewer for Inspector {
-    type Tab = View;
-
-    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        match *tab {
-            View::Profiler => {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.profiler.show_profiler(ui);
-                });
-            }
-            View::ProcessViewer => {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.profiler.show_process_viewer(ui);
-                });
-            }
-            View::GlobalTracker => {
-                self.globals.show(ui, &self.handle.sx);
-            }
-            View::Graph => {
-                self.graph.show(ui, &mut self.handle.sx);
+                Event::ContextProperties(properties) => {
+                    self.context_manager.tool.set_context_properties(properties);
+                }
+                Event::Stop => unreachable!(),
             }
         }
     }
 
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        tab.as_str().into()
-    }
+    impl egui_dock::TabViewer for Inspector {
+        type Tab = View;
 
-    fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
-        true
-    }
+        fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+            match *tab {
+                View::Profiler => {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        self.profiler.show_profiler(ui);
+                    });
+                }
+                View::ProcessViewer => {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        self.profiler.show_process_viewer(ui);
+                    });
+                }
+                View::GlobalTracker => {
+                    self.globals.show(ui, &self.handle.sx);
+                }
+                View::Graph => {
+                    self.graph.show(ui, &mut self.handle.sx);
+                }
+            }
+        }
 
-    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
-        [false, false]
+        fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+            tab.as_str().into()
+        }
+
+        fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
+            true
+        }
+
+        fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
+            [false, false]
+        }
     }
 }
+
+use inspector::Inspector;
 
 enum State {
     Connected {
