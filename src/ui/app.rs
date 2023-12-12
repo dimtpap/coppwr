@@ -51,12 +51,17 @@ mod inspector {
     use crate::{
         backend::{self, Event, RemoteInfo},
         ui::{
-            globals_store::ObjectData, ContextManager, GlobalsStore, Graph, MetadataEditor,
-            ObjectCreator, Profiler, WindowedTool,
+            globals_store::ObjectData, persistence::PersistentView, ContextManager, GlobalsStore,
+            Graph, MetadataEditor, ObjectCreator, Profiler, WindowedTool,
         },
     };
 
     use super::View;
+
+    #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+    pub struct ViewsData {
+        graph: Option<<Graph as PersistentView>::Data>,
+    }
 
     pub struct Inspector {
         handle: backend::Handle,
@@ -75,17 +80,35 @@ mod inspector {
             remote: RemoteInfo,
             mainloop_properties: Vec<(String, String)>,
             context_properties: Vec<(String, String)>,
+            views_data: Option<&ViewsData>,
         ) -> Self {
             Self {
                 handle: backend::Handle::run(remote, mainloop_properties, context_properties),
 
                 globals: GlobalsStore::new(),
                 profiler: Profiler::with_max_profilings(250),
-                graph: Graph::new(),
+                graph: views_data
+                    .and_then(|vd| vd.graph.as_ref())
+                    .map_or_else(Graph::new, Graph::with_data),
 
                 object_creator: WindowedTool::default(),
                 metadata_editor: WindowedTool::default(),
                 context_manager: WindowedTool::default(),
+            }
+        }
+
+        pub fn save_data(&self, data: &mut Option<ViewsData>) {
+            let new_data = ViewsData {
+                graph: self.graph.save_data(),
+            };
+
+            match data {
+                Some(ref mut data) => {
+                    if let Some(graph) = new_data.graph {
+                        data.graph = Some(graph)
+                    }
+                }
+                None => *data = Some(new_data),
             }
         }
 
@@ -367,7 +390,7 @@ mod inspector {
     }
 }
 
-use inspector::Inspector;
+use inspector::{Inspector, ViewsData};
 
 enum State {
     Connected {
@@ -399,14 +422,20 @@ impl State {
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
+        inspector_data: Option<&ViewsData>,
     ) -> Self {
         Self::Connected {
-            inspector: Inspector::new(remote, mainloop_properties, context_properties),
+            inspector: Inspector::new(
+                remote,
+                mainloop_properties,
+                context_properties,
+                inspector_data,
+            ),
             about: false,
         }
     }
 
-    pub fn connect(&mut self) {
+    pub fn connect(&mut self, inspector_data: Option<&ViewsData>) {
         if let Self::Unconnected {
             remote,
             mainloop_properties,
@@ -417,6 +446,7 @@ impl State {
                 std::mem::take(remote),
                 mainloop_properties.take(),
                 context_properties.take(),
+                inspector_data,
             );
         }
     }
@@ -426,10 +456,17 @@ impl State {
             *self = Self::unconnected_from_env();
         }
     }
+
+    fn save_inspector_data(&self, data: &mut Option<ViewsData>) {
+        if let Self::Connected { inspector, .. } = self {
+            inspector.save_data(data);
+        }
+    }
 }
 
 pub struct App {
     dock_state: DockState<View>,
+    inspector_data: Option<ViewsData>,
     state: State,
 }
 
@@ -437,18 +474,25 @@ impl App {
     pub fn new() -> Self {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
+            inspector_data: None,
             state: State::new_connected(
                 RemoteInfo::default(),
                 Vec::new(),
                 vec![("media.category".to_owned(), "Manager".to_owned())],
+                None,
             ),
         }
+    }
+
+    fn disconnect(&mut self) {
+        self.state.save_inspector_data(&mut self.inspector_data);
+        self.state.disconnect();
     }
 }
 
 impl eframe::App for App {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        self.state.disconnect();
+        self.disconnect();
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
@@ -458,7 +502,7 @@ impl eframe::App for App {
         match &mut self.state {
             State::Connected { inspector, about } => {
                 if inspector.process_events_or_stop() {
-                    self.state.disconnect();
+                    self.disconnect();
                     return;
                 }
 
@@ -490,7 +534,7 @@ impl eframe::App for App {
                 });
 
                 if disconnect {
-                    self.state.disconnect();
+                    self.disconnect();
                     return;
                 }
 
@@ -627,7 +671,7 @@ impl eframe::App for App {
                     });
 
                 if connect {
-                    self.state.connect();
+                    self.state.connect(self.inspector_data.as_ref());
                 }
             }
         }
