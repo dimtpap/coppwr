@@ -25,6 +25,7 @@ use crate::backend::RemoteInfo;
 use super::common::EditableKVList;
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
 pub enum View {
     GlobalTracker = 1 << 0,
     Profiler = 1 << 1,
@@ -464,6 +465,12 @@ impl State {
     }
 }
 
+#[cfg(feature = "persistence")]
+mod storage_keys {
+    pub const DOCK: &'static str = "dock";
+    pub const INSPECTOR: &'static str = "inspector";
+}
+
 pub struct App {
     dock_state: DockState<View>,
     inspector_data: Option<ViewsData>,
@@ -471,6 +478,7 @@ pub struct App {
 }
 
 impl App {
+    #[cfg(not(feature = "persistence"))]
     pub fn new() -> Self {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
@@ -484,6 +492,27 @@ impl App {
         }
     }
 
+    #[cfg(feature = "persistence")]
+    pub fn new(storage: Option<&dyn eframe::Storage>) -> Self {
+        let inspector_data =
+            storage.and_then(|storage| eframe::get_value(storage, storage_keys::INSPECTOR));
+
+        Self {
+            dock_state: storage
+                .and_then(|storage| eframe::get_value(storage, storage_keys::DOCK))
+                .unwrap_or_else(|| DockState::new(vec![View::Graph, View::GlobalTracker])),
+
+            state: State::new_connected(
+                RemoteInfo::default(),
+                Vec::new(),
+                vec![("media.category".to_owned(), "Manager".to_owned())],
+                inspector_data.as_ref(),
+            ),
+
+            inspector_data,
+        }
+    }
+
     fn disconnect(&mut self) {
         self.state.save_inspector_data(&mut self.inspector_data);
         self.state.disconnect();
@@ -491,8 +520,24 @@ impl App {
 }
 
 impl eframe::App for App {
+    #[cfg(feature = "persistence")]
+    fn auto_save_interval(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(60 * 2)
+    }
+
+    #[cfg(feature = "persistence")]
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, storage_keys::DOCK, &self.dock_state);
+
+        self.state.save_inspector_data(&mut self.inspector_data);
+
+        if let Some(inspector_data) = &self.inspector_data {
+            eframe::set_value(storage, storage_keys::INSPECTOR, inspector_data);
+        }
+    }
+
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        self.disconnect();
+        self.state.disconnect();
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {

@@ -32,7 +32,17 @@ fn main() {
             .ok(),
             ..eframe::NativeOptions::default()
         },
-        Box::new(|_| Box::new(CoppwrApp::new())),
+        {
+            #[cfg(not(feature = "persistence"))]
+            {
+                Box::new(|_| Box::new(CoppwrApp::new()))
+            }
+
+            #[cfg(feature = "persistence")]
+            {
+                Box::new(|cc| Box::new(CoppwrApp::new(cc.storage)))
+            }
+        },
     ) {
         eprintln!("Failed to start the GUI: {e}");
     }
