@@ -106,7 +106,7 @@ mod inspector {
             match data {
                 Some(ref mut data) => {
                     if let Some(graph) = new_data.graph {
-                        data.graph = Some(graph)
+                        data.graph = Some(graph);
                     }
                 }
                 None => *data = Some(new_data),
@@ -467,8 +467,8 @@ impl State {
 
 #[cfg(feature = "persistence")]
 mod storage_keys {
-    pub const DOCK: &'static str = "dock";
-    pub const INSPECTOR: &'static str = "inspector";
+    pub const DOCK: &str = "dock";
+    pub const INSPECTOR: &str = "inspector";
 }
 
 pub struct App {

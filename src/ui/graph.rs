@@ -419,8 +419,9 @@ impl Graph {
 
                 if let Some(restored_positions) = &mut self.restored_positions {
                     if let Some(name) = global.props().get("node.name") {
-                        if let Some(pos) =
-                            restored_positions.get_mut(name).and_then(|v| v.pop_front())
+                        if let Some(pos) = restored_positions
+                            .get_mut(name)
+                            .and_then(VecDeque::pop_front)
                         {
                             self.editor.node_positions.insert(id, pos);
                             return;
