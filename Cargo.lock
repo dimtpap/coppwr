@@ -975,7 +975,7 @@ dependencies = [
 [[package]]
 name = "egui_node_graph"
 version = "0.4.0"
-source = "git+https://github.com/dimtpap/egui_node_graph.git?rev=ca3cd04ac780eff9e3b1be7e0c8c837df66ff889#ca3cd04ac780eff9e3b1be7e0c8c837df66ff889"
+source = "git+https://github.com/dimtpap/egui_node_graph.git?rev=b6f7f02d31fdb74b120691a6c221f10d60864d5c#b6f7f02d31fdb74b120691a6c221f10d60864d5c"
 dependencies = [
  "egui",
  "slotmap",

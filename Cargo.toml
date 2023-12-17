@@ -16,7 +16,7 @@ categories = ["gui", "multimedia"]
 
 [dependencies]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "7bd8b2d3c5d91f56b20c345e97244fff9e58ea0f"}
-egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev= "ca3cd04ac780eff9e3b1be7e0c8c837df66ff889"}
+egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev= "b6f7f02d31fdb74b120691a6c221f10d60864d5c"}
 eframe = {version = "0.23.0", features = ["wayland"]}
 egui_plot = "0.23.0"
 egui_dock = "0.8.1"
