@@ -545,12 +545,20 @@ impl Graph {
     }
 }
 
+#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+pub struct PersistentData {
+    positions: HashMap<String, VecDeque<egui::Pos2>>,
+    zoom: f32,
+}
+
 impl PersistentView for Graph {
-    type Data = HashMap<String, VecDeque<egui::Pos2>>;
+    type Data = PersistentData;
 
     fn with_data(data: &Self::Data) -> Self {
         Self {
-            restored_positions: Some(data.clone()),
+            restored_positions: Some(data.positions.clone()),
+
+            editor: GraphEditorState::new(data.zoom),
 
             ..Self::new()
         }
@@ -579,6 +587,9 @@ impl PersistentView for Graph {
             }
         }
 
-        Some(positions)
+        Some(PersistentData {
+            positions,
+            zoom: self.editor.pan_zoom.zoom,
+        })
     }
 }
