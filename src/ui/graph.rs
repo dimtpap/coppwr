@@ -376,10 +376,21 @@ impl Graph {
         // Never show the node finder since nodes can't be created manually
         self.editor.node_finder = None;
 
-        if ui.button("Auto arrange").clicked() {
-            self.editor.node_positions.clear();
-            self.editor.node_order.clear();
-        }
+        let reset_zoom = ui
+            .horizontal(|ui| {
+                if ui.button("Auto arrange").clicked() {
+                    self.editor.node_positions.clear();
+                    self.editor.node_order.clear();
+                }
+
+                ui.label("Zoom");
+                ui.add(
+                    egui::Slider::new(&mut self.editor.pan_zoom.zoom, 0.2..=2.0).max_decimals(2),
+                );
+
+                ui.button("Reset zoom").clicked()
+            })
+            .inner;
         ui.separator();
 
         const NODE_SPACING: egui::Vec2 = egui::vec2(200f32, 100f32);
@@ -472,6 +483,10 @@ impl Graph {
         }
 
         ui.scope(|ui| {
+            if reset_zoom {
+                self.editor.reset_zoom(ui);
+            }
+
             for response in self
                 .editor
                 .draw_graph_editor(ui, NoOp, sx, std::mem::take(&mut self.responses))
