@@ -19,9 +19,9 @@ pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewir
 egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev= "b6f7f02d31fdb74b120691a6c221f10d60864d5c"}
 eframe = {version = "0.23.0", features = ["wayland"]}
 egui_plot = "0.23.0"
-egui_dock = "0.8.1"
+egui_dock = "0.8.2"
 serde = {version = "1.0", optional = true}
-ashpd = {version = "0.6.5", optional = true}
+ashpd = {version = "0.6.7", optional = true}
 pollster = {version = "0.3.0", optional = true}
 
 [features]
