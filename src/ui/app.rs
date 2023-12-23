@@ -386,10 +386,6 @@ mod inspector {
             tab.as_str().into()
         }
 
-        fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
-            true
-        }
-
         fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
             [false, false]
         }
