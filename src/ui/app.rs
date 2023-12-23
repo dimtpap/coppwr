@@ -59,7 +59,12 @@ mod inspector {
 
     use super::View;
 
-    #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Default)]
+    #[cfg_attr(
+        feature = "persistence",
+        derive(serde::Serialize, serde::Deserialize),
+        serde(default)
+    )]
     pub struct ViewsData {
         graph: Option<<Graph as PersistentView>::Data>,
     }
