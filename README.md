@@ -14,8 +14,7 @@ It aims to expose and provide as many ways to inspect and control the many aspec
 It can be used as a diagnostic tool for PipeWire and to help develop software that interacts with it.
 End-users of PipeWire that want to configure it should look into simpler tools
 [recommended by the PipeWire devs](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/FAQ#is-there-a-native-gui-tool-to-configure-pipewire).
-If you want to learn the inner workings of PipeWire check out the [docs page on its design](https://docs.pipewire.org/page_pipewire.html)
-and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
+If you want to learn the inner workings of PipeWire check out the [docs page on its internals](https://docs.pipewire.org/page_internals.html) and its [wiki](https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/home).
 
 ## Features
 - Node graph editing
