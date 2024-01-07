@@ -362,7 +362,7 @@ impl Global {
                     self.subobjects.retain(|sub| sub.upgrade().is_some());
 
                     ui.collapsing(subobjects_header, |ui| {
-                        let subobjects = self.subobjects.iter().filter_map(std::rc::Weak::upgrade);
+                        let subobjects = self.subobjects.iter().filter_map(Weak::upgrade);
                         if draw_subobjects {
                             match self.object_type() {
                                 ObjectType::Device | ObjectType::Client => {
