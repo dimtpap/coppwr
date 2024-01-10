@@ -600,7 +600,7 @@ impl eframe::App for App {
 
                             ui.separator();
 
-                            ui.label("2023 Dimitris Papaioannou");
+                            ui.label("2023-2024 Dimitris Papaioannou");
                             ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
 
                             ui.separator();
