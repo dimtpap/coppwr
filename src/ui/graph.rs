@@ -30,7 +30,7 @@ use pipewire::types::ObjectType;
 
 use crate::{
     backend::{self, Request},
-    ui::{globals_store::Global, persistence::PersistentView},
+    ui::{globals_store::Global, util::persistence::PersistentView},
 };
 
 // Used to satisfy trait bounds that provide unneded features

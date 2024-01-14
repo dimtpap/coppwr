@@ -21,7 +21,7 @@ use pipewire::types::ObjectType;
 
 use crate::{
     backend::{self, Request},
-    ui::{common::EditableKVList, Tool},
+    ui::{util::uis::EditableKVList, Tool},
 };
 
 struct Factory {

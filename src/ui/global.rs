@@ -26,7 +26,7 @@ use pipewire::{self as pw, permissions::Permissions, registry::Permission, types
 
 use crate::{
     backend::{self, ObjectMethod, Request},
-    ui::common::{key_val_display, map_editor, EditableKVList},
+    ui::util::uis::{key_val_display, map_editor, EditableKVList},
 };
 
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {

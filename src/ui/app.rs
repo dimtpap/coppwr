@@ -20,9 +20,7 @@ use egui_dock::DockState;
 #[cfg(feature = "xdg_desktop_portals")]
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
-use crate::backend::RemoteInfo;
-
-use super::common::EditableKVList;
+use crate::{backend::RemoteInfo, ui::util::uis::EditableKVList};
 
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
@@ -52,8 +50,8 @@ mod inspector {
     use crate::{
         backend::{self, Event, RemoteInfo},
         ui::{
-            globals_store::ObjectData, persistence::PersistentView, ContextManager, GlobalsStore,
-            Graph, MetadataEditor, ObjectCreator, Profiler, WindowedTool,
+            globals_store::ObjectData, util::persistence::PersistentView, ContextManager,
+            GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler, WindowedTool,
         },
     };
 

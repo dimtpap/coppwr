@@ -14,14 +14,5 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-/// Trait for views that would like to save some state between reconnections
-pub trait PersistentView {
-    #[cfg(feature = "persistence")]
-    type Data: serde::Serialize + serde::de::DeserializeOwned;
-
-    #[cfg(not(feature = "persistence"))]
-    type Data;
-
-    fn with_data(data: &Self::Data) -> Self;
-    fn save_data(&self) -> Option<Self::Data>;
-}
+pub mod persistence;
+pub mod uis;
