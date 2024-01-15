@@ -1,10 +1,10 @@
 <div align="center">
 
-<img width="75" height="75" alt="Icon" src="assets/icon/128.png"/>
+<img width="100" height="100" alt="Icon" src="assets/icon/128.png"/>
 
 # coppwr
 Low level control GUI for [PipeWire](https://pipewire.org)
-![Screenshot](assets/sc.png)
+![Screenshot](assets/screenshots/all.png)
 
 </div>
 
