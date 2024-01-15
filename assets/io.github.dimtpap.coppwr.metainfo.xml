@@ -68,6 +68,13 @@
   </keywords>
 
   <releases>
+    <release version="1.5.1" date="2024-01-15">
+      <description>
+        <ul>
+          <li>Changed the icon</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.0" date="2023-12-17">
       <description>
         <ul>
