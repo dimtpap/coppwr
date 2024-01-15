@@ -40,23 +40,23 @@
   <screenshots>
     <screenshot type="default">
       <caption>Almost all the available tools in a custom layout</caption>
-      <image xml:lang="en">https://github.com/dimtpap/coppwr/raw/main/assets/all.png</image>
+      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/all.png</image>
     </screenshot>
     <screenshot>
       <caption>View of performance measurements via the profiler and process viewer pages</caption>
-      <image xml:lang="en">https://github.com/dimtpap/coppwr/raw/main/assets/profiler.png</image>
+      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/profiler.png</image>
     </screenshot>
     <screenshot>
       <caption>Visual representation and editing of the graph using the Graph view</caption>
-      <image xml:lang="en">https://github.com/dimtpap/coppwr/raw/main/assets/graph.png</image>
+      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/graph.png</image>
     </screenshot>
     <screenshot>
       <caption>Global Tracker providing a list of the globals and actions on them</caption>
-      <image xml:lang="en">https://github.com/dimtpap/coppwr/raw/main/assets/globaltracker.png</image>
+      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/globaltracker.png</image>
     </screenshot>
     <screenshot>
       <caption>Connection prompt allowing connecting to XDG Desktop Portal remotes</caption>
-      <image xml:lang="en">https://github.com/dimtpap/coppwr/raw/main/assets/disconnected.png</image>
+      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/disconnected.png</image>
     </screenshot>
   </screenshots>
   <keywords>
