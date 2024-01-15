@@ -18,6 +18,8 @@ use std::collections::BTreeMap;
 
 use eframe::egui;
 
+/// Displays a grid with 2 columns.
+/// Useful for displaying key-value pairs.
 pub fn key_val_table(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
@@ -36,6 +38,7 @@ pub fn key_val_table(
         });
 }
 
+/// Displays all the key-value pairs of the iterator using [`key_val_table`].
 pub fn key_val_display(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
@@ -54,6 +57,7 @@ pub fn key_val_display(
     });
 }
 
+/// Displays the key-value pairs of a map with the ability to delete them and add new ones.
 pub fn map_editor(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
@@ -136,6 +140,7 @@ impl EditableKVList {
     }
 }
 
+/// Like [`map_editor`] but it stores the map in itself.
 #[derive(Default)]
 pub struct MapEditor {
     properties: BTreeMap<String, String>,
@@ -240,6 +245,7 @@ mod kv_matcher {
         }
     }
 
+    /// User-configurable filter for key-value pair collections.
     pub struct KvMatcher {
         filters: Vec<(StringFilter, StringFilter)>,
     }

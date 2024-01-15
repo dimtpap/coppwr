@@ -57,6 +57,7 @@ mod inspector {
 
     use super::View;
 
+    /// Stores the persistent view states
     #[derive(Default)]
     #[cfg_attr(
         feature = "persistence",
@@ -67,6 +68,8 @@ mod inspector {
         graph: Option<<Graph as PersistentView>::Data>,
     }
 
+    /// Holds all of the UIs, and their states, for interacting with PipeWire.
+    /// It processes messages from the backend and modifies them accordingly.
     pub struct Inspector {
         handle: backend::Handle,
 
@@ -392,6 +395,7 @@ mod inspector {
 
 use inspector::{Inspector, ViewsData};
 
+/// Represents the PipeWire connection state.
 enum State {
     Connected {
         inspector: Inspector,
