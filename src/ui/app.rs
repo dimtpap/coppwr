@@ -125,10 +125,8 @@ mod inspector {
             dock_state: &mut egui_dock::DockState<View>,
         ) {
             let open_tabs = dock_state
-                .iter_nodes()
-                .filter_map(|node| node.tabs())
-                .flat_map(|tabs| tabs.iter())
-                .fold(0, |acc, &tab| acc | tab as u8);
+                .iter_all_tabs()
+                .fold(0, |acc, (_, &tab)| acc | tab as u8);
 
             ui.menu_button("View", |ui| {
                 for (tab, title, description) in [
@@ -543,9 +541,14 @@ impl eframe::App for App {
         self.state.disconnect();
     }
 
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // egui won't update until there is interaction so data shown may be out of date
         ctx.request_repaint_after(std::time::Duration::from_millis(500));
+
+        let window_size = ctx
+            .input(|i| i.viewport().inner_rect)
+            .unwrap_or(egui::Rect::ZERO)
+            .size();
 
         match &mut self.state {
             State::Connected { inspector, about } => {
@@ -566,7 +569,7 @@ impl eframe::App for App {
                             ui.separator();
 
                             if ui.button("❌ Quit").clicked() {
-                                frame.close();
+                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                             }
                         });
 
@@ -590,8 +593,8 @@ impl eframe::App for App {
                     .collapsible(false)
                     .fixed_size([350f32, 150f32])
                     .default_pos([
-                        (frame.info().window_info.size.x - 350f32) / 2f32,
-                        (frame.info().window_info.size.y - 150f32) / 2f32,
+                        (window_size.x - 350f32) / 2f32,
+                        (window_size.y - 150f32) / 2f32,
                     ])
                     .open(about)
                     .show(ctx, |ui| {
@@ -631,10 +634,7 @@ impl eframe::App for App {
                 egui::CentralPanel::default().show(ctx, |_| {});
                 egui::Window::new("Connect to PipeWire")
                     .fixed_size([300., 200.])
-                    .default_pos([
-                        (frame.info().window_info.size.x - 300.) / 2.,
-                        (frame.info().window_info.size.y - 200.) / 2.,
-                    ])
+                    .default_pos([(window_size.x - 300.) / 2., (window_size.y - 200.) / 2.])
                     .collapsible(false)
                     .show(ctx, |ui| {
                         ui.with_layout(egui::Layout::default().with_cross_justify(true), |ui| {

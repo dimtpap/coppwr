@@ -386,8 +386,8 @@ impl Profiler {
             let plot = Plot::new(id)
                 .clamp_grid(true)
                 .legend(egui_plot::Legend::default())
-                .allow_zoom(egui_plot::AxisBools::new(true, false))
-                .allow_drag(egui_plot::AxisBools::new(true, false))
+                .allow_zoom(egui::emath::Vec2b::new(true, false))
+                .allow_drag(egui::emath::Vec2b::new(true, false))
                 .label_formatter(|name, value| {
                     if name.is_empty() {
                         String::new()
@@ -396,6 +396,8 @@ impl Profiler {
                     }
                 })
                 .x_axis_formatter(move |x, _, _| {
+                    let x = x.value;
+
                     if x.is_sign_negative() || x > max_x as f64 || x % 1. != 0. {
                         String::new()
                     } else {
@@ -403,6 +405,7 @@ impl Profiler {
                     }
                 })
                 .y_axis_formatter(|y, _, _| {
+                    let y = y.value;
                     if y.is_sign_negative() {
                         String::new()
                     } else {

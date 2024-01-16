@@ -25,11 +25,16 @@ fn main() {
     if let Err(e) = eframe::run_native(
         env!("CARGO_PKG_NAME"),
         eframe::NativeOptions {
-            app_id: Some(String::from("io.github.dimtpap.coppwr")),
-            icon_data: eframe::IconData::try_from_png_bytes(
-                include_bytes!("../assets/icon/256.png").as_slice(),
-            )
-            .ok(),
+            viewport: eframe::egui::ViewportBuilder {
+                title: Some(env!("CARGO_PKG_NAME").to_owned()),
+                app_id: Some(String::from("io.github.dimtpap.coppwr")),
+                icon: eframe::icon_data::from_png_bytes(
+                    include_bytes!("../assets/icon/256.png").as_slice(),
+                )
+                .ok()
+                .map(|icon| std::sync::Arc::new(icon)),
+                ..eframe::egui::ViewportBuilder::default()
+            },
             ..eframe::NativeOptions::default()
         },
         {
