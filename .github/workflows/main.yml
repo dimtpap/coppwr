@@ -109,11 +109,11 @@ jobs:
               *)      NAME=coppwr-$GITHUB_REF_NAME-$GITHUB_SHA ;;
           esac
           mkdir out/
-          cargo deb -v --no-build --output out/$NAME.deb
-          cargo generate-rpm -o out/$NAME.rpm
+          cargo deb -v --no-build --output out/"$NAME".deb
+          cargo generate-rpm -o out/"$NAME".rpm
           mkdir .cargo
           cargo vendor -v > .cargo/config.toml
-          tar --exclude='out' --exclude='.git*' --exclude='coppwr/pipewire' --exclude='coppwr/target' --transform "s/coppwr/$NAME/" -zcvf out/$NAME-vendor.tar.gz -C .. coppwr/
+          tar --exclude='out' --exclude='.git*' --exclude='coppwr/pipewire' --exclude='coppwr/target' --transform "s|coppwr|$NAME|" -zcvf out/"$NAME"-vendor.tar.gz -C .. coppwr/
       - uses: actions/upload-artifact@v3
         name: Upload packages
         with:
