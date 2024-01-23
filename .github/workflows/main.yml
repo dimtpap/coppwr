@@ -108,6 +108,7 @@ jobs:
               *tags*) NAME=coppwr-$GITHUB_REF_NAME ;;
               *)      NAME=coppwr-$GITHUB_REF_NAME-$GITHUB_SHA ;;
           esac
+          NAME="${NAME//\//-}"
           mkdir out/
           cargo deb -v --no-build --output out/"$NAME".deb
           cargo generate-rpm -o out/"$NAME".rpm
