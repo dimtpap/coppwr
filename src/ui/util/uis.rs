@@ -172,7 +172,7 @@ impl MapEditor {
 mod kv_matcher {
     use eframe::egui;
 
-    #[derive(PartialEq, Eq)]
+    #[derive(PartialEq, Eq, Clone)]
     enum StringMatchMode {
         Substring,
         StartsWith,
@@ -190,7 +190,7 @@ mod kv_matcher {
             }
         }
 
-        fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl std::hash::Hash) {
+        fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl std::hash::Hash) -> bool {
             const fn as_user_str(mode: &StringMatchMode) -> &'static str {
                 match mode {
                     StringMatchMode::Substring => "contains",
@@ -199,6 +199,8 @@ mod kv_matcher {
                     StringMatchMode::Exact => "is",
                 }
             }
+
+            let before = self.clone();
 
             egui::ComboBox::from_id_source(id_source)
                 .selected_text(as_user_str(self))
@@ -213,6 +215,8 @@ mod kv_matcher {
                         ui.selectable_value(self, mode, text);
                     }
                 });
+
+            *self != before
         }
     }
 
@@ -226,13 +230,19 @@ mod kv_matcher {
             self.match_mode.matches(value, &self.needle)
         }
 
-        fn show(&mut self, ui: &mut egui::Ui, label: &str, text_edit_width: f32) {
+        fn show(&mut self, ui: &mut egui::Ui, label: &str, text_edit_width: f32) -> bool {
             ui.label(label);
-            self.match_mode.show_selector(ui, label);
-            egui::TextEdit::singleline(&mut self.needle)
+
+            let mut changed = self.match_mode.show_selector(ui, label);
+
+            changed |= egui::TextEdit::singleline(&mut self.needle)
                 .hint_text(label)
                 .desired_width(text_edit_width)
-                .show(ui);
+                .show(ui)
+                .response
+                .changed();
+
+            changed
         }
     }
 
@@ -267,7 +277,10 @@ mod kv_matcher {
             })
         }
 
-        pub fn show(&mut self, ui: &mut egui::Ui) {
+        /// Shows the UI and returns whether the filters changed
+        pub fn show(&mut self, ui: &mut egui::Ui) -> bool {
+            let mut changed = false;
+
             let mut i = 0usize;
             self.filters.retain_mut(|(key_filter, value_filter)| {
                 let keep = ui
@@ -275,8 +288,8 @@ mod kv_matcher {
                         ui.horizontal(|ui| {
                             let keep = !ui.button("Delete").clicked();
 
-                            key_filter.show(ui, "Key", ui.available_width() / 4.);
-                            value_filter.show(ui, "Value", f32::INFINITY);
+                            changed |= key_filter.show(ui, "Key", ui.available_width() / 4.);
+                            changed |= value_filter.show(ui, "Value", f32::INFINITY);
 
                             keep
                         })
@@ -286,13 +299,19 @@ mod kv_matcher {
 
                 i += 1;
 
+                changed |= !keep; // Mark changed if removing
+
                 keep
             });
 
             if ui.button("Add").clicked() {
+                // No need to mark as changed since StringFilter::default()
+                // means "contains the empty string" which is true for all strings
                 self.filters
                     .push((StringFilter::default(), StringFilter::default()));
             }
+
+            changed
         }
     }
 }
