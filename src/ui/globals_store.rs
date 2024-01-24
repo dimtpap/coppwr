@@ -14,7 +14,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::BTreeMap,
+    rc::{Rc, Weak},
+};
 
 use eframe::egui;
 use pipewire::types::ObjectType;
@@ -32,6 +36,8 @@ pub struct GlobalsStore {
 
     shown_types: u16,
     properties_filter: KvMatcher,
+
+    filter_matches: BTreeMap<u32, Weak<RefCell<Global>>>,
 }
 
 const fn object_type_flag(t: &ObjectType) -> u16 {
@@ -56,9 +62,11 @@ impl GlobalsStore {
             globals: BTreeMap::new(),
 
             group_subobjects: true,
-            shown_types: u16::MAX,
 
+            shown_types: u16::MAX,
             properties_filter: KvMatcher::new(),
+
+            filter_matches: BTreeMap::new(),
         }
     }
 
@@ -72,7 +80,7 @@ impl GlobalsStore {
 
         let global = Rc::new(RefCell::new(Global::new(id, object_type, props)));
 
-        // Add as subobject
+        // Add as subobject and check filters
         {
             let global_borrow = global.borrow();
             match *global_borrow.object_type() {
@@ -95,6 +103,10 @@ impl GlobalsStore {
                 }
                 _ => {}
             }
+
+            if self.satisfies_filters(&global_borrow) {
+                self.filter_matches.insert(id, Rc::downgrade(&global));
+            }
         }
 
         match self.globals.entry(id) {
@@ -111,13 +123,30 @@ impl GlobalsStore {
     }
 
     pub fn remove_global(&mut self, id: u32) -> Option<Rc<RefCell<Global>>> {
+        self.filter_matches.remove(&id);
         self.globals.remove(&id)
     }
 
     pub fn set_global_props(&mut self, id: u32, props: BTreeMap<String, String>) {
-        self.globals
-            .entry(id)
-            .and_modify(|global| global.borrow_mut().set_props(props));
+        use std::collections::btree_map::Entry;
+        if let Some(global) = self.globals.get(&id) {
+            global.borrow_mut().set_props(props);
+
+            let matches = self.satisfies_filters(&global.borrow());
+
+            match self.filter_matches.entry(id) {
+                Entry::Occupied(e) => {
+                    if !matches {
+                        e.remove();
+                    }
+                }
+                Entry::Vacant(e) => {
+                    if matches {
+                        e.insert(Rc::downgrade(global));
+                    }
+                }
+            }
+        }
     }
 
     fn parent_of(&self, global: &Global) -> Option<&Rc<RefCell<Global>>> {
@@ -148,11 +177,23 @@ impl GlobalsStore {
         true
     }
 
+    fn repopulate_matches(&mut self) {
+        self.filter_matches.clear();
+
+        for (&id, global) in &self.globals {
+            if self.satisfies_filters(&global.borrow()) {
+                self.filter_matches.insert(id, Rc::downgrade(global));
+            }
+        }
+    }
+
     pub fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
                                 .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
 
         ui.collapsing("Filters", |ui| {
+            let mut rematch = false;
+
             ui.horizontal(|ui| {
                 ui.label("Types");
                 egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -173,11 +214,13 @@ impl GlobalsStore {
                             .selectable_label(self.shown_types & object_type_flag(&t) != 0, text)
                             .clicked()
                         {
+                            rematch = true;
                             self.shown_types ^= object_type_flag(&t);
                         }
                     }
 
                     if ui.button("Toggle all").clicked() {
+                        rematch = true;
                         self.shown_types = u16::from(self.shown_types == 0) * u16::MAX;
                     }
                 });
@@ -188,19 +231,27 @@ impl GlobalsStore {
             ui.label("Properties").on_hover_text(
                 "Only globals with properties that match the below filters will be shown",
             );
-            self.properties_filter.show(ui);
+
+            rematch |= self.properties_filter.show(ui);
+
+            if rematch {
+                self.repopulate_matches();
+            }
         });
 
         ui.separator();
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
-                for mut global in self.globals.values().filter_map(|global| {
-                    let global = global.borrow_mut();
-                    self.satisfies_filters(&global).then_some(global)
-                }) {
-                    global.show(ui, self.group_subobjects, sx);
-                }
+                self.filter_matches.retain(|_, v| {
+                    let Some(global) = v.upgrade() else {
+                        return false;
+                    };
+
+                    global.borrow_mut().show(ui, self.group_subobjects, sx);
+
+                    true
+                });
             });
         });
     }
