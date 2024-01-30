@@ -129,22 +129,20 @@ impl GlobalsStore {
 
     pub fn set_global_props(&mut self, id: u32, props: BTreeMap<String, String>) {
         use std::collections::btree_map::Entry;
+
         if let Some(global) = self.globals.get(&id) {
             global.borrow_mut().set_props(props);
 
             let matches = self.satisfies_filters(&global.borrow());
 
             match self.filter_matches.entry(id) {
-                Entry::Occupied(e) => {
-                    if !matches {
-                        e.remove();
-                    }
+                Entry::Occupied(e) if !matches => {
+                    e.remove();
                 }
-                Entry::Vacant(e) => {
-                    if matches {
-                        e.insert(Rc::downgrade(global));
-                    }
+                Entry::Vacant(e) if matches => {
+                    e.insert(Rc::downgrade(global));
                 }
+                _ => {}
             }
         }
     }
