@@ -16,12 +16,9 @@
 
 use std::collections::BTreeMap;
 
-use pipewire::{
-    self as pw,
-    spa::{ReadableDict, WritableDict},
-};
+use pipewire::{self as pw, spa::utils::dict::DictRef};
 
-pub fn dict_to_map<'a, K, V>(dict: &'a impl ReadableDict) -> BTreeMap<K, V>
+pub fn dict_to_map<'a, K, V>(dict: &'a DictRef) -> BTreeMap<K, V>
 where
     K: From<&'a str> + Ord,
     V: From<&'a str>,
@@ -35,8 +32,8 @@ where
 
 pub fn key_val_to_props(
     kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
-) -> pw::Properties {
-    let mut props = pw::Properties::new();
+) -> pw::properties::Properties {
+    let mut props = pw::properties::Properties::new();
     for (k, v) in kv {
         props.insert(k, v);
     }
@@ -44,10 +41,10 @@ pub fn key_val_to_props(
 }
 
 pub fn connect_override_env(
-    context: &pw::Context,
-    mut context_properties: pw::Properties,
+    context: &pw::context::Context,
+    mut context_properties: pw::properties::Properties,
     remote_name: String,
-) -> Result<pw::Core, pw::Error> {
+) -> Result<pw::core::Core, pw::Error> {
     let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
     if env_remote.is_some() {
         std::env::remove_var("PIPEWIRE_REMOTE");

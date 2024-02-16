@@ -36,18 +36,20 @@ pub fn pipewire_thread(
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
     let (mainloop, context, connection, registry): (
-        pw::MainLoop,
-        Rc<pw::Context>,
+        pw::main_loop::MainLoop,
+        pw::context::Context,
         Connection,
         Rc<pw::registry::Registry>,
     ) = match (|| {
         let mainloop = if mainloop_properties.is_empty() {
-            pw::MainLoop::new()?
+            pw::main_loop::MainLoop::new(None)?
         } else {
-            pw::MainLoop::with_properties(&util::key_val_to_props(mainloop_properties.into_iter()))?
+            pw::main_loop::MainLoop::new(Some(
+                &util::key_val_to_props(mainloop_properties.into_iter()).dict(),
+            ))?
         };
 
-        let context = pw::Context::new(&mainloop)?;
+        let context = pw::context::Context::new(&mainloop)?;
         if context
             .load_module("libpipewire-module-profiler", None, None)
             .is_err()
@@ -59,9 +61,7 @@ pub fn pipewire_thread(
 
         let registry = connection.core().get_registry()?;
 
-        // Context needs to be moved to the loop listener
-        // but must outlive it to prevent resource leaks
-        Ok((mainloop, Rc::new(context), connection, Rc::new(registry)))
+        Ok((mainloop, context, connection, Rc::new(registry)))
     })() {
         Ok(instance) => instance,
         Err(e) => {
@@ -87,10 +87,10 @@ pub fn pipewire_thread(
 
     let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 
-    let _receiver = pwrx.attach(&mainloop, {
+    let _receiver = pwrx.attach(mainloop.loop_(), {
         let sx = sx.clone();
         let mainloop = mainloop.clone();
-        let context = Rc::clone(&context);
+        let context = context.clone();
         let core = core.clone();
         let registry = Rc::clone(&registry);
 
@@ -109,31 +109,31 @@ pub fn pipewire_thread(
 
                 let proxy = match object_type {
                     ObjectType::Link => core
-                        .create_object::<pw::link::Link, _>(factory.as_str(), &props)
+                        .create_object::<pw::link::Link>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Port => core
-                        .create_object::<pw::port::Port, _>(factory.as_str(), &props)
+                        .create_object::<pw::port::Port>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Node => core
-                        .create_object::<pw::node::Node, _>(factory.as_str(), &props)
+                        .create_object::<pw::node::Node>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Client => core
-                        .create_object::<pw::client::Client, _>(factory.as_str(), &props)
+                        .create_object::<pw::client::Client>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Device => core
-                        .create_object::<pw::device::Device, _>(factory.as_str(), &props)
+                        .create_object::<pw::device::Device>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Factory => core
-                        .create_object::<pw::factory::Factory, _>(factory.as_str(), &props)
+                        .create_object::<pw::factory::Factory>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Metadata => core
-                        .create_object::<pw::metadata::Metadata, _>(factory.as_str(), &props)
+                        .create_object::<pw::metadata::Metadata>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Module => core
-                        .create_object::<pw::module::Module, _>(factory.as_str(), &props)
+                        .create_object::<pw::module::Module>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     ObjectType::Profiler => core
-                        .create_object::<pw::profiler::Profiler, _>(factory.as_str(), &props)
+                        .create_object::<pw::profiler::Profiler>(factory.as_str(), &props)
                         .map(ProxyT::upcast),
                     _ => {
                         eprintln!("{object_type} unimplemented");
@@ -196,10 +196,10 @@ pub fn pipewire_thread(
                 }
             }
             Request::GetContextProperties => {
-                sx.send(Event::ContextProperties(util::dict_to_map(&context.properties()))).ok();
+                sx.send(Event::ContextProperties(util::dict_to_map(context.properties().dict()))).ok();
             }
             Request::UpdateContextProperties(props) => {
-                context.update_properties(&util::key_val_to_props(props.into_iter()));
+                context.update_properties(&util::key_val_to_props(props.into_iter()).dict());
             }
             Request::CallObjectMethod(id, method) => {
                 if let Some(object) = binds.borrow().get(&id) {
@@ -238,7 +238,7 @@ pub fn pipewire_thread(
                 sx.send(Event::GlobalInfo(0, infos)).ok();
 
                 if let (true, Some(props)) = (
-                    info.change_mask().contains(pw::ChangeMask::PROPS),
+                    info.change_mask().contains(pw::core::ChangeMask::PROPS),
                     info.props(),
                 ) {
                     sx.send(Event::GlobalProperties(0, util::dict_to_map(props)))
@@ -273,7 +273,7 @@ pub fn pipewire_thread(
                 sx.send(Event::GlobalAdded(
                     global.id,
                     global.type_.clone(),
-                    global.props.as_ref().map(util::dict_to_map),
+                    global.props.map(util::dict_to_map),
                 ))
                 .ok();
 
@@ -307,7 +307,7 @@ pub fn pipewire_thread(
         .register();
 
     sx.send(Event::ContextProperties(util::dict_to_map(
-        &context.properties(),
+        context.properties().dict(),
     )))
     .ok();
 

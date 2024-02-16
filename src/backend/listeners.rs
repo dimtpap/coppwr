@@ -163,8 +163,8 @@ pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -
         .info({
             move |info| {
                 let direction = match info.direction() {
-                    pw::spa::Direction::Input => "Input",
-                    pw::spa::Direction::Output => "Output",
+                    pw::spa::utils::Direction::Input => "Input",
+                    pw::spa::utils::Direction::Output => "Output",
                     _ => "Invalid",
                 }
                 .to_owned();

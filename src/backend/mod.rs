@@ -31,7 +31,7 @@ pub enum ObjectMethod {
         index: u32,
         num: u32,
     },
-    ClientUpdatePermissions(Vec<pw::permissions::Permissions>),
+    ClientUpdatePermissions(Vec<pw::permissions::Permission>),
     ClientUpdateProperties(std::collections::BTreeMap<String, String>),
     MetadataSetProperty {
         subject: u32,
@@ -66,7 +66,7 @@ pub enum Event {
     GlobalRemoved(u32),
     GlobalInfo(u32, Box<[(&'static str, String)]>),
     GlobalProperties(u32, std::collections::BTreeMap<String, String>),
-    ClientPermissions(u32, u32, Vec<pw::permissions::Permissions>),
+    ClientPermissions(u32, u32, Vec<pw::permissions::Permission>),
     ProfilerProfile(Vec<self::pods::profiler::Profiling>),
     MetadataProperty {
         id: u32,

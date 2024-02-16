@@ -90,11 +90,11 @@ impl From<ashpd::Error> for Error {
 }
 
 #[cfg(not(feature = "xdg_desktop_portals"))]
-pub struct Connection(pw::Core);
+pub struct Connection(pw::core::Core);
 #[cfg(not(feature = "xdg_desktop_portals"))]
 impl Connection {
     pub fn connect(
-        context: &pw::Context,
+        context: &pw::context::Context,
         context_properties: Vec<(String, String)>,
         remote: RemoteInfo,
     ) -> Result<Self, Error> {
@@ -106,21 +106,21 @@ impl Connection {
         )?))
     }
 
-    pub const fn core(&self) -> &pw::Core {
+    pub const fn core(&self) -> &pw::core::Core {
         &self.0
     }
 }
 
 #[cfg(feature = "xdg_desktop_portals")]
 pub enum Connection<'s> {
-    Simple(pw::Core),
-    PortalWithSession(pw::Core, Session<'s>),
+    Simple(pw::core::Core),
+    PortalWithSession(pw::core::Core, Session<'s>),
 }
 
 #[cfg(feature = "xdg_desktop_portals")]
 impl<'s> Connection<'s> {
     pub fn connect(
-        context: &pw::Context,
+        context: &pw::context::Context,
         context_properties: Vec<(String, String)>,
         remote: RemoteInfo,
     ) -> Result<Self, Error> {
@@ -147,7 +147,7 @@ impl<'s> Connection<'s> {
         }
     }
 
-    pub const fn core(&self) -> &pw::Core {
+    pub const fn core(&self) -> &pw::core::Core {
         match self {
             Self::Simple(core) | Self::PortalWithSession(core, _) => core,
         }

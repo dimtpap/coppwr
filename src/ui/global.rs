@@ -22,38 +22,42 @@ use std::{
 };
 
 use eframe::egui;
-use pipewire::{self as pw, permissions::Permissions, registry::Permission, types::ObjectType};
+use pipewire::{
+    self as pw,
+    permissions::{Permission, PermissionFlags},
+    types::ObjectType,
+};
 
 use crate::{
     backend::{self, ObjectMethod, Request},
     ui::util::uis::{key_val_display, map_editor, EditableKVList},
 };
 
-fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
-    static PERMISSIONS: OnceLock<&[(Permission, &'static str)]> = OnceLock::new();
+fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {
+    static PERMISSIONS: OnceLock<&[(PermissionFlags, &'static str)]> = OnceLock::new();
 
     ui.label("ID");
-    ui.add(egui::widgets::DragValue::new(&mut p.id));
+    ui.add(egui::widgets::DragValue::new(&mut p.id()));
 
     for (permission, label) in PERMISSIONS
         .get_or_init(|| {
             #[cfg(feature = "pw_v0_3_77")]
             if crate::backend::remote_version().is_some_and(|ver| ver.0 > 0 || ver.2 >= 77) {
                 return [
-                    (Permission::R, "Read"),
-                    (Permission::W, "Write"),
-                    (Permission::X, "Execute"),
-                    (Permission::M, "Metadata"),
-                    (Permission::L, "Link"),
+                    (PermissionFlags::R, "Read"),
+                    (PermissionFlags::W, "Write"),
+                    (PermissionFlags::X, "Execute"),
+                    (PermissionFlags::M, "Metadata"),
+                    (PermissionFlags::L, "Link"),
                 ]
                 .as_slice();
             }
 
             [
-                (Permission::R, "Read"),
-                (Permission::W, "Write"),
-                (Permission::X, "Execute"),
-                (Permission::M, "Metadata"),
+                (PermissionFlags::R, "Read"),
+                (PermissionFlags::W, "Write"),
+                (PermissionFlags::X, "Execute"),
+                (PermissionFlags::M, "Metadata"),
             ]
             .as_slice()
         })
@@ -61,10 +65,13 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
         .map(|(p, l)| (*p, *l))
     {
         if ui
-            .selectable_label(p.permissions.contains(permission), label)
+            .selectable_label(p.permission_flags().contains(permission), label)
             .clicked()
         {
-            p.permissions.toggle(permission);
+            let mut flags = p.permission_flags();
+            flags.toggle(permission);
+
+            p.set_permission_flags(flags);
         }
     }
 }
@@ -72,8 +79,8 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permissions) {
 /// Object type specific data
 pub enum ObjectData {
     Client {
-        permissions: Option<Vec<Permissions>>,
-        user_permissions: Vec<Permissions>,
+        permissions: Option<Vec<Permission>>,
+        user_permissions: Vec<Permission>,
         user_properties: EditableKVList,
     },
     Other(ObjectType),
@@ -143,10 +150,7 @@ impl ObjectData {
                         });
 
                         if ui.button("Add").clicked() {
-                            user_permissions.push(Permissions {
-                                id: 0,
-                                permissions: Permission::empty(),
-                            });
+                            user_permissions.push(Permission::new(0, PermissionFlags::empty()));
                         }
                     });
 

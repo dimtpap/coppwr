@@ -21,7 +21,7 @@ use pipewire::{
     self as pw,
     proxy::{Proxy, ProxyT},
     registry::GlobalObject,
-    spa::ForeignDict,
+    spa::utils::dict::DictRef,
     types::ObjectType,
 };
 
@@ -66,9 +66,9 @@ impl From<pw::Error> for Error {
 }
 
 impl BoundGlobal {
-    pub fn bind_to(
+    pub fn bind_to<P: AsRef<DictRef>>(
         registry: &pw::registry::Registry,
-        global: &GlobalObject<ForeignDict>,
+        global: &GlobalObject<&P>,
         sx: &std::sync::mpsc::Sender<Event>,
         proxy_removed: impl Fn() + 'static,
     ) -> Result<Self, Error> {
@@ -135,7 +135,7 @@ impl BoundGlobal {
             }
             ObjectMethod::ClientUpdateProperties(props) => {
                 if let Global::Client(ref client) = self.global {
-                    client.update_properties(&util::key_val_to_props(props.into_iter()));
+                    client.update_properties(util::key_val_to_props(props.into_iter()).dict());
                 }
             }
             ObjectMethod::MetadataSetProperty {
