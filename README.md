@@ -45,7 +45,7 @@ coppwr does **not** self-update.
 
 ## Building
 ### Requirements
-- Rust and Cargo version `1.70.0` or later - https://www.rust-lang.org/tools/install
+- Rust and Cargo version `1.72.0` or later - https://www.rust-lang.org/tools/install
 - bindgen [requirements](https://rust-lang.github.io/rust-bindgen/requirements.html)
 - PipeWire library headers/PipeWire development packages
 
