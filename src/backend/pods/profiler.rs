@@ -116,7 +116,7 @@ pub struct NodeBlock {
     pub finish: i64,
     pub status: i32,
     pub latency: Fraction,
-    pub xrun_count: Option<i32>,
+    pub xrun_count: Option<i32>, // Since https://gitlab.freedesktop.org/pipewire/pipewire/-/commit/2d253de359b080701601c491442373bf148bbbde
 }
 
 impl<'de> PodDeserialize<'de> for NodeBlock {
