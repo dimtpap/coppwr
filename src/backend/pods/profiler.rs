@@ -68,6 +68,7 @@ pub struct Clock {
     pub delay: i64,
     pub rate_diff: f64,
     pub next_nsec: i64,
+    pub transport_state: Option<i32>, // Since https://gitlab.freedesktop.org/pipewire/pipewire/-/commit/ccf899a709140b79547b93d8f5eca6b9e79c5257
 }
 
 impl<'de> PodDeserialize<'de> for Clock {
@@ -98,6 +99,7 @@ impl<'de> PodDeserialize<'de> for Clock {
                     delay: struct_deserializer.deserialize_field()?.unwrap(),
                     rate_diff: struct_deserializer.deserialize_field()?.unwrap(),
                     next_nsec: struct_deserializer.deserialize_field()?.unwrap(),
+                    transport_state: struct_deserializer.deserialize_field()?,
                 })
             }
         }
