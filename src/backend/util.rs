@@ -23,11 +23,7 @@ where
     K: From<&'a str> + Ord,
     V: From<&'a str>,
 {
-    let mut map = BTreeMap::new();
-    for (k, v) in dict.iter() {
-        map.insert(k.into(), v.into());
-    }
-    map
+    BTreeMap::from_iter(dict.iter().map(|(k, v)| (k.into(), v.into())))
 }
 
 pub fn key_val_to_props(
