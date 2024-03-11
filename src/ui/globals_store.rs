@@ -16,7 +16,7 @@
 
 use std::{
     cell::RefCell,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     rc::{Rc, Weak},
 };
 
@@ -30,7 +30,7 @@ mod global;
 pub use global::{Global, ObjectData};
 
 pub struct GlobalsStore {
-    globals: BTreeMap<u32, Rc<RefCell<Global>>>,
+    globals: HashMap<u32, Rc<RefCell<Global>>>,
 
     group_subobjects: bool,
 
@@ -57,9 +57,9 @@ const fn object_type_flag(t: &ObjectType) -> u16 {
 }
 
 impl GlobalsStore {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            globals: BTreeMap::new(),
+            globals: HashMap::new(),
 
             group_subobjects: true,
 
@@ -76,7 +76,7 @@ impl GlobalsStore {
         object_type: ObjectType,
         props: Option<BTreeMap<String, String>>,
     ) -> &Rc<RefCell<Global>> {
-        use std::collections::btree_map::Entry;
+        use std::collections::hash_map::Entry;
 
         let global = Rc::new(RefCell::new(Global::new(id, object_type, props)));
 
