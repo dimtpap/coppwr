@@ -214,49 +214,9 @@ mod inspector {
 
                     match *global_borrow.object_type() {
                         ObjectType::Factory => {
-                            if let (Some(name), Some(object_type)) = (
-                                global_borrow.name(),
-                                global_borrow.props().get("factory.type.name"),
-                            ) {
-                                let object_type = match object_type.as_str() {
-                                    "PipeWire:Interface:Link" => ObjectType::Link,
-                                    "PipeWire:Interface:Port" => ObjectType::Port,
-                                    "PipeWire:Interface:Node" => ObjectType::Node,
-                                    "PipeWire:Interface:Client" => ObjectType::Client,
-                                    "PipeWire:Interface:Device" => ObjectType::Device,
-                                    "PipeWire:Interface:Registry" => ObjectType::Registry,
-                                    "PipeWire:Interface:Profiler" => ObjectType::Profiler,
-                                    "PipeWire:Interface:Metadata" => ObjectType::Metadata,
-                                    "PipeWire:Interface:Factory" => ObjectType::Factory,
-                                    "PipeWire:Interface:Module" => ObjectType::Module,
-                                    "PipeWire:Interface:Core" => ObjectType::Core,
-                                    "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
-                                    "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
-                                    "PipeWire:Interface:EndpointStream" => {
-                                        ObjectType::EndpointStream
-                                    }
-                                    "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
-                                    "PipeWire:Interface:ClientEndpoint" => {
-                                        ObjectType::ClientEndpoint
-                                    }
-                                    "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
-                                    _ => ObjectType::Other(object_type.clone()),
-                                };
-                                self.object_creator.tool.add_factory(
-                                    id,
-                                    name,
-                                    object_type,
-                                    Rc::clone(global),
-                                );
-                            }
+                            self.object_creator.tool.add_factory(global);
                         }
-                        ObjectType::Metadata => {
-                            if let Some(name) = global_borrow.name() {
-                                self.metadata_editor
-                                    .tool
-                                    .add_metadata(id, name, Rc::clone(global))
-                            }
-                        }
+                        ObjectType::Metadata => self.metadata_editor.tool.add_metadata(global),
 
                         _ => {}
                     }
@@ -335,19 +295,9 @@ mod inspector {
                             let Some(metadata) = self.globals.get_global(id) else {
                                 return;
                             };
-                            self.metadata_editor.tool.add_property(
-                                id,
-                                metadata
-                                    .borrow()
-                                    .name()
-                                    .cloned()
-                                    .unwrap_or_else(|| format!("Unnamed metadata {id}")),
-                                subject,
-                                key,
-                                type_,
-                                value,
-                                Rc::clone(metadata),
-                            );
+                            self.metadata_editor
+                                .tool
+                                .add_property(metadata, subject, key, type_, value);
                         }
                         None => {
                             self.metadata_editor.tool.remove_property(id, &key);

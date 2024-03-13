@@ -54,7 +54,6 @@ impl Property {
 }
 
 struct Metadata {
-    name: String,
     properties: BTreeMap<String, Property>,
     user_properties: Vec<(String, Property)>,
     global: Rc<RefCell<Global>>,
@@ -74,30 +73,30 @@ impl Tool for MetadataEditor {
 }
 
 impl MetadataEditor {
-    pub fn add_metadata(&mut self, id: u32, name: &str, global: Rc<RefCell<Global>>) {
+    pub fn add_metadata(&mut self, global: &Rc<RefCell<Global>>) {
+        let id = global.borrow().id();
         self.metadatas.entry(id).or_insert(Metadata {
-            name: name.to_owned(),
             properties: BTreeMap::new(),
             user_properties: Vec::new(),
-            global,
+            global: Rc::clone(global),
         });
     }
 
     pub fn add_property(
         &mut self,
-        id: u32,
-        name: String,
+        global: &Rc<RefCell<Global>>,
         subject: u32,
         key: String,
         type_: Option<String>,
         value: String,
-        global: Rc<RefCell<Global>>,
     ) {
         let prop = Property {
             subject,
             type_,
             value,
         };
+
+        let id = global.borrow().id();
         match self.metadatas.entry(id) {
             Entry::Occupied(e) => {
                 let properties = &mut e.into_mut().properties;
@@ -105,10 +104,9 @@ impl MetadataEditor {
             }
             Entry::Vacant(e) => {
                 let metadata = Metadata {
-                    name,
                     properties: BTreeMap::new(),
                     user_properties: Vec::new(),
-                    global,
+                    global: Rc::clone(global),
                 };
                 e.insert(metadata).properties.insert(key, prop);
             }
@@ -134,7 +132,14 @@ impl MetadataEditor {
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         for (id, metadata) in &mut self.metadatas {
             ui.group(|ui| {
-                ui.heading(&metadata.name);
+                ui.heading(
+                    metadata
+                        .global
+                        .borrow()
+                        .name()
+                        .map(String::as_str)
+                        .unwrap_or(""),
+                );
                 ui.horizontal(|ui| {
                     global_info_button(ui, Some(&metadata.global), sx);
 
@@ -145,7 +150,7 @@ impl MetadataEditor {
                             .ok();
                     }
                 });
-                egui::Grid::new(&metadata.name)
+                egui::Grid::new(id)
                     .num_columns(2)
                     .striped(true)
                     .show(ui, |ui| {

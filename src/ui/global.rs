@@ -440,6 +440,10 @@ impl Global {
         });
     }
 
+    pub const fn id(&self) -> u32 {
+        self.id
+    }
+
     pub const fn name(&self) -> Option<&String> {
         self.name.as_ref()
     }

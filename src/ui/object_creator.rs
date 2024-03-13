@@ -29,9 +29,14 @@ use crate::{
 };
 
 struct Factory {
-    name: String,
     object_type: ObjectType,
     global: Rc<RefCell<Global>>,
+}
+
+impl Factory {
+    fn name(&self) -> String {
+        self.global.borrow().name().cloned().unwrap_or_default()
+    }
 }
 
 #[derive(Default)]
@@ -51,21 +56,45 @@ impl Tool for ObjectCreator {
 }
 
 impl ObjectCreator {
-    pub fn add_factory(
-        &mut self,
-        id: u32,
-        name: &str,
-        object_type: ObjectType,
-        global: Rc<RefCell<Global>>,
-    ) {
-        self.factories.insert(
-            id,
-            Factory {
-                name: name.to_owned(),
-                object_type,
-                global,
-            },
-        );
+    pub fn add_factory(&mut self, global: &Rc<RefCell<Global>>) {
+        let (id, object_type) = {
+            let global = global.borrow();
+
+            let object_type = global.props().get("factory.type.name").map(|object_type| {
+                match object_type.as_str() {
+                    "PipeWire:Interface:Link" => ObjectType::Link,
+                    "PipeWire:Interface:Port" => ObjectType::Port,
+                    "PipeWire:Interface:Node" => ObjectType::Node,
+                    "PipeWire:Interface:Client" => ObjectType::Client,
+                    "PipeWire:Interface:Device" => ObjectType::Device,
+                    "PipeWire:Interface:Registry" => ObjectType::Registry,
+                    "PipeWire:Interface:Profiler" => ObjectType::Profiler,
+                    "PipeWire:Interface:Metadata" => ObjectType::Metadata,
+                    "PipeWire:Interface:Factory" => ObjectType::Factory,
+                    "PipeWire:Interface:Module" => ObjectType::Module,
+                    "PipeWire:Interface:Core" => ObjectType::Core,
+                    "PipeWire:Interface:Endpoint" => ObjectType::Endpoint,
+                    "PipeWire:Interface:EndpointLink" => ObjectType::EndpointLink,
+                    "PipeWire:Interface:EndpointStream" => ObjectType::EndpointStream,
+                    "PipeWire:Interface:ClientSession" => ObjectType::ClientSession,
+                    "PipeWire:Interface:ClientEndpoint" => ObjectType::ClientEndpoint,
+                    "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
+                    _ => ObjectType::Other(object_type.clone()),
+                }
+            });
+
+            (global.id(), object_type)
+        };
+
+        if let Some(object_type) = object_type {
+            self.factories.insert(
+                id,
+                Factory {
+                    object_type,
+                    global: Rc::clone(global),
+                },
+            );
+        }
     }
 
     pub fn remove_factory(&mut self, id: u32) {
@@ -83,17 +112,20 @@ impl ObjectCreator {
             None
         };
 
+        // Store the name here to avoid calling .borrow() every time it's needed
+        let factory_name = factory.map(Factory::name).unwrap_or_default();
+
         ui.horizontal(|ui| {
             let cb = egui::ComboBox::from_label("Factory");
-            let cb = if let Some(factory) = factory {
-                cb.selected_text(&factory.name)
+            let cb = if factory.is_some() {
+                cb.selected_text(&factory_name)
             } else {
                 cb.selected_text("No factory selected")
             };
 
             cb.show_ui(ui, |ui| {
                 for (id, factory) in &self.factories {
-                    ui.selectable_value(&mut self.selected_factory, Some(*id), &factory.name);
+                    ui.selectable_value(&mut self.selected_factory, Some(*id), factory.name());
                 }
             });
 
@@ -124,7 +156,7 @@ impl ObjectCreator {
                     let factory = factory.unwrap();
                     sx.send(Request::CreateObject(
                         factory.object_type.clone(),
-                        factory.name.clone(),
+                        factory_name,
                         self.props.list().clone(),
                     ))
                     .ok();
