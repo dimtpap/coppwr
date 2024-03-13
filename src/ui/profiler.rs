@@ -14,12 +14,22 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap},
+    rc::{Rc, Weak},
+};
 
 use eframe::egui;
 use egui_plot::{self, Plot, PlotPoints};
 
-use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
+use crate::{
+    backend::{
+        self,
+        pods::profiler::{Clock, Info, NodeBlock, Profiling},
+    },
+    ui::{globals_store::Global, util::uis::global_info_button},
+};
 
 #[allow(
     clippy::cast_precision_loss,
@@ -27,11 +37,18 @@ use crate::backend::pods::profiler::{Clock, Info, NodeBlock, Profiling};
     clippy::cast_possible_truncation
 )]
 mod data {
-    use std::collections::{btree_map::Entry, BTreeMap, VecDeque};
+    use std::{
+        cell::RefCell,
+        collections::{btree_map::Entry, BTreeMap, VecDeque},
+        rc::Weak,
+    };
 
     use egui_plot::PlotPoints;
 
-    use crate::backend::pods::profiler::{NodeBlock, Profiling};
+    use crate::{
+        backend::pods::profiler::{NodeBlock, Profiling},
+        ui::globals_store::Global,
+    };
 
     fn pop_front_push_back<T>(queue: &mut VecDeque<T>, max: usize, value: T) {
         if queue.len() + 1 > max {
@@ -77,15 +94,22 @@ mod data {
         // When this reaches 0 every profiling is empty indicating
         // that this follower has no statistics to show
         last_non_empty_pos: usize,
+
+        // Stored weakly as these objects live for as long as there
+        // are stored profilings of them, which can be longer than
+        // the lifetime of the global
+        pub global: Weak<RefCell<Global>>,
     }
 
     impl Client {
-        fn new(title: String, max_profilings: usize) -> Self {
+        fn new(title: String, max_profilings: usize, global: Weak<RefCell<Global>>) -> Self {
             Self {
                 title,
                 measurements: VecDeque::with_capacity(max_profilings),
 
                 last_non_empty_pos: max_profilings,
+
+                global,
             }
         }
 
@@ -160,19 +184,31 @@ mod data {
 
         measurements: VecDeque<DriverMeasurement>,
         followers: BTreeMap<i32, Client>,
+
+        // Stored weakly as these objects live for as long as there
+        // are stored profilings of them, which can be longer than
+        // the lifetime of the global
+        pub global: Weak<RefCell<Global>>,
     }
 
     impl Driver {
-        pub fn with_max_profilings(max_profilings: usize) -> Self {
+        pub fn with_max_profilings(max_profilings: usize, global: Weak<RefCell<Global>>) -> Self {
             Self {
                 last_profiling: None,
 
                 measurements: VecDeque::with_capacity(max_profilings),
                 followers: BTreeMap::new(),
+
+                global,
             }
         }
 
-        pub fn add_profiling(&mut self, profiling: Profiling, max_profilings: usize) {
+        pub fn add_profiling(
+            &mut self,
+            profiling: Profiling,
+            max_profilings: usize,
+            global_getter: &impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
+        ) {
             pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
@@ -190,18 +226,32 @@ mod data {
                 !follower.is_empty()
             });
 
-            // Add new followers
+            // Add new followers or update their referenced globals (PipeWire reuses IDs for globals)
             for follower in &profiling.followers {
-                if let Entry::Vacant(e) = self.followers.entry(follower.id) {
-                    e.insert(Client::new(
-                        format!("{}/{}", follower.name, follower.id),
-                        max_profilings,
-                    ))
-                    .add_measurement(
-                        follower,
-                        &profiling.driver,
-                        max_profilings,
-                    );
+                match self.followers.entry(follower.id) {
+                    Entry::Occupied(mut e) => {
+                        let client = e.get_mut();
+
+                        if client.global.upgrade().is_none() {
+                            if let Some(global) = global_getter(follower.id) {
+                                client.global = global;
+                            }
+                        }
+                    }
+                    Entry::Vacant(e) => {
+                        if let Some(global) = global_getter(follower.id) {
+                            e.insert(Client::new(
+                                format!("{}/{}", follower.name, follower.id),
+                                max_profilings,
+                                global,
+                            ))
+                            .add_measurement(
+                                follower,
+                                &profiling.driver,
+                                max_profilings,
+                            );
+                        }
+                    }
                 }
             }
 
@@ -255,6 +305,10 @@ mod data {
         pub fn clients(&self) -> impl Iterator<Item = &Client> + '_ {
             self.followers.values()
         }
+
+        pub fn get_client(&self, id: i32) -> Option<&Client> {
+            self.followers.get(&id)
+        }
     }
 }
 
@@ -282,7 +336,11 @@ impl Profiler {
         }
     }
 
-    pub fn add_profilings(&mut self, profilings: Vec<Profiling>) {
+    pub fn add_profilings(
+        &mut self,
+        profilings: Vec<Profiling>,
+        global_getter: impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
+    ) {
         if self.pause {
             return;
         }
@@ -294,17 +352,20 @@ impl Profiler {
         for p in profilings {
             match self.drivers.entry(p.driver.id) {
                 Entry::Occupied(mut e) => {
-                    e.get_mut().add_profiling(p, self.max_profilings);
+                    e.get_mut()
+                        .add_profiling(p, self.max_profilings, &global_getter);
                 }
                 Entry::Vacant(e) => {
-                    e.insert(Driver::with_max_profilings(self.max_profilings))
-                        .add_profiling(p, self.max_profilings);
+                    if let Some(global) = global_getter(p.driver.id) {
+                        e.insert(Driver::with_max_profilings(self.max_profilings, global))
+                            .add_profiling(p, self.max_profilings, &global_getter);
+                    }
                 }
             }
         }
     }
 
-    pub fn show_profiler(&mut self, ui: &mut egui::Ui) {
+    pub fn show_profiler(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")
@@ -349,7 +410,10 @@ impl Profiler {
             return;
         };
 
-        ui.label(format!("Driver ID: {id}"));
+        ui.horizontal(|ui| {
+            global_info_button(ui, driver.global.upgrade().as_ref(), sx);
+            ui.label(format!("Driver ID: {id}"));
+        });
 
         if let Some(last) = driver.last_profling() {
             let info = &last.info;
@@ -483,7 +547,7 @@ impl Profiler {
         });
     }
 
-    pub fn show_process_viewer(&mut self, ui: &mut egui::Ui) {
+    pub fn show_process_viewer(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")
@@ -502,8 +566,12 @@ impl Profiler {
             clock: &Clock,
             info: &Info,
             driver: bool,
+            global: Option<&Rc<RefCell<Global>>>,
             ui: &mut egui::Ui,
+            sx: &backend::Sender,
         ) {
+            global_info_button(ui, global, sx);
+
             ui.label(block.id.to_string());
             ui.label(&block.name);
 
@@ -579,8 +647,10 @@ impl Profiler {
                 egui::ScrollArea::horizontal().show(ui, |ui| {
                     egui::Grid::new("timings")
                     .striped(true)
-                    .num_columns(9)
+                    .num_columns(10)
+                    .min_col_width(0.0)
                     .show(ui, |ui| {
+                        ui.label("");
                         ui.label("ID");
                         ui.label("Name");
                         ui.label("Quantum");
@@ -592,11 +662,11 @@ impl Profiler {
                         ui.label("Xruns");
                         ui.end_row();
                         if let Some(p) = driver.last_profling() {
-                            draw_node_block(&p.driver, &p.clock, &p.info, true, ui);
+                            draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
                             ui.end_row();
 
                             for nb in &p.followers {
-                                draw_node_block(nb, &p.clock, &p.info, false, ui);
+                                draw_node_block(nb, &p.clock, &p.info, false, driver.get_client(nb.id).and_then(|c| c.global.upgrade()).as_ref(), ui, sx);
                                 ui.end_row();
                             }
                         }

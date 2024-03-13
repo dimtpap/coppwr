@@ -14,19 +14,24 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use eframe::egui;
 use pipewire::types::ObjectType;
 
 use crate::{
     backend::{self, Request},
-    ui::{util::uis::EditableKVList, Tool},
+    ui::{
+        globals_store::Global,
+        util::uis::{global_info_button, EditableKVList},
+        Tool,
+    },
 };
 
 struct Factory {
     name: String,
     object_type: ObjectType,
+    global: Rc<RefCell<Global>>,
 }
 
 #[derive(Default)]
@@ -46,12 +51,19 @@ impl Tool for ObjectCreator {
 }
 
 impl ObjectCreator {
-    pub fn add_factory(&mut self, id: u32, name: &str, object_type: ObjectType) {
+    pub fn add_factory(
+        &mut self,
+        id: u32,
+        name: &str,
+        object_type: ObjectType,
+        global: Rc<RefCell<Global>>,
+    ) {
         self.factories.insert(
             id,
             Factory {
                 name: name.to_owned(),
                 object_type,
+                global,
             },
         );
     }
@@ -71,16 +83,22 @@ impl ObjectCreator {
             None
         };
 
-        let cb = egui::ComboBox::from_label("Factory");
-        let cb = if let Some(factory) = factory {
-            cb.selected_text(&factory.name)
-        } else {
-            cb.selected_text("No factory selected")
-        };
+        ui.horizontal(|ui| {
+            let cb = egui::ComboBox::from_label("Factory");
+            let cb = if let Some(factory) = factory {
+                cb.selected_text(&factory.name)
+            } else {
+                cb.selected_text("No factory selected")
+            };
 
-        cb.show_ui(ui, |ui| {
-            for (id, factory) in &self.factories {
-                ui.selectable_value(&mut self.selected_factory, Some(*id), &factory.name);
+            cb.show_ui(ui, |ui| {
+                for (id, factory) in &self.factories {
+                    ui.selectable_value(&mut self.selected_factory, Some(*id), &factory.name);
+                }
+            });
+
+            if let Some(global) = factory.map(|f| &f.global) {
+                global_info_button(ui, Some(&global), sx);
             }
         });
 

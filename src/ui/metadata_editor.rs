@@ -14,13 +14,17 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::{
+    cell::RefCell,
+    collections::{btree_map::Entry, BTreeMap},
+    rc::Rc,
+};
 
 use eframe::egui;
 
 use crate::{
     backend::{self, ObjectMethod, Request},
-    ui::Tool,
+    ui::{globals_store::Global, util::uis::global_info_button, Tool},
 };
 
 struct Property {
@@ -53,6 +57,7 @@ struct Metadata {
     name: String,
     properties: BTreeMap<String, Property>,
     user_properties: Vec<(String, Property)>,
+    global: Rc<RefCell<Global>>,
 }
 
 #[derive(Default)]
@@ -69,11 +74,12 @@ impl Tool for MetadataEditor {
 }
 
 impl MetadataEditor {
-    pub fn add_metadata(&mut self, id: u32, name: &str) {
+    pub fn add_metadata(&mut self, id: u32, name: &str, global: Rc<RefCell<Global>>) {
         self.metadatas.entry(id).or_insert(Metadata {
             name: name.to_owned(),
             properties: BTreeMap::new(),
             user_properties: Vec::new(),
+            global,
         });
     }
 
@@ -85,6 +91,7 @@ impl MetadataEditor {
         key: String,
         type_: Option<String>,
         value: String,
+        global: Rc<RefCell<Global>>,
     ) {
         let prop = Property {
             subject,
@@ -101,6 +108,7 @@ impl MetadataEditor {
                     name,
                     properties: BTreeMap::new(),
                     user_properties: Vec::new(),
+                    global,
                 };
                 e.insert(metadata).properties.insert(key, prop);
             }
@@ -128,7 +136,10 @@ impl MetadataEditor {
             ui.group(|ui| {
                 ui.heading(&metadata.name);
                 ui.horizontal(|ui| {
+                    global_info_button(ui, Some(&metadata.global), sx);
+
                     ui.label(format!("ID: {id}"));
+
                     if ui.small_button("Clear").clicked() {
                         sx.send(Request::CallObjectMethod(*id, ObjectMethod::MetadataClear))
                             .ok();

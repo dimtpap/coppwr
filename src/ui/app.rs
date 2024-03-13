@@ -43,6 +43,8 @@ impl View {
 }
 
 mod inspector {
+    use std::rc::Rc;
+
     use eframe::egui;
 
     use pipewire::types::ObjectType;
@@ -203,17 +205,19 @@ mod inspector {
         fn process_event(&mut self, e: Event) {
             match e {
                 Event::GlobalAdded(id, object_type, props) => {
-                    let global = self.globals.add_global(id, object_type, props).borrow();
+                    let global = self.globals.add_global(id, object_type, props);
+                    let global_borrow = global.borrow();
 
-                    if global.props().is_empty() {
+                    if global_borrow.props().is_empty() {
                         return;
                     }
 
-                    match *global.object_type() {
+                    match *global_borrow.object_type() {
                         ObjectType::Factory => {
-                            if let (Some(name), Some(object_type)) =
-                                (global.name(), global.props().get("factory.type.name"))
-                            {
+                            if let (Some(name), Some(object_type)) = (
+                                global_borrow.name(),
+                                global_borrow.props().get("factory.type.name"),
+                            ) {
                                 let object_type = match object_type.as_str() {
                                     "PipeWire:Interface:Link" => ObjectType::Link,
                                     "PipeWire:Interface:Port" => ObjectType::Port,
@@ -238,12 +242,19 @@ mod inspector {
                                     "PipeWire:Interface:ClientNode" => ObjectType::ClientNode,
                                     _ => ObjectType::Other(object_type.clone()),
                                 };
-                                self.object_creator.tool.add_factory(id, name, object_type);
+                                self.object_creator.tool.add_factory(
+                                    id,
+                                    name,
+                                    object_type,
+                                    Rc::clone(global),
+                                );
                             }
                         }
                         ObjectType::Metadata => {
-                            if let Some(name) = global.name() {
-                                self.metadata_editor.tool.add_metadata(id, name);
+                            if let Some(name) = global_borrow.name() {
+                                self.metadata_editor
+                                    .tool
+                                    .add_metadata(id, name, Rc::clone(global))
                             }
                         }
 
@@ -305,7 +316,12 @@ mod inspector {
                     self.globals.set_global_props(id, props);
                 }
                 Event::ProfilerProfile(samples) => {
-                    self.profiler.add_profilings(samples);
+                    self.profiler.add_profilings(samples, |id| {
+                        id.try_into()
+                            .ok()
+                            .and_then(|id| self.globals.get_global(id))
+                            .map(Rc::downgrade)
+                    });
                 }
                 Event::MetadataProperty {
                     id,
@@ -330,6 +346,7 @@ mod inspector {
                                 key,
                                 type_,
                                 value,
+                                Rc::clone(metadata),
                             );
                         }
                         None => {
@@ -364,12 +381,12 @@ mod inspector {
             match *tab {
                 View::Profiler => {
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.profiler.show_profiler(ui);
+                        self.profiler.show_profiler(ui, &self.handle.sx);
                     });
                 }
                 View::ProcessViewer => {
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.profiler.show_process_viewer(ui);
+                        self.profiler.show_process_viewer(ui, &self.handle.sx);
                     });
                 }
                 View::GlobalTracker => {

@@ -14,9 +14,37 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::BTreeMap;
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use eframe::egui;
+
+use crate::{backend, ui::globals_store::Global};
+
+pub fn global_info_button(
+    ui: &mut egui::Ui,
+    global: Option<&Rc<RefCell<Global>>>,
+    sx: &backend::Sender,
+) {
+    ui.add_enabled_ui(global.is_some(), |ui| {
+        ui.menu_button("ℹ", |ui| {
+            egui::ScrollArea::vertical()
+                .max_height(400.)
+                .show(ui, |ui| {
+                    if let Some(global) = global {
+                        ui.set_max_width(500.);
+
+                        // Remove cross-justify
+                        ui.with_layout(egui::Layout::default(), |ui| {
+                            ui.reset_style();
+                            global.borrow_mut().show(ui, true, sx);
+                        });
+                    }
+                });
+        })
+        .response
+        .on_disabled_hover_text("Global has been destroyed");
+    });
+}
 
 /// Displays a grid with 2 columns.
 /// Useful for displaying key-value pairs.
