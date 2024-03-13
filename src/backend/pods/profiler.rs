@@ -108,7 +108,7 @@ impl<'de> PodDeserialize<'de> for Clock {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeBlock {
     pub id: i32,
     pub name: String,

@@ -87,6 +87,8 @@ mod data {
     }
 
     pub struct Client {
+        last_profiling: Option<NodeBlock>,
+
         title: String,
         measurements: VecDeque<ClientMeasurement>,
 
@@ -104,6 +106,8 @@ mod data {
     impl Client {
         fn new(title: String, max_profilings: usize, global: Weak<RefCell<Global>>) -> Self {
             Self {
+                last_profiling: None,
+
                 title,
                 measurements: VecDeque::with_capacity(max_profilings),
 
@@ -126,8 +130,10 @@ mod data {
             pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
-                ClientMeasurement::new(follower, driver),
+                ClientMeasurement::new(&follower, driver),
             );
+
+            self.last_profiling = Some(follower.clone());
 
             self.last_non_empty_pos = self.measurements.len();
         }
@@ -144,6 +150,10 @@ mod data {
 
         const fn is_empty(&self) -> bool {
             self.last_non_empty_pos == 0
+        }
+
+        pub fn last_profiling(&self) -> Option<&NodeBlock> {
+            self.last_profiling.as_ref()
         }
 
         pub fn end_date(&self) -> PlotPoints {
@@ -304,10 +314,6 @@ mod data {
 
         pub fn clients(&self) -> impl Iterator<Item = &Client> + '_ {
             self.followers.values()
-        }
-
-        pub fn get_client(&self, id: i32) -> Option<&Client> {
-            self.followers.get(&id)
         }
     }
 }
@@ -665,8 +671,8 @@ impl Profiler {
                             draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
                             ui.end_row();
 
-                            for nb in &p.followers {
-                                draw_node_block(nb, &p.clock, &p.info, false, driver.get_client(nb.id).and_then(|c| c.global.upgrade()).as_ref(), ui, sx);
+                            for (client, nb) in driver.clients().filter_map(|c| c.last_profiling().map(|p| (c.global.upgrade(), p))) {
+                                draw_node_block(nb, &p.clock, &p.info, false, client.as_ref(), ui, sx);
                                 ui.end_row();
                             }
                         }
