@@ -45,8 +45,7 @@ jobs:
         if: steps.pipewire-cache.outputs.cache-hit != 'true'
         working-directory: 'pipewire'
         run: |
-          meson setup builddir
-          meson configure builddir -Dprefix=/usr \
+          meson setup builddir -Dprefix=/usr \
             -Dauto_features=disabled \
             -Davb=disabled \
             -Dlegacy-rtkit=false \
