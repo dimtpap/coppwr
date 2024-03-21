@@ -27,6 +27,31 @@ use pipewire::{
 
 use super::{util, Event, ObjectMethod};
 
+#[derive(Debug)]
+pub enum Error {
+    Unimplemented(ObjectType),
+    PipeWire(pw::Error),
+}
+
+impl From<pw::Error> for Error {
+    fn from(value: pw::Error) -> Self {
+        Self::PipeWire(value)
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unimplemented(object_type) => f.write_fmt(format_args!(
+                "Unsupported PipeWire object type {object_type}"
+            )),
+            Self::PipeWire(e) => f.write_fmt(format_args!("PipeWire error: {e}")),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 // Objects whose methods aren't used get upcasted to a proxy
 pub enum Global {
     Client(pw::client::Client),
@@ -52,17 +77,6 @@ pub struct BoundGlobal {
     global: Global,
     _object_listener: Box<dyn pw::proxy::Listener>,
     _proxy_listener: pw::proxy::ProxyListener,
-}
-
-pub enum Error {
-    Unimplemented,
-    PipeWire(pw::Error),
-}
-
-impl From<pw::Error> for Error {
-    fn from(value: pw::Error) -> Self {
-        Self::PipeWire(value)
-    }
 }
 
 impl BoundGlobal {
@@ -104,7 +118,7 @@ impl BoundGlobal {
                 listeners::metadata(registry.bind::<pw::metadata::Metadata, _>(global)?, id, sx)
             }
             _ => {
-                return Err(Error::Unimplemented);
+                return Err(Error::Unimplemented(global.type_.clone()));
             }
         };
 

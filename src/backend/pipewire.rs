@@ -16,8 +16,10 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 
+use crate::backend::connection;
+
 use super::{
-    bind::{BoundGlobal, Error},
+    bind::BoundGlobal,
     pw::{self, proxy::ProxyT, types::ObjectType},
     util, Connection, Event, RemoteInfo, Request,
 };
@@ -40,7 +42,7 @@ pub fn pipewire_thread(
         pw::context::Context,
         Connection,
         Rc<pw::registry::Registry>,
-    ) = match (|| {
+    ) = match (|| -> Result<_, connection::Error> {
         let mainloop = if mainloop_properties.is_empty() {
             pw::main_loop::MainLoop::new(None)?
         } else {
@@ -65,21 +67,10 @@ pub fn pipewire_thread(
     })() {
         Ok(instance) => instance,
         Err(e) => {
-            use crate::backend::connection::Error;
-            match e {
-                Error::PipeWire(e) => {
-                    eprintln!("Error initializing PipeWire: {e}");
-                }
-                #[cfg(feature = "xdg_desktop_portals")]
-                Error::PortalUnavailable => {
-                    eprintln!("Portal unavailable");
-                }
-                #[cfg(feature = "xdg_desktop_portals")]
-                Error::Ashpd(e) => {
-                    eprintln!("Error accessing portal: {e}");
-                }
-            }
+            eprintln!("Failed to connect to remote: {e}");
+
             sx.send(Event::Stop).ok();
+
             return;
         }
     };
@@ -287,14 +278,7 @@ pub fn pipewire_thread(
                     Ok(bound_global) => {
                         binds.borrow_mut().insert(id, bound_global);
                     }
-                    Err(e) => match e {
-                        Error::Unimplemented => {
-                            eprintln!("Unsupported object type {}", global.type_);
-                        }
-                        Error::PipeWire(e) => {
-                            eprintln!("Error binding object {id}: {e}");
-                        }
-                    },
+                    Err(e) => eprintln!("Error binding object {id}: {e}"),
                 }
             }
         })

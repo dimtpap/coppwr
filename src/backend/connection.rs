@@ -21,6 +21,45 @@ use pipewire as pw;
 
 use super::{util, RemoteInfo};
 
+#[derive(Debug)]
+pub enum Error {
+    PipeWire(pw::Error),
+
+    #[cfg(feature = "xdg_desktop_portals")]
+    PortalUnavailable,
+    #[cfg(feature = "xdg_desktop_portals")]
+    Ashpd(ashpd::Error),
+}
+
+impl From<pw::Error> for Error {
+    fn from(value: pw::Error) -> Self {
+        Self::PipeWire(value)
+    }
+}
+
+#[cfg(feature = "xdg_desktop_portals")]
+impl From<ashpd::Error> for Error {
+    fn from(value: ashpd::Error) -> Self {
+        Self::Ashpd(value)
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PipeWire(e) => f.write_fmt(format_args!("Connecting to PipeWire failed: {e}")),
+
+            #[cfg(feature = "xdg_desktop_portals")]
+            Self::PortalUnavailable => f.write_str("Portal is unavailable"),
+
+            #[cfg(feature = "xdg_desktop_portals")]
+            Self::Ashpd(e) => f.write_fmt(format_args!("Connecting to the portal failed: {e}")),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 #[cfg(feature = "xdg_desktop_portals")]
 mod portals {
     use std::os::fd::{FromRawFd, OwnedFd};
@@ -64,28 +103,6 @@ mod portals {
     pub fn open_camera_remote() -> Result<Option<OwnedFd>, ashpd::Error> {
         pollster::block_on(ashpd::desktop::camera::request())
             .map(|fd| fd.map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }))
-    }
-}
-
-pub enum Error {
-    PipeWire(pw::Error),
-
-    #[cfg(feature = "xdg_desktop_portals")]
-    PortalUnavailable,
-    #[cfg(feature = "xdg_desktop_portals")]
-    Ashpd(ashpd::Error),
-}
-
-impl From<pw::Error> for Error {
-    fn from(value: pw::Error) -> Self {
-        Self::PipeWire(value)
-    }
-}
-
-#[cfg(feature = "xdg_desktop_portals")]
-impl From<ashpd::Error> for Error {
-    fn from(value: ashpd::Error) -> Self {
-        Self::Ashpd(value)
     }
 }
 
