@@ -230,7 +230,7 @@ pub struct Graph {
     responses: Vec<NodeResponse<NoOp, GraphNode>>,
 
     // Maps PipeWire global IDs to graph items
-    graph_items: BTreeMap<u32, GraphItem>,
+    items: BTreeMap<u32, GraphItem>,
 }
 
 impl Graph {
@@ -240,12 +240,12 @@ impl Graph {
 
             editor: GraphEditorState::default(),
             responses: Vec::new(),
-            graph_items: BTreeMap::new(),
+            items: BTreeMap::new(),
         }
     }
 
     pub fn add_node(&mut self, id: u32, global: &Rc<RefCell<Global>>) {
-        if self.graph_items.get(&id).is_some() {
+        if self.items.get(&id).is_some() {
             return;
         }
 
@@ -280,7 +280,7 @@ impl Graph {
 
         self.responses.push(NodeResponse::CreatedNode(graph_id));
 
-        self.graph_items.insert(id, graph_id.into());
+        self.items.insert(id, graph_id.into());
     }
 
     fn port_graph_node_and_media_type(
@@ -288,11 +288,11 @@ impl Graph {
         id: u32,
         node_id: u32,
     ) -> Option<(&NodeId, MediaType)> {
-        if self.graph_items.get(&id).is_some() {
+        if self.items.get(&id).is_some() {
             return None;
         }
 
-        let Some(GraphItem::Node(node_id)) = self.graph_items.get(&node_id) else {
+        let Some(GraphItem::Node(node_id)) = self.items.get(&node_id) else {
             return None;
         };
 
@@ -320,7 +320,7 @@ impl Graph {
             true,
         );
 
-        self.graph_items.insert(id, graph_id.into());
+        self.items.insert(id, graph_id.into());
     }
 
     pub fn add_output_port(&mut self, id: u32, node_id: u32, name: String) {
@@ -333,30 +333,29 @@ impl Graph {
             .graph
             .add_output_param(*node_id, name, media_type);
 
-        self.graph_items.insert(id, graph_id.into());
+        self.items.insert(id, graph_id.into());
     }
 
     pub fn add_link(&mut self, id: u32, output_port_id: u32, input_port_id: u32) {
-        if self.graph_items.get(&id).is_some() {
+        if self.items.get(&id).is_some() {
             return;
         }
 
         let Some((GraphItem::OutputPort(output), GraphItem::InputPort(input))) = self
-            .graph_items
+            .items
             .get(&output_port_id)
-            .zip(self.graph_items.get(&input_port_id))
+            .zip(self.items.get(&input_port_id))
         else {
             return;
         };
 
         self.editor.graph.add_connection(*output, *input, 0);
 
-        self.graph_items
-            .insert(id, GraphItem::Link(*output, *input));
+        self.items.insert(id, GraphItem::Link(*output, *input));
     }
 
     pub fn remove_item(&mut self, id: u32) {
-        let Some(item) = self.graph_items.remove(&id) else {
+        let Some(item) = self.items.remove(&id) else {
             return;
         };
 
@@ -494,7 +493,7 @@ impl Graph {
             {
                 match response {
                     NodeResponse::DisconnectEvent { output, input } => {
-                        for (id, g) in &self.graph_items {
+                        for (id, g) in &self.items {
                             if let GraphItem::Link(o, i) = *g {
                                 if output == o && input == i {
                                     sx.send(Request::DestroyObject(*id)).ok();
@@ -510,7 +509,7 @@ impl Graph {
                         let mut output_port = None;
                         let mut input_port = None;
 
-                        for (id, object) in &self.graph_items {
+                        for (id, object) in &self.items {
                             match object {
                                 GraphItem::InputPort(input_id) => {
                                     if input == *input_id {

@@ -25,12 +25,12 @@ pub trait Tool {
 }
 
 #[derive(Default)]
-pub struct WindowedTool<T: Tool> {
+pub struct Windowed<T: Tool> {
     pub open: bool,
     pub tool: T,
 }
 
-impl<T: Tool> WindowedTool<T> {
+impl<T: Tool> Windowed<T> {
     pub fn window(&mut self, ctx: &egui::Context, sx: &backend::Sender) {
         egui::Window::new(T::NAME)
             .vscroll(true)

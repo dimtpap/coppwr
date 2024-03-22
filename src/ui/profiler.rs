@@ -130,7 +130,7 @@ mod data {
             pop_front_push_back(
                 &mut self.measurements,
                 max_profilings,
-                ClientMeasurement::new(&follower, driver),
+                ClientMeasurement::new(follower, driver),
             );
 
             self.last_profiling = Some(follower.clone());
@@ -152,7 +152,7 @@ mod data {
             self.last_non_empty_pos == 0
         }
 
-        pub fn last_profiling(&self) -> Option<&NodeBlock> {
+        pub const fn last_profiling(&self) -> Option<&NodeBlock> {
             self.last_profiling.as_ref()
         }
 

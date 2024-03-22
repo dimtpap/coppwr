@@ -38,7 +38,7 @@ impl Property {
         ObjectMethod::MetadataSetProperty {
             subject: self.subject,
             key,
-            type_: self.type_.as_ref().cloned(),
+            type_: self.type_.clone(),
             value: Some(self.value.clone()),
         }
     }
@@ -47,7 +47,7 @@ impl Property {
         ObjectMethod::MetadataSetProperty {
             subject: self.subject,
             key,
-            type_: self.type_.as_ref().cloned(),
+            type_: self.type_.clone(),
             value: None,
         }
     }
@@ -132,14 +132,7 @@ impl MetadataEditor {
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         for (id, metadata) in &mut self.metadatas {
             ui.group(|ui| {
-                ui.heading(
-                    metadata
-                        .global
-                        .borrow()
-                        .name()
-                        .map(String::as_str)
-                        .unwrap_or(""),
-                );
+                ui.heading(metadata.global.borrow().name().map_or("", String::as_str));
                 ui.horizontal(|ui| {
                     global_info_button(ui, Some(&metadata.global), sx);
 

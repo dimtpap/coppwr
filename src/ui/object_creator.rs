@@ -130,7 +130,7 @@ impl ObjectCreator {
             });
 
             if let Some(global) = factory.map(|f| &f.global) {
-                global_info_button(ui, Some(&global), sx);
+                global_info_button(ui, Some(global), sx);
             }
         });
 

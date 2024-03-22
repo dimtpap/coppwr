@@ -32,7 +32,7 @@ fn main() {
                     include_bytes!("../assets/icon/256.png").as_slice(),
                 )
                 .ok()
-                .map(|icon| std::sync::Arc::new(icon)),
+                .map(std::sync::Arc::new),
                 ..eframe::egui::ViewportBuilder::default()
             },
             ..eframe::NativeOptions::default()

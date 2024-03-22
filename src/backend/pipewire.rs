@@ -47,7 +47,7 @@ pub fn pipewire_thread(
             pw::main_loop::MainLoop::new(None)?
         } else {
             pw::main_loop::MainLoop::new(Some(
-                &util::key_val_to_props(mainloop_properties.into_iter()).dict(),
+                util::key_val_to_props(mainloop_properties.into_iter()).dict(),
             ))?
         };
 
@@ -190,7 +190,7 @@ pub fn pipewire_thread(
                 sx.send(Event::ContextProperties(util::dict_to_map(context.properties().dict()))).ok();
             }
             Request::UpdateContextProperties(props) => {
-                context.update_properties(&util::key_val_to_props(props.into_iter()).dict());
+                context.update_properties(util::key_val_to_props(props.into_iter()).dict());
             }
             Request::CallObjectMethod(id, method) => {
                 if let Some(object) = binds.borrow().get(&id) {

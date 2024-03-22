@@ -168,7 +168,7 @@ impl GlobalsStore {
             return false;
         }
 
-        if !self.properties_filter.matches(global.props().iter()) {
+        if !self.properties_filter.matches(&global.props().iter()) {
             return false;
         }
 

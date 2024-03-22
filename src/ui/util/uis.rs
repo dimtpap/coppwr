@@ -297,7 +297,7 @@ mod kv_matcher {
 
         pub fn matches(
             &self,
-            kv: impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone,
+            kv: &(impl Iterator<Item = (impl AsRef<str>, impl AsRef<str>)> + Clone),
         ) -> bool {
             self.filters.iter().all(|(key_filter, value_filter)| {
                 kv.clone()

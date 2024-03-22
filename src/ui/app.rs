@@ -53,7 +53,7 @@ mod inspector {
         backend::{self, Event, RemoteInfo},
         ui::{
             globals_store::ObjectData, util::persistence::PersistentView, ContextManager,
-            GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler, WindowedTool,
+            GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler, Windowed,
         },
     };
 
@@ -79,9 +79,9 @@ mod inspector {
         profiler: Profiler,
         graph: Graph,
 
-        object_creator: WindowedTool<ObjectCreator>,
-        metadata_editor: WindowedTool<MetadataEditor>,
-        context_manager: WindowedTool<ContextManager>,
+        object_creator: Windowed<ObjectCreator>,
+        metadata_editor: Windowed<MetadataEditor>,
+        context_manager: Windowed<ContextManager>,
     }
 
     impl Inspector {
@@ -100,9 +100,9 @@ mod inspector {
                     .and_then(|vd| vd.graph.as_ref())
                     .map_or_else(Graph::new, Graph::with_data),
 
-                object_creator: WindowedTool::default(),
-                metadata_editor: WindowedTool::default(),
-                context_manager: WindowedTool::default(),
+                object_creator: Windowed::default(),
+                metadata_editor: Windowed::default(),
+                context_manager: Windowed::default(),
             }
         }
 
