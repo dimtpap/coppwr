@@ -38,7 +38,7 @@ use crate::{
 struct NoOp;
 impl egui_node_graph::WidgetValueTrait for NoOp {
     type Response = Self;
-    type NodeData = GraphNode;
+    type NodeData = Node;
     type UserState = backend::Sender;
 
     fn value_widget(
@@ -54,7 +54,7 @@ impl egui_node_graph::WidgetValueTrait for NoOp {
 }
 impl egui_node_graph::UserResponseTrait for NoOp {}
 impl egui_node_graph::NodeTemplateTrait for NoOp {
-    type NodeData = GraphNode;
+    type NodeData = Node;
     type DataType = MediaType;
     type ValueType = Self;
     type CategoryType = ();
@@ -81,7 +81,7 @@ impl egui_node_graph::NodeTemplateTrait for NoOp {
     }
 
     fn user_data(&self, _: &mut Self::UserState) -> Self::NodeData {
-        GraphNode::NoOp
+        unreachable!("The node finder/creator should never be shown")
     }
 }
 impl egui_node_graph::NodeTemplateIter for NoOp {
@@ -119,21 +119,18 @@ impl DataTypeTrait<backend::Sender> for MediaType {
     }
 }
 
-enum GraphNode {
-    Node {
-        media_type: MediaType,
-        global: Weak<RefCell<Global>>,
-    },
-    NoOp,
+struct Node {
+    media_type: MediaType,
+    global: Weak<RefCell<Global>>,
 }
 
-impl GraphNode {
+impl Node {
     fn new(media_type: MediaType, global: Weak<RefCell<Global>>) -> Self {
-        Self::Node { media_type, global }
+        Self { media_type, global }
     }
 }
 
-impl NodeDataTrait for GraphNode {
+impl NodeDataTrait for Node {
     type DataType = MediaType;
     type Response = NoOp;
     type ValueType = NoOp;
@@ -158,26 +155,24 @@ impl NodeDataTrait for GraphNode {
     where
         Self::Response: UserResponseTrait,
     {
-        if let Self::Node { global, .. } = self {
-            if let Some(global) = global.upgrade() {
-                egui::CollapsingHeader::new("Details")
-                    .default_open(true)
-                    .show_unindented(ui, |ui| {
-                        egui::Frame::central_panel(&egui::Style::default())
-                            .inner_margin(egui::Margin::same(2.5))
-                            .rounding(ui.visuals().noninteractive().rounding)
-                            .show(ui, |ui| {
-                                ui.set_max_width(500f32);
-                                egui::ScrollArea::vertical()
-                                    .min_scrolled_height(350f32)
-                                    .max_height(350f32)
-                                    .show(ui, |ui| {
-                                        global.borrow_mut().show(ui, true, sx);
-                                    });
-                            });
-                    });
-            }
-        };
+        if let Some(global) = self.global.upgrade() {
+            egui::CollapsingHeader::new("Details")
+                .default_open(true)
+                .show_unindented(ui, |ui| {
+                    egui::Frame::central_panel(&egui::Style::default())
+                        .inner_margin(egui::Margin::same(2.5))
+                        .rounding(ui.visuals().noninteractive().rounding)
+                        .show(ui, |ui| {
+                            ui.set_max_width(500f32);
+                            egui::ScrollArea::vertical()
+                                .min_scrolled_height(350f32)
+                                .max_height(350f32)
+                                .show(ui, |ui| {
+                                    global.borrow_mut().show(ui, true, sx);
+                                });
+                        });
+                });
+        }
 
         Vec::new()
     }
@@ -226,8 +221,8 @@ impl From<(OutputId, InputId)> for GraphItem {
 pub struct Graph {
     restored_positions: Option<HashMap<String, VecDeque<egui::Pos2>>>,
 
-    editor: egui_node_graph::GraphEditorState<GraphNode, MediaType, NoOp, NoOp, backend::Sender>,
-    responses: Vec<NodeResponse<NoOp, GraphNode>>,
+    editor: egui_node_graph::GraphEditorState<Node, MediaType, NoOp, NoOp, backend::Sender>,
+    responses: Vec<NodeResponse<NoOp, Node>>,
 
     // Maps PipeWire global IDs to graph items
     items: BTreeMap<u32, GraphItem>,
@@ -274,7 +269,7 @@ impl Graph {
                 .name()
                 .cloned()
                 .unwrap_or_else(|| format!("{id}")),
-            GraphNode::new(media_type, Rc::downgrade(global)),
+            Node::new(media_type, Rc::downgrade(global)),
             |_, _| {},
         );
 
@@ -296,13 +291,16 @@ impl Graph {
             return None;
         };
 
-        if let GraphNode::Node { ref media_type, .. } =
-            self.editor.graph.nodes.get(*node_id).unwrap().user_data
-        {
-            Some((node_id, *media_type))
-        } else {
-            unreachable!();
-        }
+        Some((
+            node_id,
+            self.editor
+                .graph
+                .nodes
+                .get(*node_id)
+                .unwrap()
+                .user_data
+                .media_type,
+        ))
     }
 
     pub fn add_input_port(&mut self, id: u32, node_id: u32, name: String) {
@@ -432,15 +430,11 @@ impl Graph {
                 continue;
             }
 
-            let GraphNode::Node { ref global, .. } = node.user_data else {
-                unreachable!();
-            };
-
             self.editor.node_order.push(id);
 
             let mut ports = None;
 
-            if let Some(global) = global.upgrade() {
+            if let Some(global) = node.user_data.global.upgrade() {
                 let global = global.borrow();
 
                 if let Some(restored_positions) = &mut self.restored_positions {
@@ -587,11 +581,10 @@ impl PersistentView for Graph {
         let mut positions: HashMap<String, VecDeque<egui::Pos2>> = HashMap::new();
 
         for (&pos, node) in self.editor.graph.nodes.iter().filter_map(|(id, node)| {
-            if let GraphNode::Node { global, .. } = &node.user_data {
-                Some((self.editor.node_positions.get(id)?, global.upgrade()?))
-            } else {
-                None
-            }
+            Some((
+                self.editor.node_positions.get(id)?,
+                node.user_data.global.upgrade()?,
+            ))
         }) {
             if let Some(name) = node.borrow().props().get("node.name") {
                 positions
