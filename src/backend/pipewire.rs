@@ -35,6 +35,7 @@ pub fn pipewire_thread(
     pwrx: pw::channel::Receiver<Request>,
 ) {
     // Proxies created by core.create_object
+    #[allow(dead_code)] // The fields are never read from
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
     let (mainloop, context, connection, registry): (
