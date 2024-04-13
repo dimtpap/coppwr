@@ -445,6 +445,10 @@ impl Profiler {
             return;
         }
 
+        if ui.input(|i| i.focused && i.key_pressed(egui::Key::Space)) {
+            self.pause = !self.pause;
+        }
+
         fn profiler_plot(ui: &mut egui::Ui, heading: &str, id: &str, max_x: usize) -> Plot {
             let reset = ui
                 .horizontal(|ui| {
