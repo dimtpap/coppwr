@@ -373,11 +373,12 @@ impl Graph {
         // Never show the node finder since nodes can't be created manually
         self.editor.node_finder = None;
 
-        let reset_zoom = ui
+        let reset_view = ui
             .horizontal(|ui| {
                 if ui.button("Auto arrange").clicked() {
                     self.editor.node_positions.clear();
                     self.editor.node_order.clear();
+                    self.editor.pan_zoom.pan = egui::Vec2::ZERO;
                 }
 
                 ui.label("Zoom");
@@ -385,7 +386,7 @@ impl Graph {
                     egui::Slider::new(&mut self.editor.pan_zoom.zoom, 0.2..=2.0).max_decimals(2),
                 );
 
-                ui.button("Reset zoom").clicked()
+                ui.button("Reset view").clicked()
             })
             .inner;
         ui.separator();
@@ -401,14 +402,6 @@ impl Graph {
         );
 
         for pos in self.editor.node_positions.values_mut() {
-            // Adjust existing nodes' positions so that they're inside the drawable area
-            pos.x = pos
-                .x
-                .clamp(0., f32::max(0., ui.available_width() - NODE_SPACING.x));
-            pos.y = pos
-                .y
-                .clamp(0., f32::max(0., ui.available_height() - NODE_SPACING.y));
-
             // Determine next available position for this node's kind
             for next in [
                 &mut next_inputs_only_pos,
@@ -476,8 +469,9 @@ impl Graph {
         }
 
         ui.scope(|ui| {
-            if reset_zoom {
+            if reset_view {
                 self.editor.reset_zoom(ui);
+                self.editor.pan_zoom.pan = egui::Vec2::ZERO;
             }
 
             for response in self
@@ -548,6 +542,16 @@ impl Graph {
                     }
                     _ => {}
                 }
+            }
+
+            let mut pointer_delta = egui::Vec2::ZERO;
+            if ui.ui_contains_pointer() // Can only be queried after the editor UI has been drawn
+                && ui.input(|i| {
+                    pointer_delta = i.pointer.delta();
+                    i.pointer.secondary_down()
+                })
+            {
+                self.editor.pan_zoom.pan += pointer_delta;
             }
         });
     }
