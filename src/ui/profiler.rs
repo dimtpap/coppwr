@@ -126,6 +126,7 @@ mod data {
             follower: &NodeBlock,
             driver: &NodeBlock,
             max_profilings: usize,
+            update_last: bool,
         ) {
             pop_front_push_back(
                 &mut self.measurements,
@@ -133,7 +134,9 @@ mod data {
                 ClientMeasurement::new(follower, driver),
             );
 
-            self.last_profiling = Some(follower.clone());
+            if update_last {
+                self.last_profiling = Some(follower.clone());
+            }
 
             self.last_non_empty_pos = self.measurements.len();
         }
@@ -218,6 +221,7 @@ mod data {
             profiling: Profiling,
             max_profilings: usize,
             global_getter: &impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
+            update_last_profs: bool,
         ) {
             pop_front_push_back(
                 &mut self.measurements,
@@ -228,7 +232,12 @@ mod data {
             // Add measurements to registered followers and delete those that have no non-empty measurements
             self.followers.retain(|id, follower| {
                 if let Some(f) = profiling.followers.iter().find(|nb| nb.id == *id) {
-                    follower.add_measurement(f, &profiling.driver, max_profilings);
+                    follower.add_measurement(
+                        f,
+                        &profiling.driver,
+                        max_profilings,
+                        update_last_profs,
+                    );
                 } else {
                     follower.add_empty_measurement(max_profilings);
                 }
@@ -259,13 +268,16 @@ mod data {
                                 follower,
                                 &profiling.driver,
                                 max_profilings,
+                                update_last_profs,
                             );
                         }
                     }
                 }
             }
 
-            self.last_profiling = Some(profiling);
+            if update_last_profs {
+                self.last_profiling = Some(profiling);
+            }
         }
 
         pub const fn last_profling(&self) -> Option<&Profiling> {
@@ -329,6 +341,10 @@ pub struct Profiler {
     drivers: HashMap<i32, Driver>,
     selected_driver_id: Option<i32>,
     pause: bool,
+
+    // Used for updating last profilings of nodes periodically instead of on every new profiling.
+    // This is useful for not drawing new data on every egui update, such as mouse movement
+    last_profs_update: std::time::Instant,
 }
 
 #[allow(
@@ -343,6 +359,8 @@ impl Profiler {
             drivers: HashMap::new(),
             selected_driver_id: None,
             pause: false,
+
+            last_profs_update: std::time::Instant::now(),
         }
     }
 
@@ -359,16 +377,36 @@ impl Profiler {
             driver.adjust_queues(self.max_profilings);
         }
 
+        let now = std::time::Instant::now();
+
+        let update_last_profs = if now.duration_since(self.last_profs_update)
+            >= std::time::Duration::from_millis(500)
+        {
+            self.last_profs_update = now;
+            true
+        } else {
+            false
+        };
+
         for p in profilings {
             match self.drivers.entry(p.driver.id) {
                 Entry::Occupied(mut e) => {
-                    e.get_mut()
-                        .add_profiling(p, self.max_profilings, &global_getter);
+                    e.get_mut().add_profiling(
+                        p,
+                        self.max_profilings,
+                        &global_getter,
+                        update_last_profs,
+                    );
                 }
                 Entry::Vacant(e) => {
                     if let Some(global) = global_getter(p.driver.id) {
                         e.insert(Driver::with_max_profilings(self.max_profilings, global))
-                            .add_profiling(p, self.max_profilings, &global_getter);
+                            .add_profiling(
+                                p,
+                                self.max_profilings,
+                                &global_getter,
+                                update_last_profs,
+                            );
                     }
                 }
             }
