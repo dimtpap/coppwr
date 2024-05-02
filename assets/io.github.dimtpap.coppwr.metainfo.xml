@@ -40,23 +40,23 @@
   <screenshots>
     <screenshot type="default">
       <caption>Almost all the available tools in a custom layout</caption>
-      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/all.png</image>
+      <image>https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/all.png</image>
     </screenshot>
     <screenshot>
       <caption>View of performance measurements via the profiler and process viewer pages</caption>
-      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/profiler.png</image>
+      <image>https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/profiler.png</image>
     </screenshot>
     <screenshot>
       <caption>Visual representation and editing of the graph using the Graph view</caption>
-      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/graph.png</image>
+      <image>https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/graph.png</image>
     </screenshot>
     <screenshot>
       <caption>Global Tracker providing a list of the globals and actions on them</caption>
-      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/globaltracker.png</image>
+      <image>https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/globaltracker.png</image>
     </screenshot>
     <screenshot>
       <caption>Connection prompt allowing connecting to XDG Desktop Portal remotes</caption>
-      <image xml:lang="en">https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/disconnected.png</image>
+      <image>https://raw.githubusercontent.com/dimtpap/coppwr/main/assets/screenshots/disconnected.png</image>
     </screenshot>
   </screenshots>
   <keywords>
@@ -68,6 +68,18 @@
   </keywords>
 
   <releases>
+    <release version="1.6.0" date="2024-05-02">
+      <description>
+        <ul>
+          <li>Added buttons for accessing global details in various parts of the app</li>
+          <li>Added waiting+busy charts in the process viewer</li>
+          <li>Added panning the Graph view using the secondary mouse button</li>
+          <li>Made process viewer show updated data strictly every 0.5s, instead of on every update like mouse movement</li>
+          <li>Improved Global Tracker's filtering performance</li>
+          <li>Made almost all text selectable</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.5.1" date="2024-01-15">
       <description>
         <ul>
@@ -141,6 +153,6 @@
 
   <content_rating type="oars-1.0" />
 
-  <developer_name>Dimitris Papaioannou</developer_name>
+  <developer_name translate="no">Dimitris Papaioannou</developer_name>
   <update_contact>dimtpap@protonmail.com</update_contact>
 </component>
