@@ -149,6 +149,8 @@ mod data {
             );
 
             self.last_non_empty_pos -= 1;
+
+            self.last_profiling = None;
         }
 
         const fn is_empty(&self) -> bool {
