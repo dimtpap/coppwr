@@ -750,53 +750,56 @@ impl Profiler {
         }
 
         self.drivers.retain(|id, driver| {
-            let keep = ui.horizontal(|ui| {
-                let keep = !ui.small_button("Delete").clicked();
-                if let Some(p) = driver.last_profling() {
-                    ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
-                } else {
-                    ui.label(format!("Driver ID: {id}"));
-                }
-                keep
-            }).inner;
-            ui.push_id(id, |ui| {
-                egui::ScrollArea::horizontal().show(ui, |ui| {
-                    egui::Grid::new("timings")
-                    .striped(true)
-                    .num_columns(10)
-                    .min_col_width(0.0)
-                    .show(ui, |ui| {
-                        ui.label("");
-                        ui.label("ID");
-                        ui.label("Name");
-                        ui.label("Quantum");
-                        ui.label("Rate");
-                        ui.label("Waiting").on_hover_text("Time elapsed between when the node was ready to start processing and when it actually started processing");
-                        ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
-                        ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
-                        ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
-                        ui.label("Xruns");
-                        ui.end_row();
-                        if let Some(p) = driver.last_profling() {
-                            draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
+            if let Some(p) = driver.last_profling() {
+                let keep = ui.horizontal(|ui| {
+                    let keep = !ui.small_button("Delete").clicked();
+                    if let Some(p) = driver.last_profling() {
+                        ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
+                    } else {
+                        ui.label(format!("Driver ID: {id}"));
+                    }
+                    keep
+                }).inner;
+                ui.push_id(id, |ui| {
+                    egui::ScrollArea::horizontal().show(ui, |ui| {
+                        egui::Grid::new("timings")
+                        .striped(true)
+                        .num_columns(10)
+                        .min_col_width(0.0)
+                        .show(ui, |ui| {
+                            ui.label("");
+                            ui.label("ID");
+                            ui.label("Name");
+                            ui.label("Quantum");
+                            ui.label("Rate");
+                            ui.label("Waiting").on_hover_text("Time elapsed between when the node was ready to start processing and when it actually started processing");
+                            ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
+                            ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
+                            ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
+                            ui.label("Xruns");
                             ui.end_row();
 
-                            for (client, nb) in driver.clients().filter_map(|c| c.last_profiling().map(|p| (c.global.upgrade(), p))) {
-                                draw_node_block(nb, &p.clock, &p.info, false, client.as_ref(), ui, sx);
+                                draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
                                 ui.end_row();
-                            }
-                        }
+
+                                for (client, nb) in driver.clients().filter_map(|c| c.last_profiling().map(|p| (c.global.upgrade(), p))) {
+                                    draw_node_block(nb, &p.clock, &p.info, false, client.as_ref(), ui, sx);
+                                    ui.end_row();
+                                }
+                        });
                     });
                 });
-            });
 
-            egui::CollapsingHeader::new("Chart").id_source(id).show(ui, |ui| {
-                draw_chart(driver, ui);
-            });
-
-            ui.separator();
-
-            keep
+                egui::CollapsingHeader::new("Chart").id_source(id).show(ui, |ui| {
+                    draw_chart(driver, ui);
+                });
+    
+                ui.separator();
+    
+                keep
+            } else {
+                true
+            }
         });
     }
 }
