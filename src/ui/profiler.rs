@@ -315,6 +315,10 @@ mod data {
         pub fn clients(&self) -> impl Iterator<Item = &Client> + '_ {
             self.followers.values()
         }
+
+        pub fn n_clients(&self) -> usize {
+            self.followers.len()
+        }
     }
 }
 
@@ -571,6 +575,68 @@ impl Profiler {
 
         ui.separator();
 
+        fn draw_chart(driver: &Driver, ui: &mut egui::Ui) {
+            use egui_plot::{Bar, BarChart};
+
+            let mut wait = Vec::with_capacity(driver.n_clients());
+            let mut busy = Vec::with_capacity(driver.n_clients());
+            let mut y_labels = Vec::with_capacity(driver.n_clients());
+
+            for (i, nb) in driver
+                .clients()
+                .map(|f| f.last_profiling())
+                .chain(std::iter::once(driver.last_profling().map(|lp| &lp.driver))) // NodeBlock of the driver
+                .filter_map(std::convert::identity)
+                .enumerate()
+            {
+                wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64).horizontal());
+                busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64).horizontal());
+                y_labels.push(nb.name.clone());
+            }
+
+            ui.set_width(ui.available_width());
+
+            Plot::new("Chart")
+                .height((y_labels.len() * 45) as f32)
+                .allow_drag(false)
+                .allow_zoom(false)
+                .allow_scroll(false)
+                .clamp_grid(true)
+                .show_grid(egui::Vec2b::new(true, false))
+                .set_margin_fraction(egui::vec2(0.01, 0.35))
+                .x_axis_formatter(|grid_mark, _, _| format!("{} ns", grid_mark.value))
+                .y_axis_formatter(move |grid_mark, _, _| {
+                    if grid_mark.value.is_sign_positive()
+                        && (grid_mark.value as usize) < y_labels.len()
+                        && grid_mark.value % 1. == 0.
+                    {
+                        y_labels[grid_mark.value as usize].clone()
+                    } else {
+                        String::new()
+                    }
+                })
+                .legend(
+                    egui_plot::Legend::default()
+                        .position(egui_plot::Corner::LeftTop)
+                        .text_style(egui::TextStyle::Small),
+                )
+                .show(ui, |plot_ui| {
+                    let wait = BarChart::new(wait)
+                        .name("Waiting")
+                        .element_formatter(Box::new(|b, _| format!("Waiting took {} ns", b.value)));
+
+                    let busy = BarChart::new(busy)
+                        .name("Busy")
+                        .stack_on(&[&wait])
+                        .element_formatter(Box::new(|b, _| {
+                            format!("Processing took {} ns", b.value)
+                        }));
+
+                    plot_ui.bar_chart(wait);
+                    plot_ui.bar_chart(busy);
+                });
+        }
+
         fn draw_node_block(
             block: &NodeBlock,
             clock: &Clock,
@@ -683,6 +749,11 @@ impl Profiler {
                     });
                 });
             });
+
+            egui::CollapsingHeader::new("Chart").id_source(id).show(ui, |ui| {
+                draw_chart(driver, ui);
+            });
+
             ui.separator();
 
             keep
