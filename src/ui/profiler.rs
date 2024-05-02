@@ -779,13 +779,13 @@ impl Profiler {
                             ui.label("Xruns");
                             ui.end_row();
 
-                                draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
-                                ui.end_row();
+                            draw_node_block(&p.driver, &p.clock, &p.info, true, driver.global.upgrade().as_ref(), ui, sx);
+                            ui.end_row();
 
-                                for (client, nb) in driver.clients().filter_map(|c| c.last_profiling().map(|p| (c.global.upgrade(), p))) {
-                                    draw_node_block(nb, &p.clock, &p.info, false, client.as_ref(), ui, sx);
-                                    ui.end_row();
-                                }
+                            for (client, nb) in driver.clients().filter_map(|c| c.last_profiling().map(|p| (c.global.upgrade(), p))) {
+                                draw_node_block(nb, &p.clock, &p.info, false, client.as_ref(), ui, sx);
+                                ui.end_row();
+                            }
                         });
                     });
                 });
@@ -793,9 +793,9 @@ impl Profiler {
                 egui::CollapsingHeader::new("Chart").id_source(id).show(ui, |ui| {
                     draw_chart(driver, ui);
                 });
-    
+
                 ui.separator();
-    
+
                 keep
             } else {
                 true
