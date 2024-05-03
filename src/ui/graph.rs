@@ -240,7 +240,7 @@ impl Graph {
     }
 
     pub fn add_node(&mut self, id: u32, global: &Rc<RefCell<Global>>) {
-        if self.items.get(&id).is_some() {
+        if self.items.contains_key(&id) {
             return;
         }
 
@@ -283,7 +283,7 @@ impl Graph {
         id: u32,
         node_id: u32,
     ) -> Option<(&NodeId, MediaType)> {
-        if self.items.get(&id).is_some() {
+        if self.items.contains_key(&id) {
             return None;
         }
 
@@ -335,7 +335,7 @@ impl Graph {
     }
 
     pub fn add_link(&mut self, id: u32, output_port_id: u32, input_port_id: u32) {
-        if self.items.get(&id).is_some() {
+        if self.items.contains_key(&id) {
             return;
         }
 

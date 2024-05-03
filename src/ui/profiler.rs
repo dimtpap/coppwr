@@ -626,7 +626,7 @@ impl Profiler {
                 .clients()
                 .map(|f| f.last_profiling())
                 .chain(std::iter::once(driver.last_profling().map(|lp| &lp.driver))) // NodeBlock of the driver
-                .filter_map(std::convert::identity)
+                .flatten()
                 .enumerate()
             {
                 wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64).horizontal());
