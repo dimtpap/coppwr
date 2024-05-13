@@ -493,10 +493,16 @@ impl Profiler {
             self.pause = !self.pause;
         }
 
-        fn profiler_plot(ui: &mut egui::Ui, heading: &str, id: &str, max_x: usize) -> Plot {
+        fn profiler_plot(
+            ui: &mut egui::Ui,
+            heading: &str,
+            explanation: &str,
+            id: &str,
+            max_x: usize,
+        ) -> Plot {
             let reset = ui
                 .horizontal(|ui| {
-                    ui.heading(heading);
+                    ui.heading(heading).on_hover_text(explanation);
                     ui.small_button("Reset").clicked()
                 })
                 .inner;
@@ -544,6 +550,9 @@ impl Profiler {
             profiler_plot(
                 &mut ui[0],
                 "Driver Timing",
+                "Delay: Delay to device\n\
+                              Period: Time between when the previous cycle started and when the current cycle started\n\
+                              Estimated: Estimated time until the next cycle starts",
                 "driver_timing",
                 self.max_profilings,
             )
@@ -561,6 +570,7 @@ impl Profiler {
             profiler_plot(
                 &mut ui[1],
                 "Driver End Date",
+                "Time between when the current cycle started and when the driver finished processing/current cycle ended",
                 "driver_end_date",
                 self.max_profilings,
             )
@@ -573,23 +583,25 @@ impl Profiler {
         ui.separator();
 
         ui.columns(3, |ui| {
-            for (i, (heading, id, measurement)) in [
+            for (i, (heading, explanation, id, measurement)) in [
                 (
                     "Clients End Date",
+                    "Time between when the current cycle started and when the client finished processing",
                     "clients_end_date",
                     Client::end_date as fn(&Client) -> PlotPoints,
                 ),
                 (
                     "Clients Scheduling Latency",
+                    "Time between when the client was ready to start processing and when it actually started processing",
                     "clients_scheduling_latency",
                     Client::scheduling_latency,
                 ),
-                ("Clients Duration", "clients_duration", Client::duration),
+                ("Clients Duration", "Time between when the client started processing and when it finished and woke up the next nodes in the graph", "clients_duration", Client::duration),
             ]
             .into_iter()
             .enumerate()
             {
-                profiler_plot(&mut ui[i], heading, id, self.max_profilings).show(
+                profiler_plot(&mut ui[i], heading, explanation, id, self.max_profilings).show(
                     &mut ui[i],
                     |ui| {
                         for client in driver.clients() {
@@ -772,7 +784,7 @@ impl Profiler {
                             ui.label("Name");
                             ui.label("Quantum");
                             ui.label("Rate");
-                            ui.label("Waiting").on_hover_text("Time elapsed between when the node was ready to start processing and when it actually started processing");
+                            ui.label("Waiting").on_hover_text("Time between when the node was ready to start processing and when it actually started processing");
                             ui.label("Busy").on_hover_text("Time between when the node started processing and when it finished and woke up the next nodes in the graph");
                             ui.label("Waiting/Quantum").on_hover_text("A measure of the graph load");
                             ui.label("Busy/Quantum").on_hover_text("A measure of the load of the driver/node");
