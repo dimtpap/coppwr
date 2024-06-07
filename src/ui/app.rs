@@ -374,7 +374,7 @@ enum State {
 }
 
 impl State {
-    pub fn unconnected_from_env() -> Self {
+    fn unconnected_from_env() -> Self {
         let mut context_properties = EditableKVList::new();
         context_properties
             .list_mut()
@@ -387,7 +387,7 @@ impl State {
         }
     }
 
-    pub fn new_connected(
+    fn new_connected(
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
@@ -404,7 +404,7 @@ impl State {
         }
     }
 
-    pub fn connect(&mut self, inspector_data: Option<&ViewsData>) {
+    fn connect(&mut self, inspector_data: Option<&ViewsData>) {
         if let Self::Unconnected {
             remote,
             mainloop_properties,
@@ -420,7 +420,7 @@ impl State {
         }
     }
 
-    pub fn disconnect(&mut self) {
+    fn disconnect(&mut self) {
         if let Self::Connected { .. } = self {
             *self = Self::unconnected_from_env();
         }
