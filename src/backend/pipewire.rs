@@ -270,12 +270,13 @@ pub fn pipewire_thread(
                 .ok();
 
                 let id = global.id;
-                match BoundGlobal::bind_to(&registry, global, &sx, {
+                let proxy_removed = {
                     let binds = binds.clone();
                     move || {
                         binds.borrow_mut().remove(&id);
                     }
-                }) {
+                };
+                match BoundGlobal::bind_to(&registry, global, &sx, proxy_removed) {
                     Ok(bound_global) => {
                         binds.borrow_mut().insert(id, bound_global);
                     }
