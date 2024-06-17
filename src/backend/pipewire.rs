@@ -43,36 +43,40 @@ pub fn pipewire_thread(
         pw::context::Context,
         Connection,
         Rc<pw::registry::Registry>,
-    ) = match (|| -> Result<_, connection::Error> {
-        let mainloop = if mainloop_properties.is_empty() {
-            pw::main_loop::MainLoop::new(None)?
-        } else {
-            pw::main_loop::MainLoop::new(Some(
-                util::key_val_to_props(mainloop_properties.into_iter()).dict(),
-            ))?
-        };
+    ) = {
+        let result = (|| -> Result<_, connection::Error> {
+            let mainloop = if mainloop_properties.is_empty() {
+                pw::main_loop::MainLoop::new(None)?
+            } else {
+                pw::main_loop::MainLoop::new(Some(
+                    util::key_val_to_props(mainloop_properties.into_iter()).dict(),
+                ))?
+            };
 
-        let context = pw::context::Context::new(&mainloop)?;
-        if context
-            .load_module("libpipewire-module-profiler", None, None)
-            .is_err()
-        {
-            eprintln!("Failed to load the profiler module. No profiler data will be available");
-        };
+            let context = pw::context::Context::new(&mainloop)?;
+            if context
+                .load_module("libpipewire-module-profiler", None, None)
+                .is_err()
+            {
+                eprintln!("Failed to load the profiler module. No profiler data will be available");
+            };
 
-        let connection = Connection::connect(&context, context_properties, remote)?;
+            let connection = Connection::connect(&context, context_properties, remote)?;
 
-        let registry = connection.core().get_registry()?;
+            let registry = connection.core().get_registry()?;
 
-        Ok((mainloop, context, connection, Rc::new(registry)))
-    })() {
-        Ok(instance) => instance,
-        Err(e) => {
-            eprintln!("Failed to connect to remote: {e}");
+            Ok((mainloop, context, connection, Rc::new(registry)))
+        })();
 
-            sx.send(Event::Stop).ok();
+        match result {
+            Ok(instance) => instance,
+            Err(e) => {
+                eprintln!("Failed to connect to remote: {e}");
 
-            return;
+                sx.send(Event::Stop).ok();
+
+                return;
+            }
         }
     };
     let core = connection.core();
