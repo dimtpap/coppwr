@@ -14,6 +14,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![allow(dead_code)]
+
 use pipewire::spa::{pod::deserialize::*, utils::Fraction};
 
 #[derive(Debug)]
