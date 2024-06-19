@@ -544,14 +544,14 @@ impl Graph {
                 }
             }
 
-            let mut pointer_delta = egui::Vec2::ZERO;
-            if ui.ui_contains_pointer() // Can only be queried after the editor UI has been drawn
-                && ui.input(|i| {
-                    pointer_delta = i.pointer.delta();
-                    i.pointer.secondary_down()
-                })
-            {
-                self.editor.pan_zoom.pan += pointer_delta;
+            // Can only be queried after the editor UI has been drawn
+            if ui.ui_contains_pointer() {
+                let (secondary_down, pointer_delta) =
+                    ui.input(|i| (i.pointer.secondary_down(), i.pointer.delta()));
+
+                if secondary_down {
+                    self.editor.pan_zoom.pan += pointer_delta;
+                }
             }
         });
     }
