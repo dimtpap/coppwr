@@ -66,7 +66,12 @@ pub enum Event {
     GlobalRemoved(u32),
     GlobalInfo(u32, Box<[(&'static str, String)]>),
     GlobalProperties(u32, std::collections::BTreeMap<String, String>),
-    ClientPermissions(u32, u32, Vec<pw::permissions::Permission>),
+    ClientPermissions(
+        u32,
+        // Let's keep this as similar to PipeWire's message as possible
+        #[allow(dead_code)] u32,
+        Vec<pw::permissions::Permission>,
+    ),
     ProfilerProfile(Vec<self::pods::profiler::Profiling>),
     MetadataProperty {
         id: u32,
