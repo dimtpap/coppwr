@@ -17,7 +17,7 @@
 use std::{
     cell::RefCell,
     collections::{BTreeMap, HashMap},
-    rc::{Rc, Weak},
+    rc::Rc,
 };
 
 use eframe::egui;
@@ -37,7 +37,7 @@ pub struct GlobalsStore {
     shown_types: u16,
     properties_filter: KvMatcher,
 
-    filter_matches: BTreeMap<u32, Weak<RefCell<Global>>>,
+    filter_matches: BTreeMap<u32, Rc<RefCell<Global>>>,
 }
 
 const fn object_type_flag(t: &ObjectType) -> u16 {
@@ -105,7 +105,7 @@ impl GlobalsStore {
             }
 
             if self.satisfies_filters(&global_borrow) {
-                self.filter_matches.insert(id, Rc::downgrade(&global));
+                self.filter_matches.insert(id, Rc::clone(&global));
             }
         }
 
@@ -140,7 +140,7 @@ impl GlobalsStore {
                     e.remove();
                 }
                 Entry::Vacant(e) if matches => {
-                    e.insert(Rc::downgrade(global));
+                    e.insert(Rc::clone(global));
                 }
                 _ => {}
             }
@@ -180,7 +180,7 @@ impl GlobalsStore {
 
         for (&id, global) in &self.globals {
             if self.satisfies_filters(&global.borrow()) {
-                self.filter_matches.insert(id, Rc::downgrade(global));
+                self.filter_matches.insert(id, Rc::clone(global));
             }
         }
     }
@@ -241,15 +241,9 @@ impl GlobalsStore {
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
-                self.filter_matches.retain(|_, v| {
-                    let Some(global) = v.upgrade() else {
-                        return false;
-                    };
-
+                for global in self.filter_matches.values() {
                     global.borrow_mut().show(ui, self.group_subobjects, sx);
-
-                    true
-                });
+                }
             });
         });
     }
