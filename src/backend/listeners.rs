@@ -231,14 +231,12 @@ pub fn profiler(
     let listener = profiler
         .add_listener_local()
         .profile({
-            move |pod| match PodDeserializer::deserialize_from::<profiler::Profilings>(pod)
-                .map(|(_, pod)| pod)
-            {
-                Ok(profilings) => {
+            move |pod| match PodDeserializer::deserialize_from::<profiler::Profilings>(pod) {
+                Ok((_, profilings)) => {
                     sx.send(Event::ProfilerProfile(profilings.0)).ok();
                 }
-                Err(_) => {
-                    eprintln!("Deserialization of profiler {id} statistics failed");
+                Err(e) => {
+                    eprintln!("Deserialization of profiler {id} statistics failed: {e:?}");
                 }
             }
         })

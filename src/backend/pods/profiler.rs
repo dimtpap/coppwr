@@ -16,7 +16,7 @@
 
 #![allow(dead_code)]
 
-use pipewire::spa::{pod::deserialize::*, utils::Fraction};
+use pipewire::spa::{self, pod::deserialize::*, utils::Fraction};
 
 #[derive(Debug)]
 pub struct Info {
@@ -45,11 +45,21 @@ impl<'de> PodDeserialize<'de> for Info {
                 struct_deserializer: &mut StructPodDeserializer<'de>,
             ) -> Result<Self::Value, DeserializeError<&'de [u8]>> {
                 Ok(Info {
-                    counter: struct_deserializer.deserialize_field()?.unwrap(),
-                    cpu_load_fast: struct_deserializer.deserialize_field()?.unwrap(),
-                    cpu_load_medium: struct_deserializer.deserialize_field()?.unwrap(),
-                    cpu_load_slow: struct_deserializer.deserialize_field()?.unwrap(),
-                    xrun_count: struct_deserializer.deserialize_field()?.unwrap(),
+                    counter: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    cpu_load_fast: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    cpu_load_medium: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    cpu_load_slow: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    xrun_count: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
                 })
             }
         }
@@ -91,16 +101,36 @@ impl<'de> PodDeserialize<'de> for Clock {
                 struct_deserializer: &mut StructPodDeserializer<'de>,
             ) -> Result<Self::Value, DeserializeError<&'de [u8]>> {
                 Ok(Clock {
-                    flags: struct_deserializer.deserialize_field()?.unwrap(),
-                    id: struct_deserializer.deserialize_field()?.unwrap(),
-                    name: struct_deserializer.deserialize_field()?.unwrap(),
-                    nsec: struct_deserializer.deserialize_field()?.unwrap(),
-                    rate: struct_deserializer.deserialize_field()?.unwrap(),
-                    position: struct_deserializer.deserialize_field()?.unwrap(),
-                    duration: struct_deserializer.deserialize_field()?.unwrap(),
-                    delay: struct_deserializer.deserialize_field()?.unwrap(),
-                    rate_diff: struct_deserializer.deserialize_field()?.unwrap(),
-                    next_nsec: struct_deserializer.deserialize_field()?.unwrap(),
+                    flags: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    id: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    name: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    nsec: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    rate: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    position: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    duration: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    delay: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    rate_diff: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    next_nsec: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
                     transport_state: struct_deserializer.deserialize_field()?,
                 })
             }
@@ -141,14 +171,30 @@ impl<'de> PodDeserialize<'de> for NodeBlock {
                 struct_deserializer: &mut StructPodDeserializer<'de>,
             ) -> Result<Self::Value, DeserializeError<&'de [u8]>> {
                 Ok(NodeBlock {
-                    id: struct_deserializer.deserialize_field()?.unwrap(),
-                    name: struct_deserializer.deserialize_field()?.unwrap(),
-                    prev_signal: struct_deserializer.deserialize_field()?.unwrap(),
-                    signal: struct_deserializer.deserialize_field()?.unwrap(),
-                    awake: struct_deserializer.deserialize_field()?.unwrap(),
-                    finish: struct_deserializer.deserialize_field()?.unwrap(),
-                    status: struct_deserializer.deserialize_field()?.unwrap(),
-                    latency: struct_deserializer.deserialize_field()?.unwrap(),
+                    id: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    name: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    prev_signal: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    signal: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    awake: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    finish: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    status: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
+                    latency: struct_deserializer
+                        .deserialize_field()?
+                        .ok_or(DeserializeError::InvalidType)?,
                     xrun_count: struct_deserializer.deserialize_field()?,
                 })
             }
@@ -183,13 +229,22 @@ impl<'de> PodDeserialize<'de> for Profiling {
                 &self,
                 object_deserializer: &mut ObjectPodDeserializer<'de>,
             ) -> Result<Self::Value, DeserializeError<&'de [u8]>> {
-                let info: Info = object_deserializer.deserialize_property()?.unwrap().0;
-                let clock: Clock = object_deserializer.deserialize_property()?.unwrap().0;
-                let driver: NodeBlock = object_deserializer.deserialize_property()?.unwrap().0;
+                let info: Info = object_deserializer
+                    .deserialize_property_key(spa::sys::SPA_PROFILER_info)?
+                    .0;
+                let clock: Clock = object_deserializer
+                    .deserialize_property_key(spa::sys::SPA_PROFILER_clock)?
+                    .0;
+                let driver: NodeBlock = object_deserializer
+                    .deserialize_property_key(spa::sys::SPA_PROFILER_driverBlock)?
+                    .0;
 
                 let mut followers = Vec::new();
 
-                while let Some((fb, _, _)) = object_deserializer.deserialize_property()? {
+                while let Some((fb, _)) = object_deserializer
+                    .deserialize_property_key(spa::sys::SPA_PROFILER_followerBlock)
+                    .ok()
+                {
                     followers.push(fb);
                 }
 
