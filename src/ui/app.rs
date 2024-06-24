@@ -358,10 +358,7 @@ use inspector::{Inspector, ViewsData};
 
 /// Represents the PipeWire connection state.
 enum State {
-    Connected {
-        inspector: Inspector,
-        about: bool,
-    },
+    Connected(Inspector),
     Unconnected {
         remote: RemoteInfo,
         mainloop_properties: EditableKVList,
@@ -389,15 +386,12 @@ impl State {
         context_properties: Vec<(String, String)>,
         inspector_data: Option<&ViewsData>,
     ) -> Self {
-        Self::Connected {
-            inspector: Inspector::new(
-                remote,
-                mainloop_properties,
-                context_properties,
-                inspector_data,
-            ),
-            about: false,
-        }
+        Self::Connected(Inspector::new(
+            remote,
+            mainloop_properties,
+            context_properties,
+            inspector_data,
+        ))
     }
 
     fn connect(&mut self, inspector_data: Option<&ViewsData>) {
@@ -423,7 +417,7 @@ impl State {
     }
 
     fn save_inspector_data(&self, data: &mut Option<ViewsData>) {
-        if let Self::Connected { inspector, .. } = self {
+        if let Self::Connected(inspector) = self {
             inspector.save_data(data);
         }
     }
@@ -438,6 +432,7 @@ mod storage_keys {
 pub struct App {
     dock_state: DockState<View>,
     inspector_data: Option<ViewsData>,
+    about_open: bool,
     state: State,
 }
 
@@ -447,6 +442,7 @@ impl App {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
             inspector_data: None,
+            about: false,
             state: State::new_connected(
                 RemoteInfo::default(),
                 Vec::new(),
@@ -472,6 +468,8 @@ impl App {
                 vec![("media.category".to_owned(), "Manager".to_owned())],
                 inspector_data.as_ref(),
             ),
+
+            about_open: false,
 
             inspector_data,
         }
@@ -533,7 +531,7 @@ impl eframe::App for App {
             .size();
 
         match &mut self.state {
-            State::Connected { inspector, about } => {
+            State::Connected(inspector) => {
                 if inspector.process_events_or_stop() {
                     self.disconnect();
                     return;
@@ -560,7 +558,7 @@ impl eframe::App for App {
 
                         ui.menu_button("Help", |ui| {
                             if ui.button("❓ About").clicked() {
-                                *about = true;
+                                self.about_open = true;
                             }
                         })
                     });
@@ -578,7 +576,7 @@ impl eframe::App for App {
                         (window_size.x - 350f32) / 2f32,
                         (window_size.y - 150f32) / 2f32,
                     ])
-                    .open(about)
+                    .open(&mut self.about_open)
                     .show(ctx, Self::about_ui);
 
                 inspector.tool_windows(ctx);
