@@ -330,14 +330,10 @@ mod inspector {
         fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
             match *tab {
                 View::Profiler => {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.profiler.show_profiler(ui, &self.handle.sx);
-                    });
+                    self.profiler.show_profiler(ui, &self.handle.sx);
                 }
                 View::ProcessViewer => {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.profiler.show_process_viewer(ui, &self.handle.sx);
-                    });
+                    self.profiler.show_process_viewer(ui, &self.handle.sx);
                 }
                 View::GlobalTracker => {
                     self.globals.show(ui, &self.handle.sx);
