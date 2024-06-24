@@ -485,6 +485,25 @@ impl App {
         self.state.save_inspector_data(&mut self.inspector_data);
         self.state.disconnect();
     }
+
+    fn about_ui(ui: &mut egui::Ui) {
+        ui.vertical_centered(|ui| {
+            ui.heading(env!("CARGO_PKG_NAME"));
+            ui.label(env!("CARGO_PKG_VERSION"));
+            ui.label(env!("CARGO_PKG_DESCRIPTION"));
+
+            ui.separator();
+
+            ui.label("2023-2024 Dimitris Papaioannou");
+            ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
+
+            ui.separator();
+
+            ui.label("This program is free software: you can redistribute it and/or modify it \
+                            under the terms of the GNU General Public License version 3 as published \
+                            by the Free Software Foundation.");
+        });
+    }
 }
 
 impl eframe::App for App {
@@ -564,24 +583,7 @@ impl eframe::App for App {
                         (window_size.y - 150f32) / 2f32,
                     ])
                     .open(about)
-                    .show(ctx, |ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.heading(env!("CARGO_PKG_NAME"));
-                            ui.label(env!("CARGO_PKG_VERSION"));
-                            ui.label(env!("CARGO_PKG_DESCRIPTION"));
-
-                            ui.separator();
-
-                            ui.label("2023-2024 Dimitris Papaioannou");
-                            ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
-
-                            ui.separator();
-
-                            ui.label("This program is free software: you can redistribute it and/or modify it \
-                                            under the terms of the GNU General Public License version 3 as published \
-                                            by the Free Software Foundation.");
-                        });
-                    });
+                    .show(ctx, Self::about_ui);
 
                 inspector.tool_windows(ctx);
 
