@@ -442,7 +442,7 @@ impl App {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
             inspector_data: None,
-            about: false,
+            about_open: false,
             state: State::new_connected(
                 RemoteInfo::default(),
                 Vec::new(),
