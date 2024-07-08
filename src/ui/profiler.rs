@@ -16,7 +16,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, HashMap},
+    collections::{hash_map::Entry, HashMap, VecDeque},
     rc::{Rc, Weak},
 };
 
@@ -126,7 +126,6 @@ mod data {
             follower: &NodeBlock,
             driver: &NodeBlock,
             max_profilings: usize,
-            update_last: bool,
         ) {
             pop_front_push_back(
                 &mut self.measurements,
@@ -134,10 +133,7 @@ mod data {
                 ClientMeasurement::new(follower, driver),
             );
 
-            if update_last {
-                self.last_profiling = Some(follower.clone());
-            }
-
+            self.last_profiling = Some(follower.clone());
             self.last_non_empty_pos = self.measurements.len();
         }
 
@@ -223,7 +219,6 @@ mod data {
             profiling: Profiling,
             max_profilings: usize,
             global_getter: &impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
-            update_last_profs: bool,
         ) {
             pop_front_push_back(
                 &mut self.measurements,
@@ -234,12 +229,7 @@ mod data {
             // Add measurements to registered followers and delete those that have no non-empty measurements
             self.followers.retain(|id, follower| {
                 if let Some(f) = profiling.followers.iter().find(|nb| nb.id == *id) {
-                    follower.add_measurement(
-                        f,
-                        &profiling.driver,
-                        max_profilings,
-                        update_last_profs,
-                    );
+                    follower.add_measurement(f, &profiling.driver, max_profilings);
                 } else {
                     follower.add_empty_measurement(max_profilings);
                 }
@@ -270,16 +260,13 @@ mod data {
                                 follower,
                                 &profiling.driver,
                                 max_profilings,
-                                update_last_profs,
                             );
                         }
                     }
                 }
             }
 
-            if update_last_profs {
-                self.last_profiling = Some(profiling);
-            }
+            self.last_profiling = Some(profiling);
         }
 
         pub const fn last_profling(&self) -> Option<&Profiling> {
@@ -344,6 +331,9 @@ pub struct Profiler {
     selected_driver_id: Option<i32>,
     pause: bool,
 
+    /// Temporarily holds incoming data until the update interval passes
+    buffer: VecDeque<Profiling>,
+
     // Used for updating last profilings of nodes periodically instead of on every new profiling.
     // This is useful for not drawing new data on every egui update, such as mouse movement
     last_profs_update: std::time::Instant,
@@ -362,71 +352,88 @@ impl Profiler {
             selected_driver_id: None,
             pause: false,
 
+            buffer: VecDeque::new(),
+
             last_profs_update: std::time::Instant::now(),
         }
     }
 
-    pub fn add_profilings(
+    fn update_data(
         &mut self,
-        profilings: Vec<Profiling>,
+        update_rate: std::time::Duration,
         global_getter: impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
     ) {
-        if self.pause {
-            return;
+        // No need to query the clock, refresh instantly
+        if !update_rate.is_zero() {
+            let now = std::time::Instant::now();
+
+            if now.duration_since(self.last_profs_update) >= update_rate {
+                self.last_profs_update = now;
+            } else {
+                return;
+            }
         }
 
         for driver in self.drivers.values_mut() {
             driver.adjust_queues(self.max_profilings);
         }
 
-        let now = std::time::Instant::now();
-
-        let update_last_profs = if now.duration_since(self.last_profs_update)
-            >= std::time::Duration::from_millis(500)
-        {
-            self.last_profs_update = now;
-            true
-        } else {
-            false
-        };
-
-        for p in profilings {
+        for p in self.buffer.drain(..) {
             match self.drivers.entry(p.driver.id) {
                 Entry::Occupied(mut e) => {
-                    e.get_mut().add_profiling(
-                        p,
-                        self.max_profilings,
-                        &global_getter,
-                        update_last_profs,
-                    );
+                    e.get_mut()
+                        .add_profiling(p, self.max_profilings, &global_getter);
                 }
                 Entry::Vacant(e) => {
                     if let Some(global) = global_getter(p.driver.id) {
                         e.insert(Driver::with_max_profilings(self.max_profilings, global))
-                            .add_profiling(
-                                p,
-                                self.max_profilings,
-                                &global_getter,
-                                update_last_profs,
-                            );
+                            .add_profiling(p, self.max_profilings, &global_getter);
                     }
                 }
             }
         }
     }
 
-    pub fn show_profiler(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
+    pub fn add_profilings(&mut self, profilings: Vec<Profiling>) {
+        if self.pause {
+            return;
+        }
+
+        let skip = if profilings.len() >= self.max_profilings {
+            self.buffer.clear();
+            profilings.len() - self.max_profilings
+        } else if profilings.len() + self.buffer.len() > self.max_profilings {
+            self.buffer
+                .drain(0..usize::min(self.buffer.len(), profilings.len()));
+            0
+        } else {
+            0
+        };
+
+        self.buffer.extend(profilings.into_iter().skip(skip));
+    }
+
+    pub fn show_profiler(
+        &mut self,
+        ui: &mut egui::Ui,
+        sx: &backend::Sender,
+        update_rate: std::time::Duration,
+        global_getter: impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
+    ) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")
             .clicked()
         {
             self.drivers.clear();
+            self.buffer.clear();
             self.max_profilings = 250;
             self.selected_driver_id = None;
             self.pause = false;
             return;
         }
+
+        self.update_data(update_rate, global_getter);
 
         let Some((id, driver)) = ({
             let driver = self
@@ -613,7 +620,13 @@ impl Profiler {
         });
     }
 
-    pub fn show_process_viewer(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
+    pub fn show_process_viewer(
+        &mut self,
+        ui: &mut egui::Ui,
+        sx: &backend::Sender,
+        update_rate: std::time::Duration,
+        global_getter: impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
+    ) {
         if ui
             .small_button("Reset")
             .on_hover_text("Clear all profiling data")
@@ -624,6 +637,8 @@ impl Profiler {
             self.pause = false;
             return;
         }
+
+        self.update_data(update_rate, global_getter);
 
         ui.separator();
 

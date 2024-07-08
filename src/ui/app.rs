@@ -14,6 +14,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::time::Duration;
+
 use eframe::egui;
 use egui_dock::DockState;
 
@@ -42,6 +44,19 @@ impl View {
     }
 }
 
+#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+struct Settings {
+    update_rate: Duration,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            update_rate: Duration::from_millis(500),
+        }
+    }
+}
+
 mod inspector {
     use std::rc::Rc;
 
@@ -57,7 +72,7 @@ mod inspector {
         },
     };
 
-    use super::View;
+    use super::{Settings, View};
 
     /// Stores the persistent view states
     #[derive(Default)]
@@ -276,12 +291,7 @@ mod inspector {
                     self.globals.set_global_props(id, props);
                 }
                 Event::ProfilerProfile(samples) => {
-                    self.profiler.add_profilings(samples, |id| {
-                        id.try_into()
-                            .ok()
-                            .and_then(|id| self.globals.get_global(id))
-                            .map(Rc::downgrade)
-                    });
+                    self.profiler.add_profilings(samples);
                 }
                 Event::MetadataProperty {
                     id,
@@ -322,18 +332,30 @@ mod inspector {
                 Event::Stop => unreachable!(),
             }
         }
-    }
 
-    impl egui_dock::TabViewer for Inspector {
-        type Tab = View;
-
-        fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-            match *tab {
+        pub fn show_view(&mut self, ui: &mut egui::Ui, view: View, settings: &Settings) {
+            match view {
                 View::Profiler => {
-                    self.profiler.show_profiler(ui, &self.handle.sx);
+                    self.profiler
+                        .show_profiler(ui, &self.handle.sx, settings.update_rate, |id| {
+                            id.try_into()
+                                .ok()
+                                .and_then(|id| self.globals.get_global(id))
+                                .map(Rc::downgrade)
+                        });
                 }
                 View::ProcessViewer => {
-                    self.profiler.show_process_viewer(ui, &self.handle.sx);
+                    self.profiler.show_process_viewer(
+                        ui,
+                        &self.handle.sx,
+                        settings.update_rate,
+                        |id| {
+                            id.try_into()
+                                .ok()
+                                .and_then(|id| self.globals.get_global(id))
+                                .map(Rc::downgrade)
+                        },
+                    );
                 }
                 View::GlobalTracker => {
                     self.globals.show(ui, &self.handle.sx);
@@ -343,18 +365,28 @@ mod inspector {
                 }
             }
         }
-
-        fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-            tab.as_str().into()
-        }
-
-        fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
-            [false, false]
-        }
     }
 }
 
 use inspector::{Inspector, ViewsData};
+
+struct Viewer<'a>(&'a mut Inspector, &'a Settings);
+
+impl egui_dock::TabViewer for Viewer<'_> {
+    type Tab = View;
+
+    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        self.0.show_view(ui, *tab, self.1);
+    }
+
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        tab.as_str().into()
+    }
+
+    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
+        [false, false]
+    }
+}
 
 /// Represents the PipeWire connection state.
 enum State {
@@ -427,11 +459,13 @@ impl State {
 mod storage_keys {
     pub const DOCK: &str = "dock";
     pub const INSPECTOR: &str = "inspector";
+    pub const SETTINGS: &str = "settings";
 }
 
 pub struct App {
     dock_state: DockState<View>,
     inspector_data: Option<ViewsData>,
+    settings: Settings,
     about_open: bool,
     state: State,
 }
@@ -442,6 +476,7 @@ impl App {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
             inspector_data: None,
+            settings: Settings::default(),
             about_open: false,
             state: State::new_connected(
                 RemoteInfo::default(),
@@ -457,6 +492,10 @@ impl App {
         let inspector_data =
             storage.and_then(|storage| eframe::get_value(storage, storage_keys::INSPECTOR));
 
+        let settings = storage
+            .and_then(|storage| eframe::get_value(storage, storage_keys::SETTINGS))
+            .unwrap_or_default();
+
         Self {
             dock_state: storage
                 .and_then(|storage| eframe::get_value(storage, storage_keys::DOCK))
@@ -468,6 +507,8 @@ impl App {
                 vec![("media.category".to_owned(), "Manager".to_owned())],
                 inspector_data.as_ref(),
             ),
+
+            settings,
 
             about_open: false,
 
@@ -515,6 +556,8 @@ impl eframe::App for App {
         if let Some(inspector_data) = &self.inspector_data {
             eframe::set_value(storage, storage_keys::INSPECTOR, inspector_data);
         }
+
+        eframe::set_value(storage, storage_keys::SETTINGS, &self.settings);
     }
 
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
@@ -523,7 +566,7 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // egui won't update until there is interaction so data shown may be out of date
-        ctx.request_repaint_after(std::time::Duration::from_millis(500));
+        ctx.request_repaint_after(self.settings.update_rate);
 
         let window_size = ctx
             .input(|i| i.viewport().inner_rect)
@@ -556,6 +599,28 @@ impl eframe::App for App {
                         inspector.views_menu_buttons(ui, &mut self.dock_state);
                         inspector.tools_menu_buttons(ui);
 
+                        ui.menu_button("Settings", |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label("🔁 Update rate").on_hover_text(
+                                    "How often to refresh the UI with new data from PipeWire",
+                                );
+                                ui.add(
+                                    egui::DragValue::from_get_set(|v| {
+                                        if let Some(v) = v {
+                                            self.settings.update_rate = Duration::from_secs_f64(v);
+                                            v
+                                        } else {
+                                            self.settings.update_rate.as_secs_f64()
+                                        }
+                                    })
+                                    .clamp_range(0f64..=86_400f64)
+                                    .speed(0.001)
+                                    .custom_parser(|v| v.parse::<f64>().ok().map(|v| v / 1000.))
+                                    .custom_formatter(|n, _| format!("{:.0}ms", n * 1000.)),
+                                );
+                            });
+                        });
+
                         ui.menu_button("Help", |ui| {
                             if ui.button("❓ About").clicked() {
                                 self.about_open = true;
@@ -586,7 +651,7 @@ impl eframe::App for App {
                 egui_dock::DockArea::new(&mut self.dock_state)
                     .style(style)
                     .show_window_close_buttons(false) // Close buttons on windows do not call TabViewer::on_close
-                    .show(ctx, inspector);
+                    .show(ctx, &mut Viewer(inspector, &self.settings));
             }
             State::Unconnected {
                 remote,
