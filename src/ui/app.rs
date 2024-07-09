@@ -370,9 +370,9 @@ mod inspector {
 
 use inspector::{Inspector, ViewsData};
 
-struct Viewer<'a>(&'a mut Inspector, &'a Settings);
+struct Viewer<'a, 'b>(&'a mut Inspector, &'b Settings);
 
-impl egui_dock::TabViewer for Viewer<'_> {
+impl egui_dock::TabViewer for Viewer<'_, '_> {
     type Tab = View;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
