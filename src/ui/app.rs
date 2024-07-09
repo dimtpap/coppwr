@@ -601,8 +601,8 @@ impl eframe::App for App {
 
                         ui.menu_button("Settings", |ui| {
                             ui.horizontal(|ui| {
-                                ui.label("🔁 Update rate").on_hover_text(
-                                    "How often to refresh the UI with new data from PipeWire",
+                                ui.label("🔁 Update Rate").on_hover_text(
+                                    "How often to refresh the UI with new data from PipeWire. Lower values result in higher CPU usage.",
                                 );
                                 ui.add(
                                     egui::DragValue::from_get_set(|v| {
