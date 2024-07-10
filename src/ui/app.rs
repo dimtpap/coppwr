@@ -44,7 +44,11 @@ impl View {
     }
 }
 
-#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "persistence",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(default)
+)]
 struct Settings {
     update_rate: Duration,
 }
