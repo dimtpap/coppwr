@@ -85,7 +85,7 @@ mod inspector {
         derive(serde::Serialize, serde::Deserialize),
         serde(default)
     )]
-    pub struct ViewsData {
+    pub struct PersistentData {
         graph: Option<<Graph as PersistentView>::Data>,
     }
 
@@ -108,15 +108,15 @@ mod inspector {
             remote: RemoteInfo,
             mainloop_properties: Vec<(String, String)>,
             context_properties: Vec<(String, String)>,
-            views_data: Option<&ViewsData>,
+            restore_data: Option<&PersistentData>,
         ) -> Self {
             Self {
                 handle: backend::Handle::run(remote, mainloop_properties, context_properties),
 
                 globals: GlobalsStore::new(),
                 profiler: Profiler::with_max_profilings(250),
-                graph: views_data
-                    .and_then(|vd| vd.graph.as_ref())
+                graph: restore_data
+                    .and_then(|data| data.graph.as_ref())
                     .map_or_else(Graph::new, Graph::with_data),
 
                 object_creator: Windowed::default(),
@@ -125,13 +125,13 @@ mod inspector {
             }
         }
 
-        pub fn save_data(&self, data: &mut Option<ViewsData>) {
-            let new_data = ViewsData {
+        pub fn save_data(&self, data: &mut Option<PersistentData>) {
+            let new_data = PersistentData {
                 graph: self.graph.save_data(),
             };
 
             match data {
-                Some(ref mut data) => {
+                Some(data) => {
                     if let Some(graph) = new_data.graph {
                         data.graph = Some(graph);
                     }
@@ -372,7 +372,7 @@ mod inspector {
     }
 }
 
-use inspector::{Inspector, ViewsData};
+use inspector::{Inspector, PersistentData};
 
 struct Viewer<'a, 'b>(&'a mut Inspector, &'b Settings);
 
@@ -420,7 +420,7 @@ impl State {
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
         context_properties: Vec<(String, String)>,
-        inspector_data: Option<&ViewsData>,
+        inspector_data: Option<&PersistentData>,
     ) -> Self {
         Self::Connected(Inspector::new(
             remote,
@@ -430,7 +430,7 @@ impl State {
         ))
     }
 
-    fn connect(&mut self, inspector_data: Option<&ViewsData>) {
+    fn connect(&mut self, inspector_data: Option<&PersistentData>) {
         if let Self::Unconnected {
             remote,
             mainloop_properties,
@@ -452,7 +452,7 @@ impl State {
         }
     }
 
-    fn save_inspector_data(&self, data: &mut Option<ViewsData>) {
+    fn save_inspector_data(&self, data: &mut Option<PersistentData>) {
         if let Self::Connected(inspector) = self {
             inspector.save_data(data);
         }
@@ -468,7 +468,7 @@ mod storage_keys {
 
 pub struct App {
     dock_state: DockState<View>,
-    inspector_data: Option<ViewsData>,
+    inspector_data: Option<PersistentData>,
     settings: Settings,
     about_open: bool,
     state: State,
