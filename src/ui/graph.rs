@@ -17,7 +17,7 @@
 use std::{
     borrow::Cow,
     cell::RefCell,
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{HashMap, VecDeque},
     rc::{Rc, Weak},
 };
 
@@ -225,7 +225,7 @@ pub struct Graph {
     responses: Vec<NodeResponse<NoOp, Node>>,
 
     // Maps PipeWire global IDs to graph items
-    items: BTreeMap<u32, GraphItem>,
+    items: HashMap<u32, GraphItem>,
 }
 
 impl Graph {
@@ -235,7 +235,7 @@ impl Graph {
 
             editor: GraphEditorState::default(),
             responses: Vec::new(),
-            items: BTreeMap::new(),
+            items: HashMap::new(),
         }
     }
 
