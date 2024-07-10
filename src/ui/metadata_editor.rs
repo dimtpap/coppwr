@@ -24,7 +24,10 @@ use eframe::egui;
 
 use crate::{
     backend::{self, ObjectMethod, Request},
-    ui::{globals_store::Global, util::uis::global_info_button, Tool},
+    ui::{
+        globals_store::Global,
+        util::{tool::Tool, uis::global_info_button},
+    },
 };
 
 struct Property {

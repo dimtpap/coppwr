@@ -23,8 +23,10 @@ use crate::{
     backend::{self, Request},
     ui::{
         globals_store::Global,
-        util::uis::{global_info_button, EditableKVList},
-        Tool,
+        util::{
+            tool::Tool,
+            uis::{global_info_button, EditableKVList},
+        },
     },
 };
 

@@ -20,9 +20,9 @@ use eframe::egui;
 
 use crate::{
     backend::{self, Request},
-    ui::{
-        util::uis::{EditableKVList, MapEditor},
-        Tool,
+    ui::util::{
+        tool::Tool,
+        uis::{EditableKVList, MapEditor},
     },
 };
 

@@ -20,7 +20,6 @@ mod graph;
 mod metadata_editor;
 mod object_creator;
 mod profiler;
-mod tool;
 mod util;
 
 use context_manager::ContextManager;
@@ -29,7 +28,6 @@ use graph::Graph;
 use metadata_editor::MetadataEditor;
 use object_creator::ObjectCreator;
 use profiler::Profiler;
-use tool::{Tool, Windowed};
 
 mod app;
 pub use app::App as CoppwrApp;

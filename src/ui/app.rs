@@ -71,8 +71,8 @@ mod inspector {
     use crate::{
         backend::{self, Event, RemoteInfo},
         ui::{
-            globals_store::ObjectData, util::persistence::PersistentView, ContextManager,
-            GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler, Windowed,
+            globals_store::ObjectData, util::persistence::PersistentView, util::tool::Windowed,
+            ContextManager, GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler,
         },
     };
 
