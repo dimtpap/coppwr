@@ -241,9 +241,8 @@ impl<'de> PodDeserialize<'de> for Profiling {
 
                 let mut followers = Vec::new();
 
-                while let Some((fb, _)) = object_deserializer
+                while let Ok((fb, _)) = object_deserializer
                     .deserialize_property_key(spa::sys::SPA_PROFILER_followerBlock)
-                    .ok()
                 {
                     followers.push(fb);
                 }
