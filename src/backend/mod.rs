@@ -119,7 +119,7 @@ impl Default for RemoteInfo {
 
 pub struct Handle {
     thread: Option<std::thread::JoinHandle<()>>,
-    pub rx: std::sync::mpsc::Receiver<Event>,
+    rx: std::sync::mpsc::Receiver<Event>,
     pub sx: Sender,
 }
 
@@ -145,6 +145,10 @@ impl Handle {
             rx,
             sx: pwsx,
         }
+    }
+
+    pub fn rx(&self) -> &std::sync::mpsc::Receiver<Event> {
+        &self.rx
     }
 }
 

@@ -214,7 +214,7 @@ mod inspector {
             use std::sync::mpsc::TryRecvError;
 
             loop {
-                match self.handle.rx.try_recv() {
+                match self.handle.rx().try_recv() {
                     Ok(event) => {
                         if let Event::Stop = event {
                             return true;
