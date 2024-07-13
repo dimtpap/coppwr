@@ -316,21 +316,19 @@ mod inspector {
                     key,
                     type_,
                     value,
-                } => match key {
-                    Some(key) => match value {
-                        Some(value) => {
-                            let Some(metadata) = self.globals.get_global(id) else {
-                                return;
-                            };
-                            self.metadata_editor
-                                .tool
-                                .add_property(metadata, subject, key, type_, value);
-                        }
-                        None => {
-                            self.metadata_editor.tool.remove_property(id, &key);
-                        }
-                    },
-                    None => {
+                } => match (key, value) {
+                    (Some(key), Some(value)) => {
+                        let Some(metadata) = self.globals.get_global(id) else {
+                            return;
+                        };
+                        self.metadata_editor
+                            .tool
+                            .add_property(metadata, subject, key, type_, value);
+                    }
+                    (Some(key), None) => {
+                        self.metadata_editor.tool.remove_property(id, &key);
+                    }
+                    (None, _) => {
                         self.metadata_editor.tool.clear_properties(id);
                     }
                 },
