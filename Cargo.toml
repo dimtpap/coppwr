@@ -63,6 +63,7 @@ features = ["xdg_desktop_portals"]
 [package.metadata.generate-rpm]
 assets = [
 	{ source = "target/release/coppwr", dest = "/usr/bin/coppwr", mode = "755" },
+	{ source = "LICENSE", dest = "/usr/share/licenses/coppwr/LICENSE", mode = "644"},
 	{ source = "assets/io.github.dimtpap.coppwr.desktop", dest = "/usr/share/applications/io.github.dimtpap.coppwr.desktop", mode = "644" },
 	{ source = "assets/io.github.dimtpap.coppwr.metainfo.xml", dest = "/usr/share/metainfo/io.github.dimtpap.coppwr.metainfo.xml", mode = "644"},
 	{ source = "assets/icon/scalable.svg", dest = "/usr/share/icons/hicolor/scalable/apps/io.github.dimtpap.coppwr.svg", mode = "644" },
@@ -75,3 +76,5 @@ assets = [
 ]
 [package.metadata.generate-rpm.requires]
 pipewire = ">= 0.3"
+[package.metadata.generate-rpm.suggests]
+xdg-desktop-portal = ">= 0.10"
