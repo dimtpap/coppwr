@@ -211,13 +211,26 @@ mod inspector {
 
         #[must_use = "Indicates whether the connection to the backend has ended"]
         pub fn process_events_or_stop(&mut self) -> bool {
-            while let Ok(e) = self.handle.rx.try_recv() {
-                match e {
-                    Event::Stop => return true,
-                    e => self.process_event(e),
+            use std::sync::mpsc::TryRecvError;
+
+            loop {
+                match self.handle.rx.try_recv() {
+                    Ok(event) => {
+                        if let Event::Stop = event {
+                            return true;
+                        } else {
+                            self.process_event(event)
+                        }
+                    }
+                    Err(err) => match err {
+                        TryRecvError::Empty => break,
+                        TryRecvError::Disconnected => {
+                            eprintln!("Events sender has disconnected");
+                            return true;
+                        }
+                    },
                 }
             }
-
             false
         }
 
