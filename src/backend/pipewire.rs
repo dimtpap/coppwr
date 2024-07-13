@@ -38,6 +38,12 @@ pub fn pipewire_thread(
     #[allow(dead_code)] // The fields are never read from
     struct LocalProxy(pw::proxy::Proxy, pw::proxy::ProxyListener);
 
+    let send = move |event| {
+        // It is ok to ignore the error here since `backend::Handle` makes it
+        // impossible to drop the receiver without also stopping the thread
+        _ = sx.send(event);
+    };
+
     let (mainloop, context, connection, registry): (
         pw::main_loop::MainLoop,
         pw::context::Context,
@@ -73,7 +79,7 @@ pub fn pipewire_thread(
             Err(e) => {
                 eprintln!("Failed to connect to remote: {e}");
 
-                sx.send(Event::Stop).ok();
+                send(Event::Stop);
 
                 return;
             }
@@ -84,7 +90,7 @@ pub fn pipewire_thread(
     let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 
     let _receiver = pwrx.attach(mainloop.loop_(), {
-        let sx = sx.clone();
+        let send = send.clone();
         let mainloop = mainloop.clone();
         let context = context.clone();
         let core = core.clone();
@@ -192,7 +198,7 @@ pub fn pipewire_thread(
                 }
             }
             Request::GetContextProperties => {
-                sx.send(Event::ContextProperties(util::dict_to_map(context.properties().dict()))).ok();
+                send(Event::ContextProperties(util::dict_to_map(context.properties().dict())));
             }
             Request::UpdateContextProperties(props) => {
                 context.update_properties(util::key_val_to_props(props.into_iter()).dict());
@@ -205,12 +211,12 @@ pub fn pipewire_thread(
         }
     });
 
-    sx.send(Event::GlobalAdded(0, ObjectType::Core, None)).ok();
+    send(Event::GlobalAdded(0, ObjectType::Core, None));
 
     let _core_listener = core
         .add_listener_local()
         .info({
-            let sx = sx.clone();
+            let send = send.clone();
             move |info| {
                 #[cfg(feature = "pw_v0_3_77")]
                 if REMOTE_VERSION.get().is_none() {
@@ -231,14 +237,13 @@ pub fn pipewire_thread(
                     ("Cookie", info.cookie().to_string()),
                 ]);
 
-                sx.send(Event::GlobalInfo(0, infos)).ok();
+                send(Event::GlobalInfo(0, infos));
 
                 if let (true, Some(props)) = (
                     info.change_mask().contains(pw::core::ChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(0, util::dict_to_map(props)))
-                        .ok();
+                    send(Event::GlobalProperties(0, util::dict_to_map(props)));
                 }
             }
         })
@@ -258,7 +263,7 @@ pub fn pipewire_thread(
     let _registry_listener = registry
         .add_listener_local()
         .global({
-            let sx = sx.clone();
+            let send = send.clone();
             let registry = Rc::clone(&registry);
             let binds = Rc::clone(&binds);
             move |global| {
@@ -266,12 +271,11 @@ pub fn pipewire_thread(
                     return;
                 }
 
-                sx.send(Event::GlobalAdded(
+                send(Event::GlobalAdded(
                     global.id,
                     global.type_.clone(),
                     global.props.map(util::dict_to_map),
-                ))
-                .ok();
+                ));
 
                 let id = global.id;
                 let proxy_removed = {
@@ -280,7 +284,7 @@ pub fn pipewire_thread(
                         binds.borrow_mut().remove(&id);
                     }
                 };
-                match BoundGlobal::bind_to(&registry, global, &sx, proxy_removed) {
+                match BoundGlobal::bind_to(&registry, global, send.clone(), proxy_removed) {
                     Ok(bound_global) => {
                         binds.borrow_mut().insert(id, bound_global);
                     }
@@ -289,19 +293,18 @@ pub fn pipewire_thread(
             }
         })
         .global_remove({
-            let sx = sx.clone();
+            let send = send.clone();
             move |id| {
-                sx.send(Event::GlobalRemoved(id)).ok();
+                send(Event::GlobalRemoved(id));
             }
         })
         .register();
 
-    sx.send(Event::ContextProperties(util::dict_to_map(
+    send(Event::ContextProperties(util::dict_to_map(
         context.properties().dict(),
-    )))
-    .ok();
+    )));
 
     mainloop.run();
 
-    sx.send(Event::Stop).ok();
+    send(Event::Stop);
 }

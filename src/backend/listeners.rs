@@ -20,7 +20,7 @@ use crate::backend::{bind::Global, pods::profiler, util::dict_to_map, Event};
 
 type Bind = (Global, Box<dyn pipewire::proxy::Listener>);
 
-pub fn module(module: pw::module::Module, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn module(module: pw::module::Module, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = module
         .add_listener_local()
         .info({
@@ -34,15 +34,14 @@ pub fn module(module: pw::module::Module, id: u32, sx: std::sync::mpsc::Sender<E
                     Box::new([name, filename])
                 };
 
-                sx.send(Event::GlobalInfo(id, infos)).ok();
+                on_event(Event::GlobalInfo(id, infos));
 
                 if let (true, Some(props)) = (
                     info.change_mask()
                         .contains(pw::module::ModuleChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -50,7 +49,7 @@ pub fn module(module: pw::module::Module, id: u32, sx: std::sync::mpsc::Sender<E
     (Global::other(module), Box::new(listener))
 }
 
-pub fn factory(factory: pw::factory::Factory, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn factory(factory: pw::factory::Factory, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = factory
         .add_listener_local()
         .info({
@@ -60,15 +59,14 @@ pub fn factory(factory: pw::factory::Factory, id: u32, sx: std::sync::mpsc::Send
                     ("Version", info.version().to_string()),
                 ]);
 
-                sx.send(Event::GlobalInfo(id, infos)).ok();
+                on_event(Event::GlobalInfo(id, infos));
 
                 if let (true, Some(props)) = (
                     info.change_mask()
                         .contains(pw::factory::FactoryChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -76,7 +74,7 @@ pub fn factory(factory: pw::factory::Factory, id: u32, sx: std::sync::mpsc::Send
     (Global::other(factory), Box::new(listener))
 }
 
-pub fn device(device: pw::device::Device, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn device(device: pw::device::Device, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = device
         .add_listener_local()
         .info({
@@ -86,8 +84,7 @@ pub fn device(device: pw::device::Device, id: u32, sx: std::sync::mpsc::Sender<E
                         .contains(pw::device::DeviceChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -95,33 +92,35 @@ pub fn device(device: pw::device::Device, id: u32, sx: std::sync::mpsc::Sender<E
     (Global::other(device), Box::new(listener))
 }
 
-pub fn client(client: pw::client::Client, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn client(
+    client: pw::client::Client,
+    id: u32,
+    on_event: impl Fn(Event) + Clone + 'static,
+) -> Bind {
     let listener = client
         .add_listener_local()
         .info({
-            let sx = sx.clone();
+            let on_event = on_event.clone();
             move |info| {
                 if let (true, Some(props)) = (
                     info.change_mask()
                         .contains(pw::client::ClientChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
         .permissions({
             move |idx, permissions| {
-                sx.send(Event::ClientPermissions(id, idx, permissions.into()))
-                    .ok();
+                on_event(Event::ClientPermissions(id, idx, permissions.into()));
             }
         })
         .register();
     (Global::Client(client), Box::new(listener))
 }
 
-pub fn node(node: pw::node::Node, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn node(node: pw::node::Node, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = node
         .add_listener_local()
         .info({
@@ -142,14 +141,13 @@ pub fn node(node: pw::node::Node, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                     ("State", state),
                 ]);
 
-                sx.send(Event::GlobalInfo(id, infos)).ok();
+                on_event(Event::GlobalInfo(id, infos));
 
                 if let (true, Some(props)) = (
                     info.change_mask().contains(pw::node::NodeChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -157,7 +155,7 @@ pub fn node(node: pw::node::Node, id: u32, sx: std::sync::mpsc::Sender<Event>) -
     (Global::other(node), Box::new(listener))
 }
 
-pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = port
         .add_listener_local()
         .info({
@@ -169,15 +167,13 @@ pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                 }
                 .to_owned();
 
-                sx.send(Event::GlobalInfo(id, Box::new([("Direction", direction)])))
-                    .ok();
+                on_event(Event::GlobalInfo(id, Box::new([("Direction", direction)])));
 
                 if let (true, Some(props)) = (
                     info.change_mask().contains(pw::port::PortChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -185,7 +181,7 @@ pub fn port(port: pw::port::Port, id: u32, sx: std::sync::mpsc::Sender<Event>) -
     (Global::other(port), Box::new(listener))
 }
 
-pub fn link(link: pw::link::Link, id: u32, sx: std::sync::mpsc::Sender<Event>) -> Bind {
+pub fn link(link: pw::link::Link, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
     let listener = link
         .add_listener_local()
         .info({
@@ -208,14 +204,13 @@ pub fn link(link: pw::link::Link, id: u32, sx: std::sync::mpsc::Sender<Event>) -
                     ("State", state),
                 ]);
 
-                sx.send(Event::GlobalInfo(id, infos)).ok();
+                on_event(Event::GlobalInfo(id, infos));
 
                 if let (true, Some(props)) = (
                     info.change_mask().contains(pw::link::LinkChangeMask::PROPS),
                     info.props(),
                 ) {
-                    sx.send(Event::GlobalProperties(id, dict_to_map(props)))
-                        .ok();
+                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
                 }
             }
         })
@@ -226,14 +221,14 @@ pub fn link(link: pw::link::Link, id: u32, sx: std::sync::mpsc::Sender<Event>) -
 pub fn profiler(
     profiler: pw::profiler::Profiler,
     id: u32,
-    sx: std::sync::mpsc::Sender<Event>,
+    on_event: impl Fn(Event) + 'static,
 ) -> Bind {
     let listener = profiler
         .add_listener_local()
         .profile({
             move |pod| match PodDeserializer::deserialize_from::<profiler::Profilings>(pod) {
                 Ok((_, profilings)) => {
-                    sx.send(Event::ProfilerProfile(profilings.0)).ok();
+                    on_event(Event::ProfilerProfile(profilings.0));
                 }
                 Err(e) => {
                     eprintln!("Deserialization of profiler {id} statistics failed: {e:?}");
@@ -247,20 +242,19 @@ pub fn profiler(
 pub fn metadata(
     metadata: pw::metadata::Metadata,
     id: u32,
-    sx: std::sync::mpsc::Sender<Event>,
+    on_event: impl Fn(Event) + 'static,
 ) -> Bind {
     let listener = metadata
         .add_listener_local()
         .property({
             move |subject, key, type_, value| {
-                sx.send(Event::MetadataProperty {
+                on_event(Event::MetadataProperty {
                     id,
                     subject,
                     key: key.map(ToOwned::to_owned),
                     type_: type_.map(ToOwned::to_owned),
                     value: value.map(ToOwned::to_owned),
-                })
-                .ok();
+                });
                 0
             }
         })

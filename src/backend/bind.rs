@@ -83,40 +83,50 @@ impl BoundGlobal {
     pub fn bind_to<P: AsRef<DictRef>>(
         registry: &pw::registry::Registry,
         global: &GlobalObject<&P>,
-        sx: &std::sync::mpsc::Sender<Event>,
+        on_event: impl Fn(Event) + Clone + 'static,
         proxy_removed: impl Fn() + 'static,
     ) -> Result<Self, Error> {
-        let sx = sx.clone();
-
         let id = global.id;
         let (global, object_listener): (_, Box<dyn pw::proxy::Listener>) = match global.type_ {
-            ObjectType::Module => {
-                listeners::module(registry.bind::<pw::module::Module, _>(global)?, id, sx)
-            }
-            ObjectType::Factory => {
-                listeners::factory(registry.bind::<pw::factory::Factory, _>(global)?, id, sx)
-            }
-            ObjectType::Device => {
-                listeners::device(registry.bind::<pw::device::Device, _>(global)?, id, sx)
-            }
-            ObjectType::Client => {
-                listeners::client(registry.bind::<pw::client::Client, _>(global)?, id, sx)
-            }
+            ObjectType::Module => listeners::module(
+                registry.bind::<pw::module::Module, _>(global)?,
+                id,
+                on_event,
+            ),
+            ObjectType::Factory => listeners::factory(
+                registry.bind::<pw::factory::Factory, _>(global)?,
+                id,
+                on_event,
+            ),
+            ObjectType::Device => listeners::device(
+                registry.bind::<pw::device::Device, _>(global)?,
+                id,
+                on_event,
+            ),
+            ObjectType::Client => listeners::client(
+                registry.bind::<pw::client::Client, _>(global)?,
+                id,
+                on_event,
+            ),
             ObjectType::Node => {
-                listeners::node(registry.bind::<pw::node::Node, _>(global)?, id, sx)
+                listeners::node(registry.bind::<pw::node::Node, _>(global)?, id, on_event)
             }
             ObjectType::Port => {
-                listeners::port(registry.bind::<pw::port::Port, _>(global)?, id, sx)
+                listeners::port(registry.bind::<pw::port::Port, _>(global)?, id, on_event)
             }
             ObjectType::Link => {
-                listeners::link(registry.bind::<pw::link::Link, _>(global)?, id, sx)
+                listeners::link(registry.bind::<pw::link::Link, _>(global)?, id, on_event)
             }
-            ObjectType::Profiler => {
-                listeners::profiler(registry.bind::<pw::profiler::Profiler, _>(global)?, id, sx)
-            }
-            ObjectType::Metadata => {
-                listeners::metadata(registry.bind::<pw::metadata::Metadata, _>(global)?, id, sx)
-            }
+            ObjectType::Profiler => listeners::profiler(
+                registry.bind::<pw::profiler::Profiler, _>(global)?,
+                id,
+                on_event,
+            ),
+            ObjectType::Metadata => listeners::metadata(
+                registry.bind::<pw::metadata::Metadata, _>(global)?,
+                id,
+                on_event,
+            ),
             _ => {
                 return Err(Error::Unimplemented(global.type_.clone()));
             }
