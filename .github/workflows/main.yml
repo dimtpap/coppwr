@@ -96,7 +96,7 @@ jobs:
         run: cargo install cargo-deb cargo-generate-rpm
       - name: Build
         run: cargo build --release --verbose --all-features
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload binary
         with:
           name: coppwr
@@ -114,14 +114,14 @@ jobs:
           mkdir .cargo
           cargo vendor -v > .cargo/config.toml
           tar --exclude='out' --exclude='.git*' --exclude='coppwr/pipewire' --exclude='coppwr/target' --transform "s|coppwr|$NAME|" -zcvf out/"$NAME"-vendor.tar.gz -C .. coppwr/
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload packages
         with:
           name: coppwr-deb-rpm
           path: |
             out/*.deb
             out/*.rpm
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload vendor archive
         with:
           name: coppwr-vendor
