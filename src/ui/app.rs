@@ -385,24 +385,6 @@ mod inspector {
 
 use inspector::{Inspector, PersistentData};
 
-struct Viewer<'a, 'b>(&'a mut Inspector, &'b Settings);
-
-impl egui_dock::TabViewer for Viewer<'_, '_> {
-    type Tab = View;
-
-    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        self.0.show_view(ui, *tab, self.1);
-    }
-
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        tab.as_str().into()
-    }
-
-    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
-        [false, false]
-    }
-}
-
 /// Represents the PipeWire connection state.
 enum State {
     Connected(Inspector),
@@ -590,6 +572,24 @@ impl eframe::App for App {
 
         match &mut self.state {
             State::Connected(inspector) => {
+                struct Viewer<'a, 'b>(&'a mut Inspector, &'b Settings);
+
+                impl egui_dock::TabViewer for Viewer<'_, '_> {
+                    type Tab = View;
+
+                    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+                        self.0.show_view(ui, *tab, self.1);
+                    }
+
+                    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+                        tab.as_str().into()
+                    }
+
+                    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
+                        [false, false]
+                    }
+                }
+
                 if inspector.process_events_or_stop() {
                     self.disconnect();
                     return;
