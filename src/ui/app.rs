@@ -395,8 +395,8 @@ enum State {
     },
 }
 
-impl State {
-    fn unconnected() -> Self {
+impl Default for State {
+    fn default() -> Self {
         let mut context_properties = EditableKVList::new();
         context_properties
             .list_mut()
@@ -408,7 +408,9 @@ impl State {
             context_properties,
         }
     }
+}
 
+impl State {
     fn new_connected(
         remote: RemoteInfo,
         mainloop_properties: Vec<(String, String)>,
@@ -421,12 +423,6 @@ impl State {
             context_properties,
             inspector_data,
         ))
-    }
-
-    fn disconnect(&mut self) {
-        if let Self::Connected { .. } = self {
-            *self = Self::unconnected();
-        }
     }
 
     fn save_inspector_data(&self, data: &mut Option<PersistentData>) {
@@ -499,7 +495,7 @@ impl App {
 
     fn disconnect(&mut self) {
         self.state.save_inspector_data(&mut self.inspector_data);
-        self.state.disconnect();
+        self.state = State::default();
     }
 
     fn about_ui(ui: &mut egui::Ui) {
@@ -542,7 +538,13 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
-        self.state.disconnect();
+        // Switch to stop backend
+        // Not using Default to avoid allocations
+        self.state = State::Unconnected {
+            remote: RemoteInfo::Regular(String::new()),
+            mainloop_properties: EditableKVList::new(),
+            context_properties: EditableKVList::new(),
+        };
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
