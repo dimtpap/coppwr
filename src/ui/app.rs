@@ -396,7 +396,7 @@ enum State {
 }
 
 impl State {
-    fn unconnected_from_env() -> Self {
+    fn unconnected() -> Self {
         let mut context_properties = EditableKVList::new();
         context_properties
             .list_mut()
@@ -441,7 +441,7 @@ impl State {
 
     fn disconnect(&mut self) {
         if let Self::Connected { .. } = self {
-            *self = Self::unconnected_from_env();
+            *self = Self::unconnected();
         }
     }
 

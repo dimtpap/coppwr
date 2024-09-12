@@ -111,8 +111,14 @@ impl PartialEq for RemoteInfo {
 
 impl Default for RemoteInfo {
     fn default() -> Self {
+        static DEFAULT_REMOTE_NAME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
         Self::Regular(
-            std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0")),
+            DEFAULT_REMOTE_NAME
+                .get_or_init(|| {
+                    std::env::var("PIPEWIRE_REMOTE").unwrap_or_else(|_| String::from("pipewire-0"))
+                })
+                .clone(),
         )
     }
 }
