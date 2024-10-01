@@ -186,12 +186,12 @@ impl GlobalsStore {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
-        ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
-                                .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately");
+        let mut rematch =
+            ui.checkbox(&mut self.group_subobjects, "Group Subobjects")
+              .on_hover_text("Whether to group objects as parents/children (Client/Device > Nodes > Ports > Links) or show them separately")
+              .changed();
 
         ui.collapsing("Filters", |ui| {
-            let mut rematch = false;
-
             ui.horizontal(|ui| {
                 ui.label("Types");
                 egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -231,11 +231,11 @@ impl GlobalsStore {
             );
 
             rematch |= self.properties_filter.show(ui);
-
-            if rematch {
-                self.repopulate_matches();
-            }
         });
+
+        if rematch {
+            self.repopulate_matches();
+        }
 
         ui.separator();
 
