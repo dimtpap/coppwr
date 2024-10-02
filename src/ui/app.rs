@@ -549,12 +549,14 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // egui won't update until there is interaction so data shown may be out of date
-        ctx.request_repaint_after(self.settings.update_rate);
+        ctx.request_repaint_after(
+            self.settings.update_rate + Duration::from_millis(20),
+            // https://github.com/emilk/egui/commit/0be4450e3da62918339a4cb3113da4a31d033b52#diff-dc1fee2debc9928daf5514f8678c2bedafc1d679871fb75a7b0ff5450ecf7431R168
+            // causes updates to be missed by UIs that update strictly after `update_rate`
+            // since the first update comes too early
+        );
 
-        let window_size = ctx
-            .input(|i| i.viewport().inner_rect)
-            .unwrap_or(egui::Rect::ZERO)
-            .size();
+        let window_size = ctx.input(|i| i.screen_rect()).size();
 
         match &mut self.state {
             State::Connected(inspector) => {
@@ -614,7 +616,7 @@ impl eframe::App for App {
                                             self.settings.update_rate.as_secs_f64()
                                         }
                                     })
-                                    .clamp_range(0f64..=86_400f64)
+                                    .range(0f64..=86_400f64)
                                     .speed(0.001)
                                     .custom_parser(|v| v.parse::<f64>().ok().map(|v| v / 1000.))
                                     .custom_formatter(|n, _| format!("{:.0}ms", n * 1000.)),
@@ -638,10 +640,8 @@ impl eframe::App for App {
                 egui::Window::new("About")
                     .collapsible(false)
                     .fixed_size([350f32, 150f32])
-                    .default_pos([
-                        (window_size.x - 350f32) / 2f32,
-                        (window_size.y - 150f32) / 2f32,
-                    ])
+                    .pivot(egui::Align2::CENTER_CENTER)
+                    .default_pos([window_size.x / 2f32, window_size.y / 2f32])
                     .open(&mut self.about_open)
                     .show(ctx, Self::about_ui);
 
@@ -662,9 +662,10 @@ impl eframe::App for App {
                 let mut connect = false;
                 egui::CentralPanel::default().show(ctx, |_| {});
                 egui::Window::new("Connect to PipeWire")
-                    .fixed_size([300., 200.])
-                    .default_pos([(window_size.x - 300.) / 2., (window_size.y - 200.) / 2.])
                     .collapsible(false)
+                    .fixed_size([300., 200.])
+                    .pivot(egui::Align2::CENTER_CENTER)
+                    .default_pos([window_size.x / 2., window_size.y / 2.])
                     .show(ctx, {
                         let mainloop_properties = &mut *mainloop_properties;
                         |ui| {

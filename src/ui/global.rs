@@ -272,7 +272,7 @@ impl Global {
     pub fn show(&mut self, ui: &mut egui::Ui, draw_subobjects: bool, sx: &backend::Sender) {
         fn subobjects_display(
             ui: &mut egui::Ui,
-            id_source: Option<&str>,
+            id_salt: Option<&str>,
             len: usize,
             subobjects: impl Iterator<Item = Rc<RefCell<Global>>>,
             sx: &backend::Sender,
@@ -281,8 +281,8 @@ impl Global {
 
             let sc = egui::ScrollArea::horizontal();
 
-            if let Some(id_source) = id_source {
-                sc.id_source(id_source)
+            if let Some(id_salt) = id_salt {
+                sc.id_salt(id_salt)
             } else {
                 sc
             }
@@ -305,7 +305,7 @@ impl Global {
             }
 
             ui.scope(|ui| {
-                ui.style_mut().wrap = Some(false);
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
                 if let Some(name) = self.name() {
                     ui.label(name);

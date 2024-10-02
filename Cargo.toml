@@ -3,7 +3,7 @@ name = "coppwr"
 version = "1.6.0"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
 edition = "2021"
-rust-version = "1.72"
+rust-version = "1.76"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
@@ -16,11 +16,11 @@ categories = ["gui", "multimedia"]
 
 [dependencies]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "605d15996f3258b3e1cc34e445dfbdf16a366c7e"}
-egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev = "3e99a2af2025e72365a4ec5048011041a85002e5"}
-eframe = "0.27.2"
-egui = {version = "0.27.2", features = ["rayon"]}
-egui_plot = "0.27.2"
-egui_dock = "0.12.0"
+egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev = "87b3f084c1cf70ac9ad489ae1f2e2a8234efdde4"}
+eframe = "0.29.1"
+egui = {version = "0.29.1", features = ["rayon"]}
+egui_plot = "0.29.0"
+egui_dock = "0.14.0"
 serde = {version = "1.0", optional = true}
 ashpd = {version = "0.7.0", optional = true}
 pollster = {version = "0.3.0", optional = true}

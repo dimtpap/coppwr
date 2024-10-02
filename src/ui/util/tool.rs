@@ -33,8 +33,8 @@ pub struct Windowed<T: Tool> {
 impl<T: Tool> Windowed<T> {
     pub fn window(&mut self, ctx: &egui::Context, sx: &backend::Sender) {
         egui::Window::new(T::NAME)
-            .vscroll(true)
             .open(&mut self.open)
+            .vscroll(true)
             .show(ctx, |ui| {
                 self.tool.show(ui, sx);
             });
