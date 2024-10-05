@@ -190,7 +190,7 @@ impl MetadataEditor {
                 ui.separator();
 
                 egui::CollapsingHeader::new("Add properites")
-                    .id_source(*id)
+                    .id_salt(*id)
                     .show(ui, |ui| {
                         metadata.user_properties.retain_mut(|(key, prop)| {
                             ui.horizontal(|ui| {

@@ -40,12 +40,12 @@ fn main() {
         {
             #[cfg(not(feature = "persistence"))]
             {
-                Box::new(|_| Box::new(CoppwrApp::new()))
+                Box::new(|_| Ok(Box::new(CoppwrApp::new())))
             }
 
             #[cfg(feature = "persistence")]
             {
-                Box::new(|cc| Box::new(CoppwrApp::new(cc.storage)))
+                Box::new(|cc| Ok(Box::new(CoppwrApp::new(cc.storage))))
             }
         },
     ) {

@@ -86,7 +86,7 @@ impl ContextManager {
 
         match self.view {
             View::PropertiesEditor => {
-                self.properties.show(ui, 0f32, 250f32);
+                self.properties.show(ui, 0f32, 400f32);
 
                 ui.separator();
 

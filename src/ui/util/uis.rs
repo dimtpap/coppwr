@@ -27,19 +27,17 @@ pub fn global_info_button(
 ) {
     ui.add_enabled_ui(global.is_some(), |ui| {
         ui.menu_button("ℹ", |ui| {
-            egui::ScrollArea::vertical()
-                .max_height(400.)
-                .show(ui, |ui| {
-                    if let Some(global) = global {
-                        ui.set_max_width(500.);
-
-                        // Remove cross-justify
-                        ui.with_layout(egui::Layout::default(), |ui| {
-                            ui.reset_style();
-                            global.borrow_mut().show(ui, true, sx);
-                        });
-                    }
-                });
+            ui.set_max_height(400.);
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.set_max_width(500.);
+                if let Some(global) = global {
+                    // Remove cross-justify
+                    ui.with_layout(egui::Layout::default(), |ui| {
+                        ui.reset_style();
+                        global.borrow_mut().show(ui, true, sx);
+                    });
+                }
+            });
         })
         .response
         .on_disabled_hover_text("Global has been destroyed");
@@ -230,7 +228,7 @@ mod kv_matcher {
 
             let before = self.clone();
 
-            egui::ComboBox::from_id_source(id_source)
+            egui::ComboBox::from_id_salt(id_source)
                 .selected_text(as_user_str(self))
                 .show_ui(ui, |ui| {
                     for mode in [

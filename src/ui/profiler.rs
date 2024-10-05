@@ -482,7 +482,7 @@ impl Profiler {
 
         let clear = ui.horizontal(|ui| {
             ui.label("Profilings");
-            ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).clamp_range(1..=1_000_000))
+            ui.add(egui::widgets::DragValue::new(&mut self.max_profilings).range(1..=1_000_000))
                 .on_hover_text("Number of profiler samples to keep in memory. Very big values will slow down the application.");
 
             let clear = ui.button("Clear driver samples").clicked();
@@ -506,7 +506,7 @@ impl Profiler {
             explanation: &str,
             id: &str,
             max_x: usize,
-        ) -> Plot {
+        ) -> Plot<'static> {
             let reset = ui
                 .horizontal(|ui| {
                     ui.heading(heading).on_hover_text(explanation);
@@ -526,7 +526,7 @@ impl Profiler {
                         format!("{name}: {:.0}us\nProcess cycle: {:.0}", value.y, value.x)
                     }
                 })
-                .x_axis_formatter(move |x, _, _| {
+                .x_axis_formatter(move |x, _| {
                     let x = x.value;
 
                     if x.is_sign_negative() || x > max_x as f64 || x % 1. != 0. {
@@ -535,7 +535,7 @@ impl Profiler {
                         format!("{x:.0}")
                     }
                 })
-                .y_axis_formatter(|y, _, _| {
+                .y_axis_formatter(|y, _| {
                     let y = y.value;
                     if y.is_sign_negative() {
                         String::new()
@@ -658,7 +658,7 @@ impl Profiler {
             {
                 wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64).horizontal());
                 busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64).horizontal());
-                y_labels.push(nb.name.clone());
+                y_labels.push(nb.name.as_str());
             }
 
             ui.set_width(ui.available_width());
@@ -671,13 +671,13 @@ impl Profiler {
                 .clamp_grid(true)
                 .show_grid(egui::Vec2b::new(true, false))
                 .set_margin_fraction(egui::vec2(0.01, 0.35))
-                .x_axis_formatter(|grid_mark, _, _| format!("{} ns", grid_mark.value))
-                .y_axis_formatter(move |grid_mark, _, _| {
+                .x_axis_formatter(|grid_mark, _| format!("{} ns", grid_mark.value))
+                .y_axis_formatter(|grid_mark, _| {
                     if grid_mark.value.is_sign_positive()
                         && (grid_mark.value as usize) < y_labels.len()
                         && grid_mark.value % 1. == 0.
                     {
-                        y_labels[grid_mark.value as usize].clone()
+                        y_labels[grid_mark.value as usize].to_owned()
                     } else {
                         String::new()
                     }
@@ -819,7 +819,7 @@ impl Profiler {
                         });
                     });
 
-                    egui::CollapsingHeader::new("Chart").id_source(id).show(ui, |ui| {
+                    egui::CollapsingHeader::new("Chart").id_salt(id).show(ui, |ui| {
                         draw_chart(driver, ui);
                     });
 
