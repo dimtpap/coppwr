@@ -62,7 +62,7 @@ impl std::error::Error for Error {}
 
 #[cfg(feature = "xdg_desktop_portals")]
 mod portals {
-    use std::os::fd::{FromRawFd, OwnedFd};
+    use std::os::fd::OwnedFd;
 
     use ashpd::{
         desktop::{screencast::SourceType, Session},
@@ -96,13 +96,12 @@ mod portals {
 
             let fd = proxy.open_pipe_wire_remote(&session).await?;
 
-            Ok((unsafe { OwnedFd::from_raw_fd(fd) }, session))
+            Ok((fd, session))
         })
     }
 
     pub fn open_camera_remote() -> Result<Option<OwnedFd>, ashpd::Error> {
         pollster::block_on(ashpd::desktop::camera::request())
-            .map(|fd| fd.map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }))
     }
 }
 
