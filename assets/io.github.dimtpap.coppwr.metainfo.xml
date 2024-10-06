@@ -3,17 +3,16 @@
   <id>io.github.dimtpap.coppwr</id>
   
   <name>coppwr</name>
-  <summary>Low level control GUI for PipeWire</summary>
+  <summary>Visual, low level PipeWire control</summary>
   
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   
   <description>
     <p>
-      coppwr is a tool that provides low level control over the PipeWire multimedia server.
-      It aims to expose and provide as many ways to inspect and control the many components
-      of the PipeWire multimedia server as possible. It can be used as a diagnostic tool for PipeWire
-      and to help develop software that interacts with it.
+      coppwr displays and provides control over many aspects of PipeWire as directly as possible
+      in an organized and visual way. It can help with debugging and diagnosing a PipeWire setup
+      or with developing software that interacts with PipeWire.
     </p>
     <p>Features</p>
     <ul>
