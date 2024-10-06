@@ -669,75 +669,65 @@ impl eframe::App for App {
                     .show(ctx, {
                         let mainloop_properties = &mut *mainloop_properties;
                         |ui| {
-                            ui.with_layout(
-                                egui::Layout::default().with_cross_justify(true),
-                                |ui| {
-                                    #[cfg(feature = "xdg_desktop_portals")]
-                                    egui::ComboBox::new("remote_type", "Remote kind")
-                                        .selected_text({
-                                            match remote {
-                                                RemoteInfo::Regular(..) => "Regular",
-                                                RemoteInfo::Screencast { .. } => {
-                                                    "Screencast portal"
-                                                }
-                                                RemoteInfo::Camera => "Camera portal",
-                                            }
-                                        })
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                remote,
-                                                RemoteInfo::default(),
-                                                "Regular",
-                                            );
-                                            ui.selectable_value(
-                                                remote,
-                                                RemoteInfo::Screencast {
-                                                    types: BitFlags::EMPTY,
-                                                    multiple: false,
-                                                },
-                                                "Screencast portal",
-                                            );
-                                            ui.selectable_value(
-                                                remote,
-                                                RemoteInfo::Camera,
-                                                "Camera portal",
-                                            );
-                                        });
-
+                            #[cfg(feature = "xdg_desktop_portals")]
+                            egui::ComboBox::new("remote_type", "Remote kind")
+                                .selected_text({
                                     match remote {
-                                        RemoteInfo::Regular(name) => {
-                                            egui::TextEdit::singleline(name)
-                                                .hint_text("Remote name")
-                                                .show(ui);
-                                        }
-
-                                        #[cfg(feature = "xdg_desktop_portals")]
-                                        RemoteInfo::Screencast { types, multiple } => {
-                                            ui.horizontal(|ui| {
-                                                ui.label("Source types");
-                                                for (label, source_type) in [
-                                                    ("Monitor", SourceType::Monitor),
-                                                    ("Window", SourceType::Window),
-                                                    ("Virtual", SourceType::Virtual),
-                                                ] {
-                                                    if ui
-                                                        .selectable_label(
-                                                            types.contains(source_type),
-                                                            label,
-                                                        )
-                                                        .clicked()
-                                                    {
-                                                        types.toggle(source_type);
-                                                    }
-                                                }
-                                            });
-                                            ui.checkbox(multiple, "Multiple sources");
-                                        }
-                                        #[cfg(feature = "xdg_desktop_portals")]
-                                        RemoteInfo::Camera => {}
+                                        RemoteInfo::Regular(..) => "Regular",
+                                        RemoteInfo::Screencast { .. } => "Screencast portal",
+                                        RemoteInfo::Camera => "Camera portal",
                                     }
-                                },
-                            );
+                                })
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(remote, RemoteInfo::default(), "Regular");
+                                    ui.selectable_value(
+                                        remote,
+                                        RemoteInfo::Screencast {
+                                            types: BitFlags::EMPTY,
+                                            multiple: false,
+                                        },
+                                        "Screencast portal",
+                                    );
+                                    ui.selectable_value(
+                                        remote,
+                                        RemoteInfo::Camera,
+                                        "Camera portal",
+                                    );
+                                });
+
+                            match remote {
+                                RemoteInfo::Regular(name) => {
+                                    egui::TextEdit::singleline(name)
+                                        .hint_text("Remote name")
+                                        .desired_width(f32::INFINITY)
+                                        .show(ui);
+                                }
+
+                                #[cfg(feature = "xdg_desktop_portals")]
+                                RemoteInfo::Screencast { types, multiple } => {
+                                    ui.horizontal(|ui| {
+                                        ui.label("Source types");
+                                        for (label, source_type) in [
+                                            ("Monitor", SourceType::Monitor),
+                                            ("Window", SourceType::Window),
+                                            ("Virtual", SourceType::Virtual),
+                                        ] {
+                                            if ui
+                                                .selectable_label(
+                                                    types.contains(source_type),
+                                                    label,
+                                                )
+                                                .clicked()
+                                            {
+                                                types.toggle(source_type);
+                                            }
+                                        }
+                                    });
+                                    ui.checkbox(multiple, "Multiple sources");
+                                }
+                                #[cfg(feature = "xdg_desktop_portals")]
+                                RemoteInfo::Camera => {}
+                            }
 
                             ui.separator();
 
