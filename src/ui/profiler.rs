@@ -553,7 +553,7 @@ impl Profiler {
 
         ui.separator();
 
-        ui.columns(2, |ui| {
+        ui.columns_const::<2, _>( |ui| {
             profiler_plot(
                 &mut ui[0],
                 "Driver Timing",
@@ -589,7 +589,7 @@ impl Profiler {
 
         ui.separator();
 
-        ui.columns(3, |ui| {
+        ui.columns_const::<3,_>(|ui| {
             for (i, (heading, explanation, id, measurement)) in [
                 (
                     "Clients End Date",
