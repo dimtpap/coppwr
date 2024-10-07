@@ -589,7 +589,7 @@ impl Profiler {
 
         ui.separator();
 
-        ui.columns_const::<3,_>(|ui| {
+        ui.columns_const::<3, _>(|ui| {
             for (i, (heading, explanation, id, measurement)) in [
                 (
                     "Clients End Date",
