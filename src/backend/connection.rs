@@ -56,7 +56,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 
 #[cfg(not(feature = "xdg_desktop_portals"))]
-mod connection {
+mod connection_impl {
     use pipewire as pw;
 
     use crate::backend::{util, RemoteInfo};
@@ -86,7 +86,7 @@ mod connection {
 }
 
 #[cfg(feature = "xdg_desktop_portals")]
-mod connection {
+mod connection_impl {
     use std::os::fd::OwnedFd;
 
     use ashpd::{
@@ -136,10 +136,7 @@ mod connection {
                 multiple: bool,
             ) -> Result<(OwnedFd, Session<'a, Screencast<'b>>), ashpd::Error> {
                 pollster::block_on(async {
-                    use ashpd::desktop::{
-                        screencast::{CursorMode, Screencast},
-                        PersistMode,
-                    };
+                    use ashpd::desktop::{screencast::CursorMode, PersistMode};
 
                     let proxy = Screencast::new().await?;
                     let session = proxy.create_session().await?;
@@ -208,4 +205,4 @@ mod connection {
     }
 }
 
-pub use connection::Connection;
+pub use connection_impl::Connection;
