@@ -313,7 +313,7 @@ mod data {
             generate_plot_points(self.measurements.iter().map(|m| m.end_date))
         }
 
-        pub fn clients(&self) -> impl Iterator<Item = &Client> + '_ {
+        pub fn clients(&self) -> impl Iterator<Item = &Client> {
             self.followers.values()
         }
 
