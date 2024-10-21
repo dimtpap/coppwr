@@ -245,10 +245,100 @@ impl<'de> PodDeserialize<'de> for Profiling {
 
                 let mut followers = Vec::new();
 
-                while let Ok((fb, _)) = object_deserializer
-                    .deserialize_property_key(spa::sys::SPA_PROFILER_followerBlock)
+                while let Some((v, key, _)) =
+                    object_deserializer.deserialize_property::<spa::pod::Value>()?
                 {
-                    followers.push(fb);
+                    let spa::pod::Value::Struct(v) = v else {
+                        continue;
+                    };
+
+                    let mut v = v.into_iter();
+
+                    match key {
+                        spa::sys::SPA_PROFILER_followerBlock => {
+                            followers.push(NodeBlock {
+                                id: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Int(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                name: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::String(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                prev_signal: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Long(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                signal: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Long(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                awake: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Long(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                finish: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Long(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                status: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Int(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                latency: v.next().map_or(
+                                    Err(DeserializeError::PropertyMissing),
+                                    |v| {
+                                        let spa::pod::Value::Fraction(v) = v else {
+                                            return Err(DeserializeError::InvalidType);
+                                        };
+                                        Ok(v)
+                                    },
+                                )?,
+                                xrun_count: v.next().and_then(|v| {
+                                    let spa::pod::Value::Int(v) = v else {
+                                        return None;
+                                    };
+                                    Some(v)
+                                }),
+                            });
+                        }
+                        _ => {}
+                    }
                 }
 
                 Ok(Profiling {
