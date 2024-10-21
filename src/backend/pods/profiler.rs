@@ -81,6 +81,8 @@ pub struct Clock {
     pub rate_diff: f64,
     pub next_nsec: i64,
     pub transport_state: Option<i32>, // Since https://gitlab.freedesktop.org/pipewire/pipewire/-/commit/ccf899a709140b79547b93d8f5eca6b9e79c5257
+    pub cycle: Option<i32>, // Since https://gitlab.freedesktop.org/pipewire/pipewire/-/commit/fa1ec61cf0b1e8c07304241309c3ee5ba9268e5b
+    pub xrun_duration: Option<i64>, // Since https://gitlab.freedesktop.org/pipewire/pipewire/-/commit/fa1ec61cf0b1e8c07304241309c3ee5ba9268e5b
 }
 
 impl<'de> PodDeserialize<'de> for Clock {
@@ -132,6 +134,8 @@ impl<'de> PodDeserialize<'de> for Clock {
                         .deserialize_field()?
                         .ok_or(DeserializeError::InvalidType)?,
                     transport_state: struct_deserializer.deserialize_field()?,
+                    cycle: struct_deserializer.deserialize_field()?,
+                    xrun_duration: struct_deserializer.deserialize_field()?,
                 })
             }
         }
