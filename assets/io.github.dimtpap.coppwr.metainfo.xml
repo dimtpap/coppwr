@@ -67,6 +67,17 @@
   </keywords>
 
   <releases>
+    <release version="1.6.1" date="2024-10-22">
+      <description>
+        <ul>
+          <li>Added explanations to the profiler graphs when hovering their titles</li>
+          <li>Added Update Rate setting to change the rate at which the UI refreshes with new PipeWire data</li>
+          <li>Fixed Gloal Tracker list not refreshing when "Group Subobjects" is changed</li>
+          <li>Slightly changed icon for better contrast</li>
+          <li>Fixed crashing when PipeWire sends unknown profiler data</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.0" date="2024-05-02">
       <description>
         <ul>
@@ -152,6 +163,8 @@
 
   <content_rating type="oars-1.0" />
 
-  <developer_name translate="no">Dimitris Papaioannou</developer_name>
+  <developer id="io.github.dimtpap">
+    <name>Dimitris Papaioannou</name>
+  </developer>
   <update_contact>dimtpap@protonmail.com</update_contact>
 </component>
