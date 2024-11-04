@@ -153,7 +153,7 @@ impl Handle {
         }
     }
 
-    pub fn rx(&self) -> &std::sync::mpsc::Receiver<Event> {
+    pub const fn rx(&self) -> &std::sync::mpsc::Receiver<Event> {
         &self.rx
     }
 }

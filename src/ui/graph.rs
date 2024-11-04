@@ -125,7 +125,7 @@ struct Node {
 }
 
 impl Node {
-    fn new(media_type: MediaType, global: Weak<RefCell<Global>>) -> Self {
+    const fn new(media_type: MediaType, global: Weak<RefCell<Global>>) -> Self {
         Self { media_type, global }
     }
 }

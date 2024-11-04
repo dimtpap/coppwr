@@ -288,7 +288,9 @@ pub fn pipewire_thread(
                     Ok(bound_global) => {
                         binds.borrow_mut().insert(id, bound_global);
                     }
-                    Err(e) => eprintln!("Error binding object {id}: {e}"),
+                    Err(e) => {
+                        eprintln!("Error binding object {id}: {e}");
+                    }
                 }
             }
         })

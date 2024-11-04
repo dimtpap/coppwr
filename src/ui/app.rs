@@ -216,10 +216,10 @@ mod inspector {
             loop {
                 match self.handle.rx().try_recv() {
                     Ok(event) => {
-                        if let Event::Stop = event {
+                        if matches!(event, Event::Stop) {
                             return true;
                         } else {
-                            self.process_event(event)
+                            self.process_event(event);
                         }
                     }
                     Err(err) => match err {
