@@ -67,7 +67,7 @@ pub fn pipewire_thread(
                 eprintln!("Failed to load the profiler module. No profiler data will be available");
             };
 
-            let connection = Connection::connect(&context, context_properties, remote)?;
+            let connection = Connection::open(&context, context_properties, remote)?;
 
             let registry = connection.core().get_registry()?;
 

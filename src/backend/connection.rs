@@ -66,7 +66,7 @@ mod connection_impl {
     pub struct Connection(pw::core::Core);
 
     impl Connection {
-        pub fn connect(
+        pub fn open(
             context: &pw::context::Context,
             context_properties: Vec<(String, String)>,
             remote: RemoteInfo,
@@ -126,7 +126,7 @@ mod connection_impl {
     }
 
     impl<'a, 'b> Connection<'a, 'b> {
-        pub fn connect(
+        pub fn open(
             context: &pw::context::Context,
             context_properties: Vec<(String, String)>,
             remote: RemoteInfo,
