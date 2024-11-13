@@ -591,10 +591,7 @@ impl PersistentView for Graph {
             ))
         }) {
             if let Some(name) = node.borrow().props().get("node.name") {
-                positions
-                    .entry(name.clone())
-                    .and_modify(|e| e.push_back(pos))
-                    .or_insert_with(|| vec![pos].into());
+                positions.entry(name.clone()).or_default().push_back(pos);
             }
         }
 
