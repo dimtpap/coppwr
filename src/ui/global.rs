@@ -253,6 +253,7 @@ impl Global {
                 }
                 ObjectType::Port => self.props.get("port.name"),
                 ObjectType::Core => self.props.get("core.name"),
+                ObjectType::Factory => self.props.get("factory.name"),
                 _ => None,
             }
         };

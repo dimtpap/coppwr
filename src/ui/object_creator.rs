@@ -31,14 +31,9 @@ use crate::{
 };
 
 struct Factory {
+    name: String,
     object_type: ObjectType,
     global: Rc<RefCell<Global>>,
-}
-
-impl Factory {
-    fn name(&self) -> String {
-        self.global.borrow().name().cloned().unwrap_or_default()
-    }
 }
 
 #[derive(Default)]
@@ -59,10 +54,12 @@ impl Tool for ObjectCreator {
 
 impl ObjectCreator {
     pub fn add_factory(&mut self, global: &Rc<RefCell<Global>>) {
-        let (id, object_type) = {
+        let (id, name, created_object_type) = {
             let global = global.borrow();
 
-            let object_type = global.props().get("factory.type.name").map(|object_type| {
+            let name = global.name().cloned();
+
+            let created_object_type = global.props().get("factory.type.name").map(|object_type| {
                 match object_type.as_str() {
                     "PipeWire:Interface:Link" => ObjectType::Link,
                     "PipeWire:Interface:Port" => ObjectType::Port,
@@ -85,13 +82,14 @@ impl ObjectCreator {
                 }
             });
 
-            (global.id(), object_type)
+            (global.id(), name, created_object_type)
         };
 
-        if let Some(object_type) = object_type {
+        if let (Some(name), Some(object_type)) = (name, created_object_type) {
             self.factories.insert(
                 id,
                 Factory {
+                    name,
                     object_type,
                     global: Rc::clone(global),
                 },
@@ -106,28 +104,27 @@ impl ObjectCreator {
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         let factory = if let Some(id) = self.selected_factory {
             let factory = self.factories.get(&id);
+
             if factory.is_none() {
                 self.selected_factory = None;
             }
+
             factory
         } else {
             None
         };
 
-        // Store the name here to avoid calling .borrow() every time it's needed
-        let factory_name = factory.map(Factory::name).unwrap_or_default();
-
         ui.horizontal(|ui| {
             let cb = egui::ComboBox::from_label("Factory");
-            let cb = if factory.is_some() {
-                cb.selected_text(&factory_name)
+            let cb = if let Some(f) = factory {
+                cb.selected_text(&f.name)
             } else {
                 cb.selected_text("No factory selected")
             };
 
             cb.show_ui(ui, |ui| {
                 for (id, factory) in &self.factories {
-                    ui.selectable_value(&mut self.selected_factory, Some(*id), factory.name());
+                    ui.selectable_value(&mut self.selected_factory, Some(*id), &factory.name);
                 }
             });
 
@@ -149,21 +146,22 @@ impl ObjectCreator {
         ui.separator();
 
         ui.horizontal(|ui| {
-            ui.add_enabled_ui(factory.is_some(), |ui| {
-                if ui
-                    .button("Create")
-                    .on_disabled_hover_text("Select a factory first")
-                    .clicked()
-                {
-                    let factory = factory.unwrap();
+            let create_button = egui::Button::new("Create");
+
+            if let Some(factory) = factory {
+                if ui.add(create_button).clicked() {
                     sx.send(Request::CreateObject(
                         factory.object_type.clone(),
-                        factory_name,
+                        factory.name.clone(),
                         self.props.list.clone(),
                     ))
                     .ok();
                 }
-            });
+            } else {
+                ui.add_enabled(false, create_button)
+                    .on_disabled_hover_text("Select a factory first");
+            }
+
             if ui.button("Clear").clicked() {
                 self.selected_factory = None;
                 self.props.list.clear();
