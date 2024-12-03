@@ -117,7 +117,7 @@ pub fn map_editor(
 
 #[derive(Default)]
 pub struct EditableKVList {
-    list: Vec<(String, String)>,
+    pub list: Vec<(String, String)>,
 }
 
 impl EditableKVList {
@@ -148,50 +148,30 @@ impl EditableKVList {
             self.list.push((String::new(), String::new()));
         }
     }
-
-    pub const fn list(&self) -> &Vec<(String, String)> {
-        &self.list
-    }
-
-    pub fn list_mut(&mut self) -> &mut Vec<(String, String)> {
-        &mut self.list
-    }
-
-    pub fn take(&mut self) -> Vec<(String, String)> {
-        std::mem::take(&mut self.list)
-    }
-
-    pub fn clear(&mut self) {
-        self.list.clear();
-    }
 }
 
 /// Like [`map_editor`] but it stores the map in itself.
 #[derive(Default)]
 pub struct MapEditor {
-    properties: BTreeMap<String, String>,
-    user_additions: EditableKVList,
+    pub map: BTreeMap<String, String>,
+    pub user_additions: EditableKVList,
 }
 
 impl MapEditor {
-    pub fn set_map(&mut self, map: BTreeMap<String, String>) {
-        self.properties = map;
-    }
-
     pub fn show(&mut self, ui: &mut egui::Ui, min_scrolled_height: f32, max_height: f32) {
         map_editor(
             ui,
             min_scrolled_height,
             max_height,
-            &mut self.properties,
+            &mut self.map,
             &mut self.user_additions,
         );
     }
 
-    pub fn take(&mut self) -> BTreeMap<String, String> {
-        self.properties.extend(self.user_additions.take());
-
-        std::mem::take(&mut self.properties)
+    /// Moves user additions in the map
+    pub fn apply(&mut self) {
+        self.map
+            .extend(std::mem::take(&mut self.user_additions.list));
     }
 }
 

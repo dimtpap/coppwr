@@ -399,7 +399,7 @@ impl Default for State {
     fn default() -> Self {
         let mut context_properties = EditableKVList::new();
         context_properties
-            .list_mut()
+            .list
             .push(("media.category".to_owned(), "Manager".to_owned()));
 
         Self::Unconnected {
@@ -753,8 +753,8 @@ impl eframe::App for App {
                 if connect {
                     self.state = State::new_connected(
                         std::mem::replace(remote, RemoteInfo::Regular(String::new())),
-                        mainloop_properties.take(),
-                        context_properties.take(),
+                        std::mem::take(&mut mainloop_properties.list),
+                        std::mem::take(&mut context_properties.list),
                         self.inspector_data.as_ref(),
                     );
                 }

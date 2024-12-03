@@ -69,7 +69,7 @@ impl Tool for ContextManager {
 
 impl ContextManager {
     pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
-        self.properties.set_map(properties);
+        self.properties.map = properties;
     }
 
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
@@ -96,8 +96,12 @@ impl ContextManager {
                     }
 
                     if ui.small_button("Update properties").clicked() {
-                        sx.send(Request::UpdateContextProperties(self.properties.take()))
-                            .ok();
+                        self.properties.apply();
+
+                        sx.send(Request::UpdateContextProperties(std::mem::take(
+                            &mut self.properties.map,
+                        )))
+                        .ok();
 
                         sx.send(Request::GetContextProperties).ok();
                     }
@@ -150,10 +154,10 @@ impl ContextManager {
                                     .then(|| self.module_args.clone()),
                                 props: self
                                     .module_props
-                                    .list()
+                                    .list
                                     .is_empty()
                                     .not()
-                                    .then(|| self.module_props.list().clone()),
+                                    .then(|| self.module_props.list.clone()),
                             })
                             .ok();
                         }
@@ -162,7 +166,7 @@ impl ContextManager {
                         self.module_dir.clear();
                         self.module_name.clear();
                         self.module_args.clear();
-                        self.module_props.clear();
+                        self.module_props.list.clear();
                     }
                 });
             }

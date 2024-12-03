@@ -345,7 +345,7 @@ impl Global {
                         ui.separator();
 
                         if ui.button("Update properties").clicked() {
-                            self.props.extend(user_properties.take());
+                            self.props.extend(std::mem::take(&mut user_properties.list));
 
                             sx.send(Request::CallObjectMethod(
                                 self.id,

@@ -159,14 +159,14 @@ impl ObjectCreator {
                     sx.send(Request::CreateObject(
                         factory.object_type.clone(),
                         factory_name,
-                        self.props.list().clone(),
+                        self.props.list.clone(),
                     ))
                     .ok();
                 }
             });
             if ui.button("Clear").clicked() {
                 self.selected_factory = None;
-                self.props.clear();
+                self.props.list.clear();
             }
         });
     }
