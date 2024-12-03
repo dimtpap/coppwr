@@ -37,7 +37,12 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {
     static PERMISSIONS: OnceLock<&[(PermissionFlags, &'static str)]> = OnceLock::new();
 
     ui.label("ID");
-    ui.add(egui::widgets::DragValue::new(&mut p.id()));
+    ui.add(egui::widgets::DragValue::from_get_set(|v| {
+        if let Some(v) = v {
+            p.set_id(v as _);
+        }
+        p.id() as _
+    }));
 
     for (permission, label) in PERMISSIONS
         .get_or_init(|| {
