@@ -682,6 +682,7 @@ impl Profiler {
                         String::new()
                     }
                 })
+                .label_formatter(|_, _| String::new())
                 .legend(
                     egui_plot::Legend::default()
                         .position(egui_plot::Corner::LeftTop)
