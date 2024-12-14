@@ -656,8 +656,8 @@ impl Profiler {
                 .flatten()
                 .enumerate()
             {
-                wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64).horizontal());
-                busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64).horizontal());
+                wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64 / 1000.).horizontal());
+                busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64 / 1000.).horizontal());
                 y_labels.push(nb.name.as_str());
             }
 
@@ -671,7 +671,7 @@ impl Profiler {
                 .clamp_grid(true)
                 .show_grid(egui::Vec2b::new(true, false))
                 .set_margin_fraction(egui::vec2(0.01, 0.35))
-                .x_axis_formatter(|grid_mark, _| format!("{} ns", grid_mark.value))
+                .x_axis_formatter(|grid_mark, _| format!("{} us", grid_mark.value))
                 .y_axis_formatter(|grid_mark, _| {
                     if grid_mark.value.is_sign_positive()
                         && (grid_mark.value as usize) < y_labels.len()
@@ -690,13 +690,13 @@ impl Profiler {
                 .show(ui, |plot_ui| {
                     let wait = BarChart::new(wait)
                         .name("Waiting")
-                        .element_formatter(Box::new(|b, _| format!("Waiting took {} ns", b.value)));
+                        .element_formatter(Box::new(|b, _| format!("Waiting took {} us", b.value)));
 
                     let busy = BarChart::new(busy)
                         .name("Busy")
                         .stack_on(&[&wait])
                         .element_formatter(Box::new(|b, _| {
-                            format!("Processing took {} ns", b.value)
+                            format!("Processing took {} us", b.value)
                         }));
 
                     plot_ui.bar_chart(wait);
