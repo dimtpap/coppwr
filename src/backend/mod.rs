@@ -79,6 +79,10 @@ pub enum Event {
         type_: Option<String>,
         value: Option<String>,
     },
+    PortMediaType {
+        id: u32,
+        media_type: pw::spa::param::format::MediaType,
+    },
     ContextProperties(std::collections::BTreeMap<String, String>),
     Stop,
 }

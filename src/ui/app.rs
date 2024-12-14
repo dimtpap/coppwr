@@ -330,6 +330,13 @@ mod inspector {
                 Event::GlobalProperties(id, props) => {
                     self.globals.set_global_props(id, props);
                 }
+                Event::PortMediaType { id, media_type } => {
+                    let Some(port) = self.globals.get_global(id) else {
+                        return;
+                    };
+
+                    *port.borrow_mut().object_data_mut() = ObjectData::Port(media_type);
+                }
                 Event::ProfilerProfile(samples) => {
                     self.profiler.add_profilings(samples);
                 }

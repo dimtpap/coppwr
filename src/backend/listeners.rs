@@ -14,7 +14,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use pipewire::{self as pw, spa::pod::deserialize::PodDeserializer};
+use pipewire::{
+    self as pw,
+    spa::{param::ParamType, pod::deserialize::PodDeserializer},
+};
 
 use crate::backend::{Event, bind::Global, pods::profiler, util::dict_to_map};
 
@@ -155,10 +158,13 @@ pub fn node(node: pw::node::Node, id: u32, on_event: impl Fn(Event) + 'static) -
     (Global::other(node), Box::new(listener))
 }
 
-pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + 'static) -> Bind {
+pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + Clone + 'static) -> Bind {
+    port.subscribe_params(&[ParamType::EnumFormat]);
+
     let listener = port
         .add_listener_local()
         .info({
+            let on_event = on_event.clone();
             move |info| {
                 let direction = match info.direction() {
                     pw::spa::utils::Direction::Input => "Input",
@@ -174,6 +180,20 @@ pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + 'static) -
                     info.props(),
                 ) {
                     on_event(Event::GlobalProperties(id, dict_to_map(props)));
+                }
+            }
+        })
+        .param(move |_, _, _, _, pod| {
+            let Some(pod) = pod else {
+                return;
+            };
+
+            match pw::spa::param::format_utils::parse_format(pod) {
+                Ok((media_type, _)) => {
+                    on_event(Event::PortMediaType { id, media_type });
+                }
+                Err(e) => {
+                    println!("Failed to parse port param: {e}");
                 }
             }
         })

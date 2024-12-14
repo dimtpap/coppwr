@@ -25,6 +25,7 @@ use eframe::egui;
 use pipewire::{
     self as pw,
     permissions::{Permission, PermissionFlags},
+    spa::param::format::MediaType,
     types::ObjectType,
 };
 
@@ -84,6 +85,7 @@ pub enum ObjectData {
         user_permissions: Vec<Permission>,
         user_properties: EditableKVList,
     },
+    Port(MediaType),
     Other(ObjectType),
 }
 
@@ -104,6 +106,7 @@ impl ObjectData {
     const fn pipewire_type(&self) -> &ObjectType {
         match self {
             Self::Client { .. } => &ObjectType::Client,
+            Self::Port(_) => &ObjectType::Port,
             Self::Other(t) => t,
         }
     }
@@ -180,7 +183,7 @@ impl ObjectData {
                     }
                 });
             }
-            Self::Other(_) => {}
+            _ => {}
         }
     }
 }
