@@ -284,7 +284,7 @@ impl Global {
         ) {
             let width = ui.available_width() / len as f32 - 6.;
 
-            let sc = egui::ScrollArea::horizontal();
+            let sc = egui::ScrollArea::horizontal().min_scrolled_width(450.);
 
             if let Some(id_salt) = id_salt {
                 sc.id_salt(id_salt)
@@ -476,6 +476,10 @@ impl Global {
 
     pub fn set_info(&mut self, info: Option<Box<[(&'static str, String)]>>) {
         self.info = info;
+    }
+
+    pub fn object_data(&self) -> &ObjectData {
+        &self.object_data
     }
 
     pub fn object_data_mut(&mut self) -> &mut ObjectData {

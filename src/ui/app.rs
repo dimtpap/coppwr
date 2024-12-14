@@ -76,7 +76,6 @@ mod inspector {
         ui::{
             ContextManager, GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler,
             globals_store::ObjectData,
-            graph::MediaType,
             util::{persistence::PersistentView, tool::Windowed},
         },
     };
@@ -250,7 +249,12 @@ mod inspector {
                         ObjectType::Factory => {
                             self.object_creator.tool.add_factory(global);
                         }
-                        ObjectType::Metadata => self.metadata_editor.tool.add_metadata(global),
+                        ObjectType::Metadata => {
+                            self.metadata_editor.tool.add_metadata(global);
+                        }
+                        ObjectType::Node => {
+                            self.graph.add_node(global);
+                        }
 
                         _ => {}
                     }
@@ -264,8 +268,16 @@ mod inspector {
                             ObjectType::Factory => {
                                 self.object_creator.tool.remove_factory(id);
                             }
-                            ObjectType::Node | ObjectType::Port | ObjectType::Link => {
-                                self.graph.remove_item(id);
+                            ObjectType::Node => {
+                                self.graph.remove_node(id);
+                            }
+                            ObjectType::Port => {
+                                if let Some(node_id) = removed.borrow().parent_id() {
+                                    self.graph.remove_port(node_id, id);
+                                }
+                            }
+                            ObjectType::Link => {
+                                self.graph.remove_link(id);
                             }
                             _ => {}
                         }
@@ -280,45 +292,32 @@ mod inspector {
                     {
                         let global_borrow = global.borrow();
                         match *global_borrow.object_type() {
-                            ObjectType::Node => {
-                                self.graph.add_node(id, global);
-                            }
-                            ObjectType::Port => {
-                                if let Some(parent) = global_borrow.parent_id() {
-                                    let name = global_borrow.name().cloned().unwrap_or_default();
-
-                                    let media_type =
-                                        global_borrow.props().get("format.dsp").map(|format_dsp| {
-                                            if format_dsp.ends_with("audio") {
-                                                MediaType::Audio
-                                            } else if format_dsp.ends_with("midi")
-                                                || format_dsp.ends_with("UMP")
-                                            {
-                                                MediaType::Midi
-                                            } else if format_dsp.ends_with("video") {
-                                                MediaType::Video
-                                            } else {
-                                                MediaType::Unknown
-                                            }
-                                        });
-
-                                    match info[0].1.as_str() {
-                                        "Input" => {
-                                            self.graph.add_input_port(id, parent, name, media_type);
-                                        }
-                                        "Output" => {
-                                            self.graph
-                                                .add_output_port(id, parent, name, media_type);
-                                        }
-                                        _ => {}
-                                    }
+                            ObjectType::Port => match info[0].1.as_str() {
+                                "Input" => {
+                                    self.graph.add_input_port(global);
                                 }
-                            }
+                                "Output" => self.graph.add_output_port(global),
+                                _ => {}
+                            },
                             ObjectType::Link => {
-                                if let Some((output, input)) =
-                                    info[3].1.parse().ok().zip(info[1].1.parse().ok())
-                                {
-                                    self.graph.add_link(id, output, input);
+                                if let (
+                                    Some(output_node),
+                                    Some(output_port),
+                                    Some(input_node),
+                                    Some(input_port),
+                                ) = (
+                                    info[2].1.parse().ok(),
+                                    info[3].1.parse().ok(),
+                                    info[0].1.parse().ok(),
+                                    info[1].1.parse().ok(),
+                                ) {
+                                    self.graph.add_link(
+                                        output_node,
+                                        output_port,
+                                        input_node,
+                                        input_port,
+                                        id,
+                                    );
                                 }
                             }
                             _ => {}

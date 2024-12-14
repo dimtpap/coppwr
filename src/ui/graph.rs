@@ -15,574 +15,676 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{
-    borrow::Cow,
     cell::RefCell,
-    collections::{HashMap, VecDeque},
-    rc::{Rc, Weak},
+    collections::{HashMap, HashSet, VecDeque},
+    rc::Rc,
 };
 
 use eframe::egui;
-use egui_node_graph::{
-    AnyParameterId, DataTypeTrait, GraphEditorState, InputId, NodeDataTrait, NodeId, NodeResponse,
-    OutputId, UserResponseTrait,
+use egui::emath::TSTransform;
+use egui_snarl::{
+    InPin, InPinId, NodeId, OutPin, OutPinId, Snarl,
+    ui::{PinInfo, SnarlPin, SnarlStyle, WireLayer},
 };
-use pipewire::types::ObjectType;
+use pipewire::{spa::param::format::MediaType, types::ObjectType};
 
 use crate::{
     backend::{self, Request},
-    ui::{globals_store::Global, util::persistence::PersistentView},
+    ui::{
+        globals_store::{Global, ObjectData},
+        util::persistence::PersistentView,
+    },
 };
 
-// Used to satisfy trait bounds that provide unneded features
-#[derive(Debug, Default, Clone)]
-struct NoOp;
-impl egui_node_graph::WidgetValueTrait for NoOp {
-    type Response = Self;
-    type NodeData = Node;
-    type UserState = backend::Sender;
-
-    fn value_widget(
-        &mut self,
-        _: &str,
-        _: egui_node_graph::NodeId,
-        _: &mut egui::Ui,
-        _: &mut Self::UserState,
-        _: &Self::NodeData,
-    ) -> Vec<Self::Response> {
-        Vec::new()
-    }
-}
-impl egui_node_graph::UserResponseTrait for NoOp {}
-impl egui_node_graph::NodeTemplateTrait for NoOp {
-    type NodeData = Node;
-    type DataType = MediaType;
-    type ValueType = Self;
-    type CategoryType = ();
-    type UserState = backend::Sender;
-
-    fn node_finder_categories(&self, _: &mut Self::UserState) -> Vec<Self::CategoryType> {
-        Vec::new()
-    }
-
-    fn node_finder_label(&self, _: &mut Self::UserState) -> std::borrow::Cow<'_, str> {
-        Cow::Borrowed("")
-    }
-
-    fn build_node(
-        &self,
-        _: &mut egui_node_graph::Graph<Self::NodeData, Self::DataType, Self::ValueType>,
-        _: &mut Self::UserState,
-        _: egui_node_graph::NodeId,
-    ) {
-    }
-
-    fn node_graph_label(&self, _: &mut Self::UserState) -> String {
-        String::new()
-    }
-
-    fn user_data(&self, _: &mut Self::UserState) -> Self::NodeData {
-        unreachable!("The node finder/creator should never be shown")
-    }
-}
-impl egui_node_graph::NodeTemplateIter for NoOp {
-    type Item = Self;
-    fn all_kinds(&self) -> Vec<Self::Item> {
-        Vec::new()
-    }
+struct Port {
+    id: u32,
+    name: String,
+    global: Rc<RefCell<Global>>,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum MediaType {
-    Audio,
-    Video,
-    Midi,
-    Unknown,
-}
+impl Port {
+    fn snarl_pin_info(&self) -> PinInfo {
+        let global = self.global.borrow();
 
-impl DataTypeTrait<backend::Sender> for MediaType {
-    fn data_type_color(&self, _: &mut backend::Sender) -> egui::Color32 {
-        match self {
-            Self::Audio => egui::Color32::BLUE,
-            Self::Video => egui::Color32::YELLOW,
-            Self::Midi => egui::Color32::RED,
-            Self::Unknown => egui::Color32::GRAY,
-        }
-    }
+        let media_type = match global.object_data() {
+            ObjectData::Port(media_type) => Some(media_type),
+            ObjectData::Other(ObjectType::Port) => None, // This is in case the media type has not be sent by PipeWire yet
+            _ => panic!("Global referenced by a graph pin should be a port"),
+        };
 
-    fn name(&self) -> std::borrow::Cow<'_, str> {
-        match self {
-            Self::Audio => Cow::Borrowed("Audio"),
-            Self::Video => Cow::Borrowed("Video"),
-            Self::Midi => Cow::Borrowed("MIDI"),
-            Self::Unknown => Cow::Borrowed("Unknown"),
-        }
+        let color = if let Some(media_type) = media_type {
+            match *media_type {
+                MediaType::Audio => egui::Color32::BLUE,
+                MediaType::Video => egui::Color32::YELLOW,
+                MediaType::Application => egui::Color32::RED,
+                MediaType::Binary => egui::Color32::GREEN,
+                MediaType::Image => egui::Color32::ORANGE,
+                _ => egui::Color32::GRAY,
+            }
+        } else {
+            egui::Color32::GRAY
+        };
+
+        PinInfo::circle().with_fill(color)
     }
 }
 
 struct Node {
-    media_type: MediaType,
-    global: Weak<RefCell<Global>>,
+    user_label: String,
+    inputs: Vec<Port>,
+    outputs: Vec<Port>,
+    resize: bool,
+    global: Rc<RefCell<Global>>,
 }
 
 impl Node {
-    const fn new(media_type: MediaType, global: Weak<RefCell<Global>>) -> Self {
-        Self { media_type, global }
+    fn new(global: Rc<RefCell<Global>>) -> Self {
+        let name = global.borrow().name().cloned().unwrap_or_default();
+        Self {
+            user_label: name,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            resize: false,
+            global,
+        }
     }
 }
 
-impl NodeDataTrait for Node {
-    type DataType = MediaType;
-    type Response = NoOp;
-    type ValueType = NoOp;
-    type UserState = backend::Sender;
+struct Viewer<'a, 'b> {
+    sx: &'a backend::Sender,
+    wires: &'b HashMap<(OutPinId, InPinId), u32>,
+    transform: Option<TSTransform>,
+}
 
-    fn can_delete(
-        &self,
-        _: egui_node_graph::NodeId,
-        _: &egui_node_graph::Graph<Self, Self::DataType, Self::ValueType>,
-        _: &mut Self::UserState,
-    ) -> bool {
-        false
+impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
+    fn title(&mut self, _: &Node) -> String {
+        String::new()
     }
 
-    fn bottom_ui(
-        &self,
+    fn show_header(
+        &mut self,
+        node: NodeId,
+        _inputs: &[InPin],
+        _outputs: &[OutPin],
         ui: &mut egui::Ui,
-        _node_id: egui_node_graph::NodeId,
-        _graph: &egui_node_graph::Graph<Self, Self::DataType, Self::ValueType>,
-        sx: &mut Self::UserState,
-    ) -> Vec<egui_node_graph::NodeResponse<Self::Response, Self>>
-    where
-        Self::Response: UserResponseTrait,
-    {
-        if let Some(global) = self.global.upgrade() {
-            egui::CollapsingHeader::new("Details")
-                .default_open(true)
-                .show_unindented(ui, |ui| {
-                    egui::Frame::new()
-                        .fill(ui.visuals().panel_fill)
-                        .inner_margin(egui::Margin::same(3))
-                        .corner_radius(ui.visuals().noninteractive().corner_radius)
+        _scale: f32,
+        snarl: &mut Snarl<Node>,
+    ) {
+        let node = snarl
+            .get_node_mut(node)
+            .expect("snarl requested header of non-existent node");
+
+        ui.label(node.global.borrow().id().to_string());
+
+        node.resize = egui::TextEdit::singleline(&mut node.user_label)
+            .desired_width(0.0)
+            .clip_text(false)
+            .show(ui)
+            .response
+            .changed();
+    }
+
+    fn has_footer(&mut self, _: &Node) -> bool {
+        true
+    }
+
+    fn outputs(&mut self, node: &Node) -> usize {
+        node.outputs.len()
+    }
+
+    fn inputs(&mut self, node: &Node) -> usize {
+        node.inputs.len()
+    }
+
+    fn current_transform(
+        &mut self,
+        trasnform: &mut egui::emath::TSTransform,
+        _snarl: &mut Snarl<Node>,
+    ) {
+        if let Some(initial_transform) = self.transform.take() {
+            *trasnform = initial_transform;
+        } else {
+            self.transform = Some(*trasnform);
+        }
+    }
+
+    fn show_footer(
+        &mut self,
+        node: NodeId,
+        _inputs: &[InPin],
+        _outputs: &[OutPin],
+        ui: &mut egui::Ui,
+        scale: f32,
+        snarl: &mut Snarl<Node>,
+    ) {
+        if !snarl
+            .get_node_info(node)
+            .expect("snarl requested footer of non-existent node")
+            .open
+        {
+            return;
+        }
+
+        let node = snarl.get_node_mut(node).unwrap();
+
+        // The global should expand to fill the space around it if the snarl frame
+        // is wide enough. This can be done by making the global justified, which
+        // causes this problem:
+        // 1. Node and global are drawn
+        // 2. Something in the global is expanded, causing the node to widen
+        // 3. Expanded elements are collapsed
+        // 4. Global stays wide, making the node stay wide, wasting space
+        //
+        // To solve this, store the minimum width required by the global and the node.
+        // If the global width is less than the node width, the global should expand
+        // to exactly the width of the node
+
+        let min_global_width_key = ui.id().with("min_global_width");
+        let min_node_width_key = ui.id().with("min_node_width");
+
+        if node.resize {
+            // Redo size calculations
+            ui.data_mut(|d| {
+                d.remove_temp::<f32>(min_global_width_key);
+                d.remove_temp::<f32>(min_node_width_key);
+            });
+
+            node.resize = false;
+        }
+
+        let min_global_width: Option<f32> = ui.data(|d| d.get_temp(min_global_width_key));
+        let current_node_width = ui.max_rect().width() / scale;
+
+        let global_width = egui::CollapsingHeader::new("Details")
+            .default_open(true)
+            .show_unindented(ui, |ui| {
+                let mut ui_builder = egui::UiBuilder::new();
+
+                // Only after the global has been drawn we can know the final node width
+                let min_node_width = if min_global_width.is_some() {
+                    ui.data_mut(|d| {
+                        let min_node_width =
+                            d.get_temp_mut_or(min_node_width_key, current_node_width);
+                        Some(*min_node_width)
+                    })
+                } else {
+                    ui_builder.sizing_pass = true;
+                    ui.ctx().request_discard(format!(
+                        "graph node {} sizing",
+                        node.global.borrow().id()
+                    ));
+                    None
+                };
+
+                ui.scope_builder(ui_builder, |ui| {
+                    egui::ScrollArea::vertical()
+                        .min_scrolled_height(450. * scale)
+                        .max_height(450. * scale)
                         .show(ui, |ui| {
-                            ui.set_max_width(500f32);
-                            egui::ScrollArea::vertical()
-                                .min_scrolled_height(350f32)
-                                .max_height(350f32)
-                                .show(ui, |ui| {
-                                    global.borrow_mut().show(ui, true, sx);
-                                });
+                            let mut layout = egui::Layout::top_down(egui::Align::Min);
+
+                            if !ui.is_sizing_pass() {
+                                // The part of the node drawn by snarl includes the port names which may make
+                                // it wider than the width of the global. If that's the case, the global
+                                // should expand to fill the unused space. If that is not the case the global
+                                // should stay as narrow as possible and expand the outer UI only when needed
+                                if let Some((min_node_width, _)) =
+                                    Option::zip(min_node_width, min_global_width)
+                                        .filter(|&(n, g)| n > g)
+                                {
+                                    layout.cross_justify = true;
+                                    ui.set_max_width(min_node_width * scale);
+                                } else {
+                                    ui.set_max_width(450. * scale);
+                                }
+                            }
+
+                            ui.with_layout(layout, |ui| {
+                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                                node.global.borrow_mut().show(ui, true, self.sx);
+                            });
                         });
+                })
+                .response
+                .rect
+                .width()
+                    / scale
+            })
+            .body_returned;
+
+        if let Some(global_width) = global_width {
+            if min_global_width.is_none() {
+                ui.data_mut(|d| {
+                    d.insert_temp(min_global_width_key, global_width);
                 });
-        }
-
-        Vec::new()
-    }
-}
-
-enum GraphItem {
-    Node(NodeId),
-    InputPort(InputId),
-    OutputPort(OutputId),
-    Link(OutputId, InputId),
-}
-
-impl From<NodeId> for GraphItem {
-    fn from(value: NodeId) -> Self {
-        Self::Node(value)
-    }
-}
-
-impl From<InputId> for GraphItem {
-    fn from(value: InputId) -> Self {
-        Self::InputPort(value)
-    }
-}
-
-impl From<OutputId> for GraphItem {
-    fn from(value: OutputId) -> Self {
-        Self::OutputPort(value)
-    }
-}
-
-impl From<AnyParameterId> for GraphItem {
-    fn from(value: AnyParameterId) -> Self {
-        match value {
-            AnyParameterId::Input(value) => Self::from(value),
-            AnyParameterId::Output(value) => Self::from(value),
+            }
         }
     }
-}
 
-impl From<(OutputId, InputId)> for GraphItem {
-    fn from((output, input): (OutputId, InputId)) -> Self {
-        Self::Link(output, input)
+    fn show_input(
+        &mut self,
+        pin: &InPin,
+        ui: &mut egui::Ui,
+        _scale: f32,
+        snarl: &mut Snarl<Node>,
+    ) -> impl SnarlPin + 'static {
+        let node = snarl
+            .get_node(pin.id.node)
+            .expect("snarl requested showing of pin not belonging to any node");
+
+        let port = &node.inputs[pin.id.input];
+
+        if snarl.get_node_info(pin.id.node).unwrap().open {
+            ui.label(&port.name);
+        }
+
+        port.snarl_pin_info()
     }
+
+    fn show_output(
+        &mut self,
+        pin: &OutPin,
+        ui: &mut egui::Ui,
+        _scale: f32,
+        snarl: &mut Snarl<Node>,
+    ) -> impl SnarlPin + 'static {
+        let node = snarl
+            .get_node(pin.id.node)
+            .expect("snarl requested showing of pin not belonging to any node");
+
+        let port = &node.outputs[pin.id.output];
+
+        if snarl.get_node_info(pin.id.node).unwrap().open {
+            ui.label(&port.name);
+        }
+
+        port.snarl_pin_info()
+    }
+
+    fn connect(&mut self, from: &OutPin, to: &InPin, snarl: &mut Snarl<Node>) {
+        let Some(out) = snarl.get_node(from.id.node) else {
+            eprintln!("snarl requested connection from port of non-existent node");
+            return;
+        };
+
+        let Some(inp) = snarl.get_node(to.id.node) else {
+            eprintln!("snarl requested connection to port of non-existent node");
+            return;
+        };
+
+        self.sx
+            .send(Request::CreateObject(
+                ObjectType::Link,
+                "link-factory".to_owned(),
+                vec![
+                    (
+                        "link.output.port".to_owned(),
+                        out.outputs[from.id.output].id.to_string(),
+                    ),
+                    (
+                        "link.input.port".to_owned(),
+                        inp.inputs[to.id.input].id.to_string(),
+                    ),
+                    ("object.linger".to_owned(), "true".to_owned()),
+                ],
+            ))
+            .ok();
+    }
+
+    fn disconnect(&mut self, from: &OutPin, to: &InPin, _snarl: &mut Snarl<Node>) {
+        let Some(&link_id) = self.wires.get(&(from.id, to.id)) else {
+            eprintln!("snarl requested destruction of non-existent link");
+            return;
+        };
+
+        self.sx.send(Request::DestroyObject(link_id)).ok();
+    }
+
+    // Make secondary-clicking on ports do nothing
+    fn drop_inputs(&mut self, _pin: &InPin, _snarl: &mut Snarl<Node>) {}
+    fn drop_outputs(&mut self, _pin: &OutPin, _snarl: &mut Snarl<Node>) {}
 }
 
 pub struct Graph {
+    snarl: Snarl<Node>,
+    nodes: HashMap<u32, NodeId>,
+    wires: HashMap<(OutPinId, InPinId), u32>,
+    ports: HashSet<u32>,
+
+    unpositioned: HashSet<NodeId>,
+
+    transform: TSTransform,
+
     restored_positions: Option<HashMap<String, VecDeque<egui::Pos2>>>,
-
-    editor: egui_node_graph::GraphEditorState<Node, MediaType, NoOp, NoOp, backend::Sender>,
-    responses: Vec<NodeResponse<NoOp, Node>>,
-
-    // Maps PipeWire global IDs to graph items
-    items: HashMap<u32, GraphItem>,
+    restored_transform: Option<TSTransform>,
 }
 
 impl Graph {
     pub fn new() -> Self {
         Self {
+            snarl: Snarl::new(),
+            nodes: HashMap::new(),
+            wires: HashMap::new(),
+            ports: HashSet::new(),
+
+            unpositioned: HashSet::new(),
+
+            transform: TSTransform::IDENTITY,
+
             restored_positions: None,
-
-            editor: GraphEditorState::default(),
-            responses: Vec::new(),
-            items: HashMap::new(),
+            restored_transform: None,
         }
     }
 
-    pub fn add_node(&mut self, id: u32, global: &Rc<RefCell<Global>>) {
-        if self.items.contains_key(&id) {
-            return;
-        }
-
-        let media_type =
-            global
-                .borrow()
-                .props()
-                .get("media.class")
-                .map_or(MediaType::Unknown, |media_class| {
-                    let media_class = media_class.to_lowercase();
-                    if media_class.contains("audio") {
-                        MediaType::Audio
-                    } else if media_class.contains("video") {
-                        MediaType::Video
-                    } else if media_class.contains("midi") {
-                        MediaType::Midi
-                    } else {
-                        MediaType::Unknown
-                    }
-                });
-
-        let graph_id = self.editor.graph.add_node(
-            global
-                .borrow()
-                .name()
-                .cloned()
-                .unwrap_or_else(|| format!("{id}")),
-            Node::new(media_type, Rc::downgrade(global)),
-            |_, _| {},
-        );
-
-        self.responses.push(NodeResponse::CreatedNode(graph_id));
-
-        self.items.insert(id, graph_id.into());
-    }
-
-    fn port_graph_node_and_media_type(
-        &self,
-        id: u32,
-        node_id: u32,
-    ) -> Option<(&NodeId, MediaType)> {
-        if self.items.contains_key(&id) {
-            return None;
-        }
-
-        let Some(GraphItem::Node(node_id)) = self.items.get(&node_id) else {
-            return None;
+    pub fn show(&mut self, ui: &mut egui::Ui, sx: &crate::backend::Sender) {
+        let style = SnarlStyle {
+            min_scale: Some(0.5),
+            max_scale: Some(1.5),
+            bg_pattern: Some(egui_snarl::ui::BackgroundPattern::grid(
+                egui::vec2(50., 50.),
+                0.,
+            )),
+            header_frame: Some(
+                egui::Frame::window(ui.style())
+                    .multiply_with_opacity(0.5)
+                    .shadow(egui::Shadow::NONE),
+            ),
+            node_frame: Some(
+                egui::Frame::window(ui.style())
+                    .multiply_with_opacity(0.85)
+                    .shadow(egui::Shadow::NONE),
+            ),
+            pin_placement: Some(egui_snarl::ui::PinPlacement::Edge),
+            wire_layer: Some(WireLayer::AboveNodes),
+            ..SnarlStyle::default()
         };
 
-        Some((
-            node_id,
-            self.editor
-                .graph
-                .nodes
-                .get(*node_id)
-                .unwrap()
-                .user_data
-                .media_type,
-        ))
-    }
+        if !self.unpositioned.is_empty() {
+            const NODE_SPACING: egui::Vec2 = egui::vec2(250f32, 150f32);
 
-    pub fn add_input_port(
-        &mut self,
-        id: u32,
-        node_id: u32,
-        name: String,
-        media_type: Option<MediaType>,
-    ) {
-        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id)
-        else {
-            return;
-        };
+            let mut next_sources_pos = egui::pos2(-NODE_SPACING.x, 0.);
+            let mut next_others_pos = egui::Pos2::ZERO;
+            let mut next_sinks_pos = egui::pos2(NODE_SPACING.x, 0.);
 
-        let media_type = media_type.unwrap_or(parent_media_type);
-
-        let graph_id = self.editor.graph.add_wide_input_param(
-            *node_id,
-            name,
-            media_type,
-            NoOp,
-            egui_node_graph::InputParamKind::ConnectionOnly,
-            None,
-            true,
-        );
-
-        self.items.insert(id, graph_id.into());
-    }
-
-    pub fn add_output_port(
-        &mut self,
-        id: u32,
-        node_id: u32,
-        name: String,
-        media_type: Option<MediaType>,
-    ) {
-        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id)
-        else {
-            return;
-        };
-
-        let media_type = media_type.unwrap_or(parent_media_type);
-
-        let graph_id = self
-            .editor
-            .graph
-            .add_output_param(*node_id, name, media_type);
-
-        self.items.insert(id, graph_id.into());
-    }
-
-    pub fn add_link(&mut self, id: u32, output_port_id: u32, input_port_id: u32) {
-        if self.items.contains_key(&id) {
-            return;
-        }
-
-        let Some((GraphItem::OutputPort(output), GraphItem::InputPort(input))) = self
-            .items
-            .get(&output_port_id)
-            .zip(self.items.get(&input_port_id))
-        else {
-            return;
-        };
-
-        self.editor.graph.add_connection(*output, *input, 0);
-
-        self.items.insert(id, GraphItem::Link(*output, *input));
-    }
-
-    pub fn remove_item(&mut self, id: u32) {
-        let Some(item) = self.items.remove(&id) else {
-            return;
-        };
-
-        match item {
-            GraphItem::Node(node_id) => {
-                self.responses.push(NodeResponse::DeleteNodeUi(node_id));
-            }
-            GraphItem::OutputPort(output_id) => self.editor.graph.remove_output_param(output_id),
-            GraphItem::InputPort(input_id) => self.editor.graph.remove_input_param(input_id),
-            GraphItem::Link(output_id, input_id) => {
-                self.editor.graph.remove_connection(input_id, output_id);
-            }
-        }
-    }
-
-    pub fn show(&mut self, ui: &mut egui::Ui, sx: &mut backend::Sender) {
-        // Never show the node finder since nodes can't be created manually
-        self.editor.node_finder = None;
-
-        let reset_view = ui
-            .horizontal(|ui| {
-                if ui.button("Auto arrange").clicked() {
-                    self.editor.node_positions.clear();
-                    self.editor.node_order.clear();
-                    self.editor.pan_zoom.pan = egui::Vec2::ZERO;
+            for (node_id, pos, _) in self.snarl.nodes_pos_ids() {
+                if self.unpositioned.contains(&node_id) {
+                    continue;
                 }
 
-                ui.label("Zoom");
-                ui.add(
-                    egui::Slider::new(&mut self.editor.pan_zoom.zoom, 0.2..=2.0).max_decimals(2),
-                );
-
-                ui.button("Reset view").clicked()
-            })
-            .inner;
-        ui.separator();
-
-        const NODE_SPACING: egui::Vec2 = egui::vec2(200f32, 100f32);
-
-        let mut next_outputs_only_pos = egui::Pos2::ZERO;
-        let mut next_default_pos =
-            egui::Pos2::new((ui.available_width() - NODE_SPACING.x) / 2., 0f32);
-        let mut next_inputs_only_pos = egui::Pos2::new(
-            ui.available_width()
-                - NODE_SPACING.x
-                - f32::from(ui.style().spacing.window_margin.right),
-            0f32,
-        );
-
-        for pos in self.editor.node_positions.values_mut() {
-            // Determine next available position for this node's kind
-            for next in [
-                &mut next_inputs_only_pos,
-                &mut next_default_pos,
-                &mut next_outputs_only_pos,
-            ] {
-                if (pos.x - 50f32..=pos.x + 50f32).contains(&next.x)
-                    && (next.y..next.y + NODE_SPACING.y).contains(&pos.y)
-                {
-                    next.y += NODE_SPACING.y;
-                    break;
-                }
-            }
-        }
-
-        // Position unpositioned nodes
-        for (id, node) in &self.editor.graph.nodes {
-            if self.editor.node_positions.contains_key(id) {
-                continue;
-            }
-
-            self.editor.node_order.push(id);
-
-            let mut ports = None;
-
-            if let Some(global) = node.user_data.global.upgrade() {
-                let global = global.borrow();
-
-                if let Some(restored_positions) = &mut self.restored_positions {
-                    if let Some(name) = global.props().get("node.name") {
-                        if let Some(pos) = restored_positions
-                            .get_mut(name)
-                            .and_then(VecDeque::pop_front)
-                        {
-                            self.editor.node_positions.insert(id, pos);
-                            return;
-                        }
+                // Determine next available position for this node's kind
+                for next in [
+                    &mut next_sources_pos,
+                    &mut next_others_pos,
+                    &mut next_sinks_pos,
+                ] {
+                    if (pos.x - 50f32..=pos.x + 50f32).contains(&next.x)
+                        && (next.y..next.y + NODE_SPACING.y).contains(&pos.y)
+                    {
+                        next.y += NODE_SPACING.y;
+                        break;
                     }
                 }
+            }
 
-                ports = global.info().and_then(|info| {
+            // Position unpositioned nodes
+            for node in self.unpositioned.drain() {
+                let Some(node) = self.snarl.get_node_info_mut(node) else {
+                    eprintln!("Tried to position node not in snarl");
+                    continue;
+                };
+
+                let global = node.value.global.borrow();
+
+                let ports = global.info().and_then(|info| {
                     info[2]
                         .1
                         .parse::<u32>()
                         .ok()
                         .zip(info[3].1.parse::<u32>().ok())
                 });
-            }
 
-            let pos = if let Some((inputs, outputs)) = ports {
-                if outputs == 0 {
-                    &mut next_inputs_only_pos
-                } else if inputs == 0 {
-                    &mut next_outputs_only_pos
+                let new_pos = if let Some((inputs, outputs)) = ports {
+                    if inputs == 0 && outputs == 0 {
+                        &mut next_others_pos
+                    } else if inputs == 0 {
+                        &mut next_sources_pos
+                    } else if outputs == 0 {
+                        &mut next_sinks_pos
+                    } else {
+                        &mut next_others_pos
+                    }
                 } else {
-                    &mut next_default_pos
-                }
-            } else {
-                &mut next_default_pos
-            };
+                    &mut next_others_pos
+                };
 
-            self.editor.node_positions.insert(id, *pos);
+                node.pos = *new_pos;
 
-            pos.y += NODE_SPACING.y;
+                new_pos.y += NODE_SPACING.y;
+            }
         }
 
-        ui.scope(|ui| {
-            ui.shrink_clip_rect(ui.max_rect().expand(ui.visuals().clip_rect_margin));
+        let mut viewer = Viewer {
+            sx,
+            wires: &mut self.wires,
+            transform: self.restored_transform.take(),
+        };
 
-            if reset_view {
-                self.editor.reset_zoom(ui);
-                self.editor.pan_zoom.pan = egui::Vec2::ZERO;
-            }
+        self.snarl.show(&mut viewer, &style, "graph", ui);
 
-            for response in self
-                .editor
-                .draw_graph_editor(ui, NoOp, sx, std::mem::take(&mut self.responses))
-                .node_responses
-            {
-                match response {
-                    NodeResponse::DisconnectEvent { output, input } => {
-                        for (id, g) in &self.items {
-                            if let GraphItem::Link(o, i) = *g {
-                                if output == o && input == i {
-                                    sx.send(Request::DestroyObject(*id)).ok();
-                                    break;
-                                }
-                            }
-                        }
+        self.transform = viewer.transform.unwrap_or(self.transform);
 
-                        // Discard state change made by the user
-                        self.editor.graph.add_connection(output, input, 0);
-                    }
-                    NodeResponse::ConnectEventEnded { output, input, .. } => {
-                        let mut output_port = None;
-                        let mut input_port = None;
+        let controls_layer_id =
+            egui::LayerId::new(ui.layer_id().order, ui.layer_id().id.with("controls"));
+        ui.scope_builder(
+            egui::UiBuilder::new()
+                .layer_id(controls_layer_id)
+                .max_rect(ui.max_rect().shrink(3.)),
+            |ui| {
+                egui::Frame::canvas(ui.style())
+                    .shadow(egui::Shadow::NONE)
+                    .inner_margin(egui::Margin::symmetric(5, 2))
+                    .stroke(ui.style().visuals.window_stroke)
+                    .show(ui, |ui| {
+                        egui::CollapsingHeader::new("Controls")
+                            .default_open(true)
+                            .show_unindented(ui, |ui| {
+                                ui.label(
+                                    "Reset view: Double click\n\
+                                    Pan: Click & Drag\n\
+                                    Select nodes: Shift + Click & Drag\n\
+                                    Deselect nodes: Ctrl+Shift + Click & Drag\n\
+                                    Zoom: Ctrl & Scroll\n\
+                                    Start linking: Click & Drag from port\n\
+                                    Destroy link: Right click on link",
+                                );
+                            });
+                    });
+            },
+        );
 
-                        for (id, object) in &self.items {
-                            match object {
-                                GraphItem::InputPort(input_id) => {
-                                    if input == *input_id {
-                                        input_port = Some(*id);
-                                        continue;
-                                    }
-                                }
-                                GraphItem::OutputPort(output_id) => {
-                                    if output == *output_id {
-                                        output_port = Some(*id);
-                                        continue;
-                                    }
-                                }
-                                GraphItem::Link(o, i) => {
-                                    if *o == output && *i == input {
-                                        // Ports are already linked
-                                        return;
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
+        ui.ctx().set_sublayer(ui.layer_id(), controls_layer_id);
+    }
 
-                        if let Some((output, input)) = output_port
-                            .zip(input_port)
-                            .map(|(output, input)| (output.to_string(), input.to_string()))
-                        {
-                            sx.send(Request::CreateObject(
-                                ObjectType::Link,
-                                String::from("link-factory"),
-                                vec![
-                                    ("link.output.port".to_owned(), output),
-                                    ("link.input.port".to_owned(), input),
-                                    ("object.linger".to_owned(), "true".to_owned()),
-                                ],
-                            ))
-                            .ok();
-                        }
+    pub fn add_node(&mut self, global: &Rc<RefCell<Global>>) {
+        let pos = if let Some(name) = global.borrow().name() {
+            self.restored_positions
+                .as_mut()
+                .and_then(|rp| rp.get_mut(name))
+                .and_then(VecDeque::pop_front)
+                .unwrap_or(egui::Pos2::ZERO)
+        } else {
+            egui::Pos2::ZERO
+        };
 
-                        // Discard state change made by the user
-                        self.editor.graph.remove_connection(input, output);
-                    }
-                    _ => {}
-                }
-            }
+        let node_id = self.snarl.insert_node(pos, Node::new(Rc::clone(global)));
+        self.nodes.insert(global.borrow().id(), node_id);
 
-            // Can only be queried after the editor UI has been drawn
-            if ui.ui_contains_pointer() {
-                let (secondary_down, pointer_delta) =
-                    ui.input(|i| (i.pointer.secondary_down(), i.pointer.delta()));
+        if pos == egui::Pos2::ZERO {
+            self.unpositioned.insert(node_id);
+        }
+    }
 
-                if secondary_down {
-                    self.editor.pan_zoom.pan += pointer_delta;
-                }
+    pub fn add_input_port(&mut self, global: &Rc<RefCell<Global>>) {
+        let port_id = global.borrow().id();
+
+        if !self.ports.insert(port_id) {
+            return;
+        }
+
+        let Some(&node_id) = global
+            .borrow()
+            .parent_id()
+            .and_then(|id| self.nodes.get(&id))
+        else {
+            return;
+        };
+
+        let Some(node) = self.snarl.get_node_mut(node_id) else {
+            return;
+        };
+
+        node.inputs.push(Port {
+            id: port_id,
+            name: format!(
+                "{} ({})",
+                global.borrow().name().cloned().unwrap_or_default(),
+                global.borrow().id()
+            ),
+            global: Rc::clone(global),
+        });
+
+        node.resize = true;
+    }
+
+    pub fn add_output_port(&mut self, global: &Rc<RefCell<Global>>) {
+        let port_id = global.borrow().id();
+
+        if !self.ports.insert(port_id) {
+            return;
+        }
+
+        let Some(&node_id) = global
+            .borrow()
+            .parent_id()
+            .and_then(|id| self.nodes.get(&id))
+        else {
+            return;
+        };
+
+        let Some(node) = self.snarl.get_node_mut(node_id) else {
+            return;
+        };
+
+        node.outputs.push(Port {
+            id: port_id,
+            name: format!(
+                "{} ({})",
+                global.borrow().name().cloned().unwrap_or_default(),
+                global.borrow().id()
+            ),
+            global: Rc::clone(global),
+        });
+
+        node.resize = true;
+    }
+
+    pub fn add_link(
+        &mut self,
+        output_node: u32,
+        output_port: u32,
+        input_node: u32,
+        input_port: u32,
+        link_id: u32,
+    ) {
+        let (Some(&out_node_id), Some(&in_node_id)) =
+            (self.nodes.get(&output_node), self.nodes.get(&input_node))
+        else {
+            return;
+        };
+
+        let (Some(out_node), Some(in_node)) = (
+            self.snarl.get_node(out_node_id),
+            self.snarl.get_node(in_node_id),
+        ) else {
+            return;
+        };
+
+        let (Some(output_port), Some(input_port)) = (
+            out_node
+                .outputs
+                .iter()
+                .enumerate()
+                .find_map(|(idx, p)| (p.id == output_port).then_some(idx)),
+            in_node
+                .inputs
+                .iter()
+                .enumerate()
+                .find_map(|(idx, p)| (p.id == input_port).then_some(idx)),
+        ) else {
+            return;
+        };
+
+        let out_pin_id = OutPinId {
+            node: out_node_id,
+            output: output_port,
+        };
+
+        let in_pin_id = InPinId {
+            node: in_node_id,
+            input: input_port,
+        };
+
+        if self.snarl.connect(out_pin_id, in_pin_id) {
+            self.wires.insert((out_pin_id, in_pin_id), link_id);
+        }
+    }
+
+    pub fn remove_link(&mut self, id: u32) {
+        self.wires.retain(|(out, inp), &mut link_id| {
+            if link_id == id {
+                self.snarl.disconnect(*out, *inp);
+                false
+            } else {
+                true
             }
         });
+    }
+
+    pub fn remove_port(&mut self, node_id: u32, port_id: u32) {
+        let Some(&node_id) = self.nodes.get(&node_id) else {
+            return;
+        };
+
+        let Some(node) = self.snarl.get_node_mut(node_id) else {
+            return;
+        };
+
+        if self.ports.remove(&port_id) {
+            node.inputs.retain(|p| p.id != port_id);
+            node.outputs.retain(|p| p.id != port_id);
+        }
+    }
+
+    pub fn remove_node(&mut self, id: u32) {
+        if let Some(node_id) = self.nodes.remove(&id) {
+            self.wires.retain(|(out, inp), _| {
+                if out.node == node_id || inp.node == node_id {
+                    self.snarl.disconnect(*out, *inp);
+                    false
+                } else {
+                    true
+                }
+            });
+            self.unpositioned.remove(&node_id);
+            self.snarl.remove_node(node_id);
+        }
     }
 }
 
 #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
 pub struct PersistentData {
     positions: HashMap<String, VecDeque<egui::Pos2>>,
-    zoom: f32,
+    transform: TSTransform,
 }
 
 impl PersistentView for Graph {
@@ -591,35 +693,32 @@ impl PersistentView for Graph {
     fn with_data(data: &Self::Data) -> Self {
         Self {
             restored_positions: Some(data.positions.clone()),
-
-            editor: GraphEditorState::new(data.zoom),
-
+            restored_transform: Some(data.transform),
             ..Self::new()
         }
     }
 
     fn save_data(&self) -> Option<Self::Data> {
-        if self.editor.node_positions.is_empty() {
-            // The graph hasn't been drawn, so nodes haven't been positioned
-            return None;
-        }
-
         let mut positions: HashMap<String, VecDeque<egui::Pos2>> = HashMap::new();
 
-        for (&pos, node) in self.editor.graph.nodes.iter().filter_map(|(id, node)| {
-            Some((
-                self.editor.node_positions.get(id)?,
-                node.user_data.global.upgrade()?,
-            ))
-        }) {
-            if let Some(name) = node.borrow().props().get("node.name") {
-                positions.entry(name.clone()).or_default().push_back(pos);
+        for node_info in self.snarl.nodes_info() {
+            let node = &node_info.value;
+
+            if let Some(name) = node.global.borrow().name() {
+                positions
+                    .entry(name.clone())
+                    .or_default()
+                    .push_back(node_info.pos);
             }
         }
 
-        Some(PersistentData {
-            positions,
-            zoom: self.editor.pan_zoom.zoom,
-        })
+        if positions.is_empty() {
+            None
+        } else {
+            Some(PersistentData {
+                positions,
+                transform: self.transform,
+            })
+        }
     }
 }

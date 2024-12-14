@@ -76,7 +76,7 @@ See their usage instructions.
 ## Credits
 - [egui](https://crates.io/crates/egui)+[eframe](https://crates.io/crates/eframe) - Immediate mode GUI for Rust and its desktop/web framework
 - [egui_dock](https://crates.io/crates/egui_dock) - Docking support for egui
-- ([A fork](https://github.com/kamirr/egui_node_graph) of) [egui_node_graph](https://crates.io/crates/egui_node_graph) - A helper library to create interactive node graphs using egui
+- ([A fork](https://github.com/dimtpap/egui-snarl/tree/coppwr) of) [egui-snarl](https://crates.io/crates/egui-snarl) - Node graph creation and editing for egui 
 - ([A fork](https://gitlab.freedesktop.org/dimtpap/pipewire-rs/-/tree/coppwr-next) of) [pipewire-rs](https://crates.io/crates/pipewire) - Rust bindings to libpipewire
 - [ashpd](https://crates.io/crates/ashpd) - XDG Desktop Portals wrapper
 - [pollster](https://crates.io/crates/pollster) - Simple async executor
