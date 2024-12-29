@@ -18,7 +18,7 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     rc::{Rc, Weak},
-    sync::OnceLock,
+    sync::LazyLock,
 };
 
 use eframe::egui;
@@ -34,7 +34,27 @@ use crate::{
 };
 
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {
-    static PERMISSIONS: OnceLock<&[(PermissionFlags, &'static str)]> = OnceLock::new();
+    static PERMISSIONS: LazyLock<&[(PermissionFlags, &'static str)]> = LazyLock::new(|| {
+        #[cfg(feature = "pw_v0_3_77")]
+        if crate::backend::remote_version().is_some_and(|ver| ver.0 > 0 || ver.2 >= 77) {
+            return [
+                (PermissionFlags::R, "Read"),
+                (PermissionFlags::W, "Write"),
+                (PermissionFlags::X, "Execute"),
+                (PermissionFlags::M, "Metadata"),
+                (PermissionFlags::L, "Link"),
+            ]
+            .as_slice();
+        }
+
+        [
+            (PermissionFlags::R, "Read"),
+            (PermissionFlags::W, "Write"),
+            (PermissionFlags::X, "Execute"),
+            (PermissionFlags::M, "Metadata"),
+        ]
+        .as_slice()
+    });
 
     ui.label("ID");
     ui.add(egui::widgets::DragValue::from_get_set(|v| {
@@ -44,31 +64,7 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {
         p.id() as _
     }));
 
-    for (permission, label) in PERMISSIONS
-        .get_or_init(|| {
-            #[cfg(feature = "pw_v0_3_77")]
-            if crate::backend::remote_version().is_some_and(|ver| ver.0 > 0 || ver.2 >= 77) {
-                return [
-                    (PermissionFlags::R, "Read"),
-                    (PermissionFlags::W, "Write"),
-                    (PermissionFlags::X, "Execute"),
-                    (PermissionFlags::M, "Metadata"),
-                    (PermissionFlags::L, "Link"),
-                ]
-                .as_slice();
-            }
-
-            [
-                (PermissionFlags::R, "Read"),
-                (PermissionFlags::W, "Write"),
-                (PermissionFlags::X, "Execute"),
-                (PermissionFlags::M, "Metadata"),
-            ]
-            .as_slice()
-        })
-        .iter()
-        .map(|(p, l)| (*p, *l))
-    {
+    for &(permission, label) in *PERMISSIONS {
         if ui
             .selectable_label(p.permission_flags().contains(permission), label)
             .clicked()
