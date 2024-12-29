@@ -58,7 +58,7 @@ mod data {
         queue.push_back(value);
     }
 
-    fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints {
+    fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints<'static> {
         PlotPoints::from_iter(points.enumerate().map(|(i, x)| [i as f64, x]))
     }
 
