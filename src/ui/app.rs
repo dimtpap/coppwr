@@ -1,4 +1,4 @@
-// Copyright 2023-2024 Dimitris Papaioannou <dimtpap@protonmail.com>
+// Copyright 2023-2025 Dimitris Papaioannou <dimtpap@protonmail.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3 as published by
@@ -506,7 +506,7 @@ impl App {
 
             ui.separator();
 
-            ui.label("2023-2024 Dimitris Papaioannou");
+            ui.label("2023-2025 Dimitris Papaioannou");
             ui.hyperlink(env!("CARGO_PKG_REPOSITORY"));
 
             ui.separator();
