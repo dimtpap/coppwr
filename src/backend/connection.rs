@@ -152,9 +152,7 @@ mod connection_impl {
                         )
                         .await?;
 
-                    proxy
-                        .start(&session, &ashpd::WindowIdentifier::default())
-                        .await?;
+                    proxy.start(&session, None).await?;
 
                     let fd = proxy.open_pipe_wire_remote(&session).await?;
 

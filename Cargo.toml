@@ -3,7 +3,7 @@ name = "coppwr"
 version = "1.6.1"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.81"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
@@ -16,14 +16,14 @@ categories = ["gui", "multimedia"]
 
 [dependencies]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "605d15996f3258b3e1cc34e445dfbdf16a366c7e"}
-egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev = "87b3f084c1cf70ac9ad489ae1f2e2a8234efdde4"}
-eframe = "0.29.1"
-egui = {version = "0.29.1", features = ["rayon"]}
-egui_plot = "0.29.0"
-egui_dock = "0.14.0"
+egui_node_graph = {version = "*", git = "https://github.com/dimtpap/egui_node_graph.git", rev = "6e6f764c5ff98a5b97dbc95e1a9d4b3c85436603"}
+eframe = "0.31.1"
+egui = {version = "0.31.1", features = ["rayon"]}
+egui_plot = "0.31.0"
+egui_dock = "0.16.0"
 serde = {version = "1.0", optional = true}
-ashpd = {version = "0.9.2", optional = true}
-pollster = {version = "0.3.0", optional = true}
+ashpd = {version = "0.11.0", optional = true, default-features = false, features = ["async-std"]} # Default is tokio which requires depending on it
+pollster = {version = "0.4.0", optional = true}
 
 [features]
 default = ["persistence"]

@@ -160,8 +160,8 @@ impl NodeDataTrait for Node {
                 .default_open(true)
                 .show_unindented(ui, |ui| {
                     egui::Frame::central_panel(&egui::Style::default())
-                        .inner_margin(egui::Margin::same(2.5))
-                        .rounding(ui.visuals().noninteractive().rounding)
+                        .inner_margin(egui::Margin::same(3))
+                        .corner_radius(ui.visuals().noninteractive().corner_radius)
                         .show(ui, |ui| {
                             ui.set_max_width(500f32);
                             egui::ScrollArea::vertical()
@@ -397,7 +397,7 @@ impl Graph {
         let mut next_default_pos =
             egui::Pos2::new((ui.available_width() - NODE_SPACING.x) / 2., 0f32);
         let mut next_inputs_only_pos = egui::Pos2::new(
-            ui.available_width() - NODE_SPACING.x - ui.style().spacing.window_margin.right,
+            ui.available_width() - NODE_SPACING.x - ui.style().spacing.window_margin.right as f32,
             0f32,
         );
 
