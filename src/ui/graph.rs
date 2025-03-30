@@ -244,7 +244,6 @@ impl Graph {
             return;
         }
 
-        // TODO Use port params to get their media type and move this out of Nodes.
         let media_type =
             global
                 .borrow()
@@ -303,10 +302,12 @@ impl Graph {
         ))
     }
 
-    pub fn add_input_port(&mut self, id: u32, node_id: u32, name: String) {
-        let Some((node_id, media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
+    pub fn add_input_port(&mut self, id: u32, node_id: u32, name: String, media_type: Option<MediaType>) {
+        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
             return;
         };
+
+        let media_type = media_type.unwrap_or(parent_media_type);
 
         let graph_id = self.editor.graph.add_wide_input_param(
             *node_id,
@@ -321,10 +322,12 @@ impl Graph {
         self.items.insert(id, graph_id.into());
     }
 
-    pub fn add_output_port(&mut self, id: u32, node_id: u32, name: String) {
-        let Some((node_id, media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
+    pub fn add_output_port(&mut self, id: u32, node_id: u32, name: String, media_type: Option<MediaType>) {
+        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
             return;
         };
+
+        let media_type=  media_type.unwrap_or(parent_media_type);
 
         let graph_id = self
             .editor

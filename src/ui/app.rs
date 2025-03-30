@@ -71,7 +71,9 @@ mod inspector {
     use crate::{
         backend::{self, Event, RemoteInfo},
         ui::{
-            globals_store::ObjectData, util::persistence::PersistentView, util::tool::Windowed,
+            globals_store::ObjectData,
+            graph::MediaType,
+            util::{persistence::PersistentView, tool::Windowed},
             ContextManager, GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler,
         },
     };
@@ -282,11 +284,26 @@ mod inspector {
                             ObjectType::Port => {
                                 if let Some(parent) = global_borrow.parent_id() {
                                     let name = global_borrow.name().cloned().unwrap_or_default();
+                                    let format_dsp = global_borrow.props().get("format.dsp");
+                                    let media_type = if let Some(format_dsp) = format_dsp {
+                                        Some(if format_dsp.ends_with("audio") {
+                                            MediaType::Audio
+                                        } else if format_dsp.ends_with("midi") {
+                                            MediaType::Midi
+                                        } else if format_dsp.ends_with("video") {
+                                            MediaType::Video
+                                        } else {
+                                            MediaType::Unknown
+                                        })
+                                    } else {
+                                        None
+                                    };
+
                                     match info[0].1.as_str() {
                                         "Input" => {
-                                            self.graph.add_input_port(id, parent, name);
+                                            self.graph.add_input_port(id, parent, name, media_type);
                                         }
-                                        "Output" => self.graph.add_output_port(id, parent, name),
+                                        "Output" => self.graph.add_output_port(id, parent, name, media_type),
                                         _ => {}
                                     }
                                 }
