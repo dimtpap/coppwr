@@ -290,6 +290,8 @@ mod inspector {
                                             MediaType::Audio
                                         } else if format_dsp.ends_with("midi") {
                                             MediaType::Midi
+                                        } else if format_dsp.ends_with("UMP") {
+                                            MediaType::Midi
                                         } else if format_dsp.ends_with("video") {
                                             MediaType::Video
                                         } else {
@@ -303,7 +305,9 @@ mod inspector {
                                         "Input" => {
                                             self.graph.add_input_port(id, parent, name, media_type);
                                         }
-                                        "Output" => self.graph.add_output_port(id, parent, name, media_type),
+                                        "Output" => {
+                                            self.graph.add_output_port(id, parent, name, media_type)
+                                        }
                                         _ => {}
                                     }
                                 }
