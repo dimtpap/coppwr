@@ -302,8 +302,15 @@ impl Graph {
         ))
     }
 
-    pub fn add_input_port(&mut self, id: u32, node_id: u32, name: String, media_type: Option<MediaType>) {
-        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
+    pub fn add_input_port(
+        &mut self,
+        id: u32,
+        node_id: u32,
+        name: String,
+        media_type: Option<MediaType>,
+    ) {
+        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id)
+        else {
             return;
         };
 
@@ -322,12 +329,19 @@ impl Graph {
         self.items.insert(id, graph_id.into());
     }
 
-    pub fn add_output_port(&mut self, id: u32, node_id: u32, name: String, media_type: Option<MediaType>) {
-        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id) else {
+    pub fn add_output_port(
+        &mut self,
+        id: u32,
+        node_id: u32,
+        name: String,
+        media_type: Option<MediaType>,
+    ) {
+        let Some((node_id, parent_media_type)) = self.port_graph_node_and_media_type(id, node_id)
+        else {
             return;
         };
 
-        let media_type=  media_type.unwrap_or(parent_media_type);
+        let media_type = media_type.unwrap_or(parent_media_type);
 
         let graph_id = self
             .editor
