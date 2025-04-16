@@ -472,13 +472,15 @@ impl Profiler {
             ui.label(format!("Driver ID: {id}"));
         });
 
-        if let Some(last) = driver.last_profling() {
-            let info = &last.info;
-            let followers = last.followers.len();
-            ui.label(format!(
-                "Last profiling info\nTotal profiler samples: {} | Xruns: {} | Follower nodes: {}\nQuantum: {} | CPU Load: {} {} {}",
-                info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
-        }
+        egui::CollapsingHeader::new("Last profiling info").default_open(true).show(ui, |ui| {
+            if let Some(last) = driver.last_profling() {
+                let info = &last.info;
+                let followers = last.followers.len();
+                ui.label(format!(
+                    "Total profiler samples: {} | Xruns: {} | Follower nodes: {}\nQuantum: {} | CPU Load: {} {} {}",
+                    info.counter, info.xrun_count, followers, last.clock.duration * i64::from(last.clock.rate.num), info.cpu_load_fast, info.cpu_load_medium, info.cpu_load_slow));
+            }
+        });
 
         let clear = ui.horizontal(|ui| {
             ui.label("Profilings");
