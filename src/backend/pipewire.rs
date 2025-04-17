@@ -44,6 +44,12 @@ pub fn pipewire_thread(
         _ = sx.send(event);
     };
 
+    // Proxies created by core.create_object are kept seperate from proxies created
+    // by registry binding because they've not been bound yet and need to be kept alive
+    // until they become available in the registry and object listeners can be added on them
+    let locals = Rc::new(RefCell::new(HashMap::new()));
+    let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
+
     let (mainloop, context, connection, registry): (
         pw::main_loop::MainLoop,
         pw::context::Context,
@@ -87,8 +93,6 @@ pub fn pipewire_thread(
     };
     let core = connection.core();
 
-    let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
-
     let _receiver = pwrx.attach(mainloop.loop_(), {
         let send = send.clone();
         let mainloop = mainloop.clone();
@@ -96,10 +100,7 @@ pub fn pipewire_thread(
         let core = core.clone();
         let registry = Rc::clone(&registry);
 
-        // Proxies created by core.create_object are kept seperate from proxies created
-        // by registry binding because they've not been bound yet and need to be kept alive
-        // until they become available in the registry and object listeners can be added on them
-        let locals = Rc::new(RefCell::new(HashMap::new()));
+        let locals = Rc::clone(&locals);
         let binds = Rc::clone(&binds);
 
         move |msg| match msg {
