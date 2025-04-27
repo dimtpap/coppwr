@@ -61,7 +61,7 @@ fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {
         if let Some(v) = v {
             p.set_id(v as _);
         }
-        p.id() as _
+        f64::from(p.id())
     }));
 
     for &(permission, label) in *PERMISSIONS {

@@ -753,7 +753,7 @@ impl Profiler {
                 ui.label("Did not wake");
             } else {
                 ui.label("Was not signaled");
-            };
+            }
 
             // Busy
             if block.finish >= block.awake {

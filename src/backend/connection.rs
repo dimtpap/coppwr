@@ -125,7 +125,7 @@ mod connection_impl {
         session: Option<PortalSession<'a, 'b>>,
     }
 
-    impl<'a, 'b> Connection<'a, 'b> {
+    impl Connection<'_, '_> {
         pub fn open(
             context: &pw::context::Context,
             context_properties: Vec<(String, String)>,

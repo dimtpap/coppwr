@@ -414,7 +414,9 @@ impl Graph {
         let mut next_default_pos =
             egui::Pos2::new((ui.available_width() - NODE_SPACING.x) / 2., 0f32);
         let mut next_inputs_only_pos = egui::Pos2::new(
-            ui.available_width() - NODE_SPACING.x - ui.style().spacing.window_margin.right as f32,
+            ui.available_width()
+                - NODE_SPACING.x
+                - f32::from(ui.style().spacing.window_margin.right),
             0f32,
         );
 
@@ -466,7 +468,7 @@ impl Graph {
                         .ok()
                         .zip(info[3].1.parse::<u32>().ok())
                 });
-            };
+            }
 
             let pos = if let Some((inputs, outputs)) = ports {
                 if outputs == 0 {

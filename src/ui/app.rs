@@ -220,9 +220,8 @@ mod inspector {
                     Ok(event) => {
                         if matches!(event, Event::Stop) {
                             return true;
-                        } else {
-                            self.process_event(event);
                         }
+                        self.process_event(event);
                     }
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => {
@@ -282,29 +281,29 @@ mod inspector {
                             ObjectType::Port => {
                                 if let Some(parent) = global_borrow.parent_id() {
                                     let name = global_borrow.name().cloned().unwrap_or_default();
-                                    let format_dsp = global_borrow.props().get("format.dsp");
-                                    let media_type = if let Some(format_dsp) = format_dsp {
-                                        Some(if format_dsp.ends_with("audio") {
-                                            MediaType::Audio
-                                        } else if format_dsp.ends_with("midi") {
-                                            MediaType::Midi
-                                        } else if format_dsp.ends_with("UMP") {
-                                            MediaType::Midi
-                                        } else if format_dsp.ends_with("video") {
-                                            MediaType::Video
-                                        } else {
-                                            MediaType::Unknown
-                                        })
-                                    } else {
-                                        None
-                                    };
+
+                                    let media_type =
+                                        global_borrow.props().get("format.dsp").map(|format_dsp| {
+                                            if format_dsp.ends_with("audio") {
+                                                MediaType::Audio
+                                            } else if format_dsp.ends_with("midi")
+                                                || format_dsp.ends_with("UMP")
+                                            {
+                                                MediaType::Midi
+                                            } else if format_dsp.ends_with("video") {
+                                                MediaType::Video
+                                            } else {
+                                                MediaType::Unknown
+                                            }
+                                        });
 
                                     match info[0].1.as_str() {
                                         "Input" => {
                                             self.graph.add_input_port(id, parent, name, media_type);
                                         }
                                         "Output" => {
-                                            self.graph.add_output_port(id, parent, name, media_type)
+                                            self.graph
+                                                .add_output_port(id, parent, name, media_type);
                                         }
                                         _ => {}
                                     }

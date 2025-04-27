@@ -71,7 +71,7 @@ pub fn pipewire_thread(
                 .is_err()
             {
                 eprintln!("Failed to load the profiler module. No profiler data will be available");
-            };
+            }
 
             let connection = Connection::open(&context, context_properties, remote)?;
 
@@ -188,7 +188,7 @@ pub fn pipewire_thread(
                     .is_err()
                 {
                     eprintln!("Failed to load module: Name: {name} - Directory: {module_dir:?} - Arguments: {args:?}");
-                };
+                }
 
                 if module_dir.is_some() {
                     if let Some(prev) = prev {
