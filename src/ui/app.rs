@@ -224,13 +224,11 @@ mod inspector {
                             self.process_event(event);
                         }
                     }
-                    Err(err) => match err {
-                        TryRecvError::Empty => break,
-                        TryRecvError::Disconnected => {
-                            eprintln!("Events sender has disconnected");
-                            return true;
-                        }
-                    },
+                    Err(TryRecvError::Empty) => break,
+                    Err(TryRecvError::Disconnected) => {
+                        eprintln!("Events sender has disconnected");
+                        return true;
+                    }
                 }
             }
             false
