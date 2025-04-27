@@ -487,16 +487,17 @@ impl App {
 
     #[cfg(feature = "persistence")]
     pub fn new(storage: Option<&dyn eframe::Storage>) -> Self {
-        let inspector_data =
-            storage.and_then(|storage| eframe::get_value(storage, storage_keys::INSPECTOR));
-
-        let settings = storage
-            .and_then(|storage| eframe::get_value(storage, storage_keys::SETTINGS))
-            .unwrap_or_default();
+        let (dock_state, settings, inspector_data) =
+            storage.map_or((None, None, None), |storage| {
+                (
+                    eframe::get_value(storage, storage_keys::DOCK),
+                    eframe::get_value(storage, storage_keys::SETTINGS),
+                    eframe::get_value(storage, storage_keys::INSPECTOR),
+                )
+            });
 
         Self {
-            dock_state: storage
-                .and_then(|storage| eframe::get_value(storage, storage_keys::DOCK))
+            dock_state: dock_state
                 .unwrap_or_else(|| DockState::new(vec![View::Graph, View::GlobalTracker])),
 
             state: State::new_connected(
@@ -506,7 +507,7 @@ impl App {
                 inspector_data.as_ref(),
             ),
 
-            settings,
+            settings: settings.unwrap_or_default(),
 
             about_open: false,
 
