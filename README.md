@@ -26,8 +26,10 @@ If you want to learn the inner workings of PipeWire check out the [docs page on 
 
 ## Installing
 ### Flatpak
-<a href='https://flathub.org/apps/io.github.dimtpap.coppwr'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
-### Arch
+`io.github.dimtpap.coppwr` is available on [Flathub](https://flathub.org/apps/io.github.dimtpap.coppwr).
+
+<a href='https://flathub.org/apps/io.github.dimtpap.coppwr'><img width='200' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/></a>
+### Arch Linux
 [![coppwr AUR version](https://img.shields.io/aur/version/coppwr?label=coppwr&logo=archlinux)](https://aur.archlinux.org/packages/coppwr)
 [![coppwr-bin AUR version](https://img.shields.io/aur/version/coppwr-bin?label=coppwr-bin&logo=archlinux)](https://aur.archlinux.org/packages/coppwr-bin)  
 `coppwr-bin` is available from the [AUR](https://aur.archlinux.org/packages/coppwr-bin) (use `coppwr` for the non-prebuilt package).  
@@ -59,7 +61,7 @@ In the repository's root directory
 cargo build --release
 ```
 See the [Cargo reference](https://doc.rust-lang.org/cargo/reference/features.html#command-line-feature-options) for info on how to use any of the above features
-### Arch
+### Arch Linux
 `coppwr` is available from the [AUR](https://aur.archlinux.org/packages/coppwr)
 ```sh
 git clone https://aur.archlinux.org/coppwr.git
