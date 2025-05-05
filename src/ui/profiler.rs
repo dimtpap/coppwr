@@ -647,9 +647,9 @@ impl Profiler {
         fn draw_chart(driver: &Driver, ui: &mut egui::Ui) {
             use egui_plot::{Bar, BarChart};
 
-            let mut wait = Vec::with_capacity(driver.n_clients());
-            let mut busy = Vec::with_capacity(driver.n_clients());
-            let mut y_labels = Vec::with_capacity(driver.n_clients());
+            let mut wait = Vec::with_capacity(1 + driver.n_clients());
+            let mut busy = Vec::with_capacity(1 + driver.n_clients());
+            let mut y_labels = Vec::with_capacity(1 + driver.n_clients());
 
             for (i, nb) in driver
                 .clients()
