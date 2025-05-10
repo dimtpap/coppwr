@@ -337,6 +337,7 @@ pub struct Profiler {
     // Used for updating last profilings of nodes periodically instead of on every new profiling.
     // This is useful for not drawing new data on every egui update, such as mouse movement
     last_profs_update: std::time::Instant,
+    refresh_this_frame: Option<bool>,
 }
 
 #[allow(
@@ -355,6 +356,7 @@ impl Profiler {
             buffer: VecDeque::new(),
 
             last_profs_update: std::time::Instant::now(),
+            refresh_this_frame: None,
         }
     }
 
@@ -370,9 +372,14 @@ impl Profiler {
             if now.duration_since(self.last_profs_update) >= update_rate {
                 self.last_profs_update = now;
             } else {
+                if self.refresh_this_frame.is_none() {
+                    self.refresh_this_frame = Some(false);
+                }
                 return;
             }
         }
+
+        self.refresh_this_frame = Some(true);
 
         for driver in self.drivers.values_mut() {
             driver.adjust_queues(self.max_profilings);
@@ -644,7 +651,7 @@ impl Profiler {
 
         ui.separator();
 
-        fn draw_chart(driver: &Driver, ui: &mut egui::Ui) {
+        fn draw_chart(driver: &Driver, refresh: bool, ui: &mut egui::Ui) {
             use egui_plot::{Bar, BarChart};
 
             let mut wait = Vec::with_capacity(1 + driver.n_clients());
@@ -660,31 +667,62 @@ impl Profiler {
             {
                 wait.push(Bar::new(i as f64, (nb.awake - nb.signal) as f64 / 1000.).horizontal());
                 busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64 / 1000.).horizontal());
-                y_labels.push(nb.name.as_str());
+
+                let label = if nb.name.len() <= 15 {
+                    format!("{} ({})", &nb.name, nb.id)
+                } else {
+                    format!("{}... ({})", &nb.name[0..15], nb.id)
+                };
+
+                y_labels.push(label);
             }
 
             ui.set_width(ui.available_width());
 
-            Plot::new("Chart")
-                .height((y_labels.len() * 45) as f32)
+            // The plot is more readable when the bounds are updated less frequently
+            // Keep the max bound equal to the max x of the last 60 updates
+            let (prev_bound, mut counter) = ui
+                .data(|d| d.get_temp::<(f64, u8)>(ui.id()))
+                .unwrap_or((0., 0));
+
+            let update_bound = counter >= 60;
+
+            let res = Plot::new("Chart")
+                .height(f32::max((y_labels.len() * 45) as f32, 115.))
                 .allow_drag(false)
                 .allow_zoom(false)
                 .allow_scroll(false)
-                .clamp_grid(true)
+                .allow_boxed_zoom(false)
                 .show_grid(egui::Vec2b::new(true, false))
-                .set_margin_fraction(egui::vec2(0.01, 0.35))
+                .set_margin_fraction(egui::Vec2::ZERO)
+                .include_x(-0.5) // Left side margin
+                .include_x(if !update_bound { prev_bound } else { 0. })
+                .include_y(-0.8) // 0.8 Y margin
+                .include_y(y_labels.len() as f64 - 0.2) // 0.8 Y margin
+                .y_grid_spacer({
+                    let n_labels = y_labels.len();
+                    move |_| {
+                        // Always show all labels
+                        (0..n_labels)
+                            .map(|i| egui_plot::GridMark {
+                                step_size: n_labels as f64,
+                                value: i as f64,
+                            })
+                            .collect()
+                    }
+                })
                 .x_axis_formatter(|grid_mark, _| format!("{} us", grid_mark.value))
-                .y_axis_formatter(|grid_mark, _| {
+                .y_axis_formatter(move |grid_mark, _| {
                     if grid_mark.value.is_sign_positive()
                         && (grid_mark.value as usize) < y_labels.len()
                         && grid_mark.value % 1. == 0.
                     {
-                        y_labels[grid_mark.value as usize].to_owned()
+                        y_labels[grid_mark.value as usize].clone()
                     } else {
                         String::new()
                     }
                 })
-                .label_formatter(|_, _| String::new())
+                .label_formatter(|_, p| format!("{:.0} us", p.x))
                 .legend(
                     egui_plot::Legend::default()
                         .position(egui_plot::Corner::LeftTop)
@@ -705,6 +743,23 @@ impl Profiler {
                     plot_ui.bar_chart(wait);
                     plot_ui.bar_chart(busy);
                 });
+
+            let plot_bound = *res.transform.bounds().range_x().end();
+
+            let new_bound = if update_bound || prev_bound < plot_bound {
+                // Reset the counter if it's time to update or if the data forces the bounds to expand
+                if refresh {
+                    counter = 0;
+                }
+                plot_bound
+            } else {
+                if refresh {
+                    counter += 1;
+                }
+                prev_bound
+            };
+
+            ui.data_mut(|d| d.insert_temp(ui.id(), (new_bound, counter)));
         }
 
         fn draw_node_block(
@@ -823,7 +878,7 @@ impl Profiler {
                     });
 
                     egui::CollapsingHeader::new("Chart").id_salt(id).show(ui, |ui| {
-                        draw_chart(driver, ui);
+                        draw_chart(driver, self.refresh_this_frame.unwrap_or(false), ui);
                     });
 
                     ui.separator();
@@ -834,5 +889,7 @@ impl Profiler {
                 }
             });
         });
+
+        self.refresh_this_frame = None;
     }
 }
