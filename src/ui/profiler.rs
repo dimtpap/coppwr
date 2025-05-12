@@ -180,9 +180,9 @@ mod data {
             Self {
                 delay: (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
 
-                period: ((p.driver.signal - p.driver.prev_signal) / 1000) as f64,
+                period: ((p.driver.signal - p.driver.prev_signal) as f64 / 1000.),
 
-                end_date: ((p.driver.finish - p.driver.signal) / 1000) as f64,
+                end_date: ((p.driver.finish - p.driver.signal) as f64 / 1000.),
 
                 estimated: (p.clock.duration * 1_000_000) as f64
                     / (p.clock.rate_diff * f64::from(p.clock.rate.denom)),
@@ -532,7 +532,7 @@ impl Profiler {
                     if name.is_empty() {
                         String::new()
                     } else {
-                        format!("{name}: {:.0}us\nProcess cycle: {:.0}", value.y, value.x)
+                        format!("{name}: {:.3}us\nProcess cycle: {:.0}", value.y, value.x)
                     }
                 })
                 .x_axis_formatter(move |x, _| {
