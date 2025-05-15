@@ -579,7 +579,7 @@ impl Profiler {
                     ("Period", driver.period()),
                     ("Estimated", driver.estimated()),
                 ] {
-                    ui.line(egui_plot::Line::new(plot_points).name(name));
+                    ui.line(egui_plot::Line::new(name, plot_points));
                 }
             });
 
@@ -592,7 +592,7 @@ impl Profiler {
             )
             .height(ui[1].available_height() / 2.)
             .show(&mut ui[1], |ui| {
-                ui.line(egui_plot::Line::new(driver.end_date()).name("Driver End Date"));
+                ui.line(egui_plot::Line::new("Driver End Date", driver.end_date()));
             });
         });
 
@@ -621,7 +621,7 @@ impl Profiler {
                     &mut ui[i],
                     |ui| {
                         for client in driver.clients() {
-                            ui.line(egui_plot::Line::new(measurement(client)).name(client.title()));
+                            ui.line(egui_plot::Line::new(client.title(), measurement(client)));
                         }
                     },
                 );
@@ -729,12 +729,10 @@ impl Profiler {
                         .text_style(egui::TextStyle::Small),
                 )
                 .show(ui, |plot_ui| {
-                    let wait = BarChart::new(wait)
-                        .name("Waiting")
+                    let wait = BarChart::new("Waiting", wait)
                         .element_formatter(Box::new(|b, _| format!("Waiting took {} us", b.value)));
 
-                    let busy = BarChart::new(busy)
-                        .name("Busy")
+                    let busy = BarChart::new("Busy", busy)
                         .stack_on(&[&wait])
                         .element_formatter(Box::new(|b, _| {
                             format!("Processing took {} us", b.value)
