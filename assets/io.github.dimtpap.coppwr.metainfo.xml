@@ -67,6 +67,15 @@
   </keywords>
 
   <releases>
+  <release version="1.6.2" date="2025-05-15">
+      <description>
+        <ul>
+          <li>Fixed ID field on permissions not changing</li>
+          <li>Improved the Profiler and Process Viewer plots</li>
+          <li>Made Graph ports use their own media type instead of the node's</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.1" date="2024-10-22">
       <description>
         <ul>
