@@ -72,7 +72,7 @@
         <ul>
           <li>Added explanations to the profiler graphs when hovering their titles</li>
           <li>Added Update Rate setting to change the rate at which the UI refreshes with new PipeWire data</li>
-          <li>Fixed Gloal Tracker list not refreshing when "Group Subobjects" is changed</li>
+          <li>Fixed Global Tracker list not refreshing when "Group Subobjects" is changed</li>
           <li>Slightly changed icon for better contrast</li>
           <li>Fixed crashing when PipeWire sends unknown profiler data</li>
         </ul>
