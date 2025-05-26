@@ -488,6 +488,8 @@ impl Graph {
         }
 
         ui.scope(|ui| {
+            ui.shrink_clip_rect(ui.max_rect().expand(ui.visuals().clip_rect_margin));
+
             if reset_view {
                 self.editor.reset_zoom(ui);
                 self.editor.pan_zoom.pan = egui::Vec2::ZERO;
