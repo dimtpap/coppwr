@@ -16,8 +16,8 @@
 
 use ashpd::desktop::settings::{ColorScheme, Settings};
 use futures_util::{
-    future,
-    stream::{self, AbortHandle, StreamExt as _},
+    future::{self, AbortHandle},
+    stream::{self, StreamExt as _},
 };
 
 pub struct SystemThemeListener {
