@@ -484,7 +484,9 @@ impl App {
             ),
 
             #[cfg(feature = "xdg_desktop_portals")]
-            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(&_cc.egui_ctx),
+            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(
+                &_cc.egui_ctx,
+            ),
         }
     }
 
@@ -517,7 +519,9 @@ impl App {
             inspector_data,
 
             #[cfg(feature = "xdg_desktop_portals")]
-            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(&cc.egui_ctx),
+            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(
+                &cc.egui_ctx,
+            ),
         }
     }
 
@@ -655,7 +659,7 @@ impl eframe::App for App {
 
                             ui.label("🎨 Theme");
 
-                            let mut theme_preference = ctx.options(|o| o.theme_preference); 
+                            let mut theme_preference = ctx.options(|o| o.theme_preference);
 
                             for (pref, text) in [
                                 #[cfg(feature = "xdg_desktop_portals")]
@@ -663,7 +667,7 @@ impl eframe::App for App {
                                 (egui::ThemePreference::Dark, "Dark"),
                                 (egui::ThemePreference::Light, "Light")
                             ] {
-                                let changed = 
+                                let changed =
                                     ui.radio_value(&mut theme_preference, pref, text).changed();
 
                                 if changed {
