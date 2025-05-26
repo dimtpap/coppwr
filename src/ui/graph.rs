@@ -159,7 +159,8 @@ impl NodeDataTrait for Node {
             egui::CollapsingHeader::new("Details")
                 .default_open(true)
                 .show_unindented(ui, |ui| {
-                    egui::Frame::central_panel(&egui::Style::default())
+                    egui::Frame::new()
+                        .fill(ui.visuals().panel_fill)
                         .inner_margin(egui::Margin::same(3))
                         .corner_radius(ui.visuals().noninteractive().corner_radius)
                         .show(ui, |ui| {
