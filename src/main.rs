@@ -17,6 +17,9 @@
 mod backend;
 mod ui;
 
+#[cfg(feature = "xdg_desktop_portals")]
+mod system_theme_listener;
+
 use crate::ui::CoppwrApp;
 
 fn main() {
@@ -37,17 +40,18 @@ fn main() {
             },
             ..eframe::NativeOptions::default()
         },
-        {
-            #[cfg(not(feature = "persistence"))]
-            {
-                Box::new(|_| Ok(Box::new(CoppwrApp::new())))
-            }
+        Box::new(|cc| {
+            #[cfg(not(feature = "xdg_desktop_portals"))]
+            // Explicitely set current theme to fallback theme
+            // since system theme detection will not be available
+            cc.egui_ctx.options_mut(|o| {
+                if o.theme_preference == egui::ThemePreference::System {
+                    o.theme_preference = o.fallback_theme.into()
+                }
+            });
 
-            #[cfg(feature = "persistence")]
-            {
-                Box::new(|cc| Ok(Box::new(CoppwrApp::new(cc.storage))))
-            }
-        },
+            Ok(Box::new(CoppwrApp::new(cc)))
+        }),
     ) {
         eprintln!("Failed to start the GUI: {e}");
     }

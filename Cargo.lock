@@ -770,6 +770,7 @@ dependencies = [
  "egui_dock",
  "egui_node_graph",
  "egui_plot",
+ "futures-util",
  "pipewire",
  "pollster",
  "serde",

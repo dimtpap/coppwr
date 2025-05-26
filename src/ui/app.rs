@@ -463,11 +463,14 @@ pub struct App {
     settings: Settings,
     about_open: bool,
     state: State,
+
+    #[cfg(feature = "xdg_desktop_portals")]
+    _system_theme_listener: crate::system_theme_listener::SystemThemeListener,
 }
 
 impl App {
     #[cfg(not(feature = "persistence"))]
-    pub fn new() -> Self {
+    pub fn new(_cc: &eframe::CreationContext) -> Self {
         Self {
             dock_state: egui_dock::DockState::new(vec![View::Graph, View::GlobalTracker]),
             inspector_data: None,
@@ -479,13 +482,16 @@ impl App {
                 vec![("media.category".to_owned(), "Manager".to_owned())],
                 None,
             ),
+
+            #[cfg(feature = "xdg_desktop_portals")]
+            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(&_cc.egui_ctx),
         }
     }
 
     #[cfg(feature = "persistence")]
-    pub fn new(storage: Option<&dyn eframe::Storage>) -> Self {
+    pub fn new(cc: &eframe::CreationContext) -> Self {
         let (dock_state, settings, inspector_data) =
-            storage.map_or((None, None, None), |storage| {
+            cc.storage.map_or((None, None, None), |storage| {
                 (
                     eframe::get_value(storage, storage_keys::DOCK),
                     eframe::get_value(storage, storage_keys::SETTINGS),
@@ -509,6 +515,9 @@ impl App {
             about_open: false,
 
             inspector_data,
+
+            #[cfg(feature = "xdg_desktop_portals")]
+            _system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(&cc.egui_ctx),
         }
     }
 
@@ -641,6 +650,26 @@ impl eframe::App for App {
                                     .custom_formatter(|n, _| format!("{:.0}ms", n * 1000.)),
                                 );
                             });
+
+                            ui.separator();
+
+                            ui.label("🎨 Theme");
+
+                            let mut theme_preference = ctx.options(|o| o.theme_preference); 
+
+                            for (pref, text) in [
+                                #[cfg(feature = "xdg_desktop_portals")]
+                                (egui::ThemePreference::System, "Use system's"),
+                                (egui::ThemePreference::Dark, "Dark"),
+                                (egui::ThemePreference::Light, "Light")
+                            ] {
+                                let changed = 
+                                    ui.radio_value(&mut theme_preference, pref, text).changed();
+
+                                if changed {
+                                    ctx.set_theme(theme_preference);
+                                }
+                            }
                         });
 
                         ui.menu_button("Help", |ui| {
@@ -666,11 +695,12 @@ impl eframe::App for App {
 
                 inspector.tool_windows(ctx);
 
-                let mut style = egui_dock::Style::from_egui(ctx.style().as_ref());
-                style.tab.tab_body.inner_margin = egui::Margin::symmetric(5, 5);
-                egui_dock::DockArea::new(&mut self.dock_state)
-                    .style(style)
-                    .show(ctx, &mut Viewer(inspector, &self.settings));
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::new().fill(ctx.style().visuals.panel_fill)) // No margins
+                    .show(ctx, |ui| {
+                        egui_dock::DockArea::new(&mut self.dock_state)
+                            .show_inside(ui, &mut Viewer(inspector, &self.settings));
+                    });
             }
             State::Unconnected {
                 remote,

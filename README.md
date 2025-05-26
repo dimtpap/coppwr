@@ -52,8 +52,8 @@ Debian and RPM packages are available from the [releases](https://github.com/dim
 
 ### Available [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html)
 - `pw_v0_3_77` - Used for the Link permission on PipeWire globals. Enable this if you're building with libpipewire 0.3.77 or later.
-- `xdg_desktop_portals` - Allows connecting to PipeWire remotes opened by the [Camera](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Camera.html)
-and [Screencast](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html) XDG Desktop Portals.
+- `xdg_desktop_portals` - (**On** by default) Used for dark/light theme detection and opening PipeWire remotes with the [Camera](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Camera.html)
+and [Screencast](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html) portals.
 - `persistence` (**On** by default) - Store application data like window info, graph node positions etc. on disk
 ### Build
 In the repository's root directory
