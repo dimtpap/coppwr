@@ -44,8 +44,9 @@ test = false
 bench = false
 
 [package.metadata.deb]
-depends = "pipewire"
-suggests = "xdg-desktop-portal"
+depends = ["libc6", "libgcc-s1", "libpipewire-0.3-0", "libxkbcommon0", "libxkbcommon-x11-0"]
+recommends = ["pipewire"]
+suggests = ["xdg-desktop-portal"]
 assets = [
 	["target/release/coppwr", "/usr/bin/coppwr", "755"],
 	["LICENSE", "/usr/share/licenses/coppwr/LICENSE", "644"],
@@ -59,6 +60,9 @@ assets = [
 	["assets/icon/48.png", "/usr/share/icons/hicolor/48x48/apps/io.github.dimtpap.coppwr.png", "644"],
 	["assets/icon/32.png", "/usr/share/icons/hicolor/32x32/apps/io.github.dimtpap.coppwr.png", "644"],
 ]
+extended-description = """coppwr displays and provides control over many aspects of PipeWire \
+as directly as possible in an organized and visual way. It can help with debugging and diagnosing \
+a PipeWire setup or with developing software that interacts with PipeWire."""
 
 [package.metadata.generate-rpm]
 assets = [
