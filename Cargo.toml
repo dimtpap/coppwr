@@ -9,7 +9,7 @@ description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
 homepage = "https://dimtpap.ovh/coppwr"
 readme = "README.md"
-keywords =  ["pipewire", "egui", "gui", "utility"]
+keywords =  ["pipewire", "gui"] 
 categories = ["gui", "multimedia"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
