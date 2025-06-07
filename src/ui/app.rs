@@ -713,14 +713,23 @@ impl eframe::App for App {
             } => {
                 let mut connect = false;
                 egui::CentralPanel::default().show(ctx, |_| {});
-                egui::Window::new("Connect to PipeWire")
-                    .collapsible(false)
-                    .fixed_size([300., 200.])
-                    .pivot(egui::Align2::CENTER_CENTER)
-                    .default_pos([window_size.x / 2., window_size.y / 2.])
+                egui::Modal::new("connect_prompt".into())
+                    .area(
+                        egui::Modal::default_area("connect_prompt_area".into())
+                            .default_size([300., 200.]),
+                    )
                     .show(ctx, {
                         let mainloop_properties = &mut *mainloop_properties;
                         |ui| {
+                            ui.with_layout(
+                                ui.layout().clone().with_cross_align(egui::Align::Center),
+                                |ui| {
+                                    ui.heading("Connect to PipeWire");
+                                },
+                            );
+
+                            ui.separator();
+
                             #[cfg(feature = "xdg_desktop_portals")]
                             egui::ComboBox::new("remote_type", "Remote kind")
                                 .selected_text({
