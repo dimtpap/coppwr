@@ -661,18 +661,27 @@ impl eframe::App for App {
 
                             let mut theme_preference = ctx.options(|o| o.theme_preference);
 
+                            let mut changed = false;
+
+                            #[cfg(feature = "xdg_desktop_portals")]
+                            ui.horizontal(|ui| {
+                                changed = ui.radio_value(&mut theme_preference, egui::ThemePreference::System, "Use system's").changed();
+
+                                if !self._system_theme_listener.is_running() {
+                                    ui.label("⚠").on_hover_text("Cannot access the system theme.\nEither the portal is not available,\nor an error occurred. (See stderr)");
+                                }
+                            });
+
                             for (pref, text) in [
-                                #[cfg(feature = "xdg_desktop_portals")]
-                                (egui::ThemePreference::System, "Use system's"),
                                 (egui::ThemePreference::Dark, "Dark"),
                                 (egui::ThemePreference::Light, "Light")
                             ] {
-                                let changed =
+                                changed |=
                                     ui.radio_value(&mut theme_preference, pref, text).changed();
+                            }
 
-                                if changed {
-                                    ctx.set_theme(theme_preference);
-                                }
+                            if changed {
+                                ctx.set_theme(theme_preference);
                             }
                         });
 

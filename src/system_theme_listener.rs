@@ -14,6 +14,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+
 use ashpd::desktop::settings::{ColorScheme, Settings};
 use futures_util::{
     future::{self, AbortHandle},
@@ -22,6 +27,7 @@ use futures_util::{
 
 pub struct SystemThemeListener {
     handle: AbortHandle,
+    running: Arc<AtomicBool>,
 }
 
 impl SystemThemeListener {
@@ -52,13 +58,23 @@ impl SystemThemeListener {
             Ok::<_, ashpd::Error>(())
         })());
 
-        std::thread::spawn(|| {
-            if let Ok(Err(e)) = pollster::block_on(fut) {
-                eprintln!("Error while waiting for system theme change: {e}");
+        let running = Arc::new(AtomicBool::new(true));
+
+        std::thread::spawn({
+            let running = Arc::clone(&running);
+            move || {
+                if let Ok(Err(e)) = pollster::block_on(fut) {
+                    eprintln!("Error while waiting for system theme change: {e}");
+                }
+                running.store(false, Ordering::Relaxed);
             }
         });
 
-        Self { handle }
+        Self { handle, running }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::Relaxed)
     }
 }
 
