@@ -34,7 +34,7 @@ impl SystemThemeListener {
     pub fn new(ctx: &egui::Context) -> Self {
         let ctx = ctx.clone();
 
-        let (fut, handle) = future::abortable((|| async move {
+        let (fut, handle) = future::abortable(async move {
             let settings = Settings::new().await?;
 
             // No notification is received for the already set scheme
@@ -56,7 +56,7 @@ impl SystemThemeListener {
             }
 
             Ok::<_, ashpd::Error>(())
-        })());
+        });
 
         let running = Arc::new(AtomicBool::new(true));
 
