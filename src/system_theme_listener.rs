@@ -14,10 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{Arc, OnceLock};
 
 use ashpd::desktop::settings::{ColorScheme, Settings};
 use futures_util::{
@@ -25,9 +22,14 @@ use futures_util::{
     stream::{self, StreamExt as _},
 };
 
+pub enum StopCause {
+    Abort,
+    Error(ashpd::Error),
+}
+
 pub struct SystemThemeListener {
     handle: AbortHandle,
-    running: Arc<AtomicBool>,
+    stop_cause: Arc<OnceLock<StopCause>>,
 }
 
 impl SystemThemeListener {
@@ -58,23 +60,25 @@ impl SystemThemeListener {
             Ok::<_, ashpd::Error>(())
         });
 
-        let running = Arc::new(AtomicBool::new(true));
+        let stop_cause = Arc::new(OnceLock::new());
 
         std::thread::spawn({
-            let running = Arc::clone(&running);
+            let stop_cause = Arc::clone(&stop_cause);
             move || {
                 if let Ok(Err(e)) = pollster::block_on(fut) {
                     eprintln!("Error while waiting for system theme change: {e}");
+                    _ = stop_cause.set(StopCause::Error(e));
+                } else {
+                    _ = stop_cause.set(StopCause::Abort);
                 }
-                running.store(false, Ordering::Relaxed);
             }
         });
 
-        Self { handle, running }
+        Self { handle, stop_cause }
     }
 
-    pub fn is_running(&self) -> bool {
-        self.running.load(Ordering::Relaxed)
+    pub fn stop_cause(&self) -> Option<&StopCause> {
+        self.stop_cause.get()
     }
 }
 

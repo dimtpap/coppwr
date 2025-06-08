@@ -22,6 +22,9 @@ use egui_dock::DockState;
 #[cfg(feature = "xdg_desktop_portals")]
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
+#[cfg(feature = "xdg_desktop_portals")]
+use crate::system_theme_listener::{StopCause, SystemThemeListener};
+
 use crate::{backend::RemoteInfo, ui::util::uis::EditableKVList};
 
 #[derive(Clone, Copy)]
@@ -465,7 +468,7 @@ pub struct App {
     state: State,
 
     #[cfg(feature = "xdg_desktop_portals")]
-    system_theme_listener: crate::system_theme_listener::SystemThemeListener,
+    system_theme_listener: SystemThemeListener,
 }
 
 impl App {
@@ -484,9 +487,7 @@ impl App {
             ),
 
             #[cfg(feature = "xdg_desktop_portals")]
-            system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(
-                &_cc.egui_ctx,
-            ),
+            system_theme_listener: SystemThemeListener::new(&_cc.egui_ctx),
         }
     }
 
@@ -519,9 +520,7 @@ impl App {
             inspector_data,
 
             #[cfg(feature = "xdg_desktop_portals")]
-            system_theme_listener: crate::system_theme_listener::SystemThemeListener::new(
-                &cc.egui_ctx,
-            ),
+            system_theme_listener: SystemThemeListener::new(&cc.egui_ctx),
         }
     }
 
@@ -667,8 +666,16 @@ impl eframe::App for App {
                             ui.horizontal(|ui| {
                                 changed = ui.radio_value(&mut theme_preference, egui::ThemePreference::System, "Use system's").changed();
 
-                                if !self.system_theme_listener.is_running() {
-                                    ui.label("⚠").on_hover_text("Cannot access the system theme.\nEither the portal is not available,\nor an error occurred. (See stderr)");
+                                if let Some(cause) = self.system_theme_listener.stop_cause() {
+                                    ui.label("⚠").on_hover_ui(|ui| {
+                                        ui.style_mut().interaction.selectable_labels = true;
+
+                                        ui.label("Cannot access the system theme.\nEither the Settings portal is not available or an error occurred.");
+
+                                        if let StopCause::Error(e) = cause {
+                                            ui.small(format!("{e}"));
+                                        }
+                                    });
                                 }
                             });
 
