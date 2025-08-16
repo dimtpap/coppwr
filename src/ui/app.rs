@@ -616,7 +616,7 @@ impl eframe::App for App {
 
                 let mut disconnect = false;
                 egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-                    egui::menu::bar(ui, |ui| {
+                    egui::MenuBar::new().ui(ui, |ui| {
                         ui.menu_button("File", |ui| {
                             disconnect = ui
                                 .button("🔌 Disconnect")

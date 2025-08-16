@@ -64,7 +64,7 @@ impl egui_node_graph::NodeTemplateTrait for NoOp {
         Vec::new()
     }
 
-    fn node_finder_label(&self, _: &mut Self::UserState) -> std::borrow::Cow<str> {
+    fn node_finder_label(&self, _: &mut Self::UserState) -> std::borrow::Cow<'_, str> {
         Cow::Borrowed("")
     }
 
@@ -109,7 +109,7 @@ impl DataTypeTrait<backend::Sender> for MediaType {
         }
     }
 
-    fn name(&self) -> std::borrow::Cow<str> {
+    fn name(&self) -> std::borrow::Cow<'_, str> {
         match self {
             Self::Audio => Cow::Borrowed("Audio"),
             Self::Video => Cow::Borrowed("Video"),

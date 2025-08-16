@@ -26,22 +26,25 @@ pub fn global_info_button(
     sx: &backend::Sender,
 ) {
     ui.add_enabled_ui(global.is_some(), |ui| {
-        ui.menu_button("ℹ", |ui| {
-            ui.set_max_height(400.);
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.set_max_width(500.);
-                if let Some(global) = global {
-                    // Remove cross-justify
-                    ui.with_layout(egui::Layout::default(), |ui| {
-                        ui.reset_style();
-                        global.borrow_mut().show(ui, true, sx);
-                    });
-                }
+        let res = ui.button("ℹ");
+        egui::Popup::menu(&res)
+            .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+            .show(|ui| {
+                ui.set_max_height(400.);
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.set_max_width(500.);
+                    if let Some(global) = global {
+                        // Remove cross-justify
+                        ui.with_layout(egui::Layout::default(), |ui| {
+                            ui.reset_style();
+                            global.borrow_mut().show(ui, true, sx);
+                        });
+                    }
+                });
             });
-        })
-        .response
-        .on_disabled_hover_text("Global has been destroyed");
-    });
+    })
+    .response
+    .on_disabled_hover_text("Global has been destroyed");
 }
 
 /// Displays a grid with 2 columns.

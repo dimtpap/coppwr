@@ -157,13 +157,13 @@ mod data {
             self.last_profiling.as_ref()
         }
 
-        pub fn end_date(&self) -> PlotPoints {
+        pub fn end_date(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.end_date))
         }
-        pub fn scheduling_latency(&self) -> PlotPoints {
+        pub fn scheduling_latency(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.scheduling_latency))
         }
-        pub fn duration(&self) -> PlotPoints {
+        pub fn duration(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.duration))
         }
     }
@@ -297,19 +297,19 @@ mod data {
             }
         }
 
-        pub fn delay(&self) -> PlotPoints {
+        pub fn delay(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.delay))
         }
 
-        pub fn period(&self) -> PlotPoints {
+        pub fn period(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.period))
         }
 
-        pub fn estimated(&self) -> PlotPoints {
+        pub fn estimated(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.estimated))
         }
 
-        pub fn end_date(&self) -> PlotPoints {
+        pub fn end_date(&self) -> PlotPoints<'_> {
             generate_plot_points(self.measurements.iter().map(|m| m.end_date))
         }
 
@@ -693,6 +693,7 @@ impl Profiler {
                 .allow_zoom(false)
                 .allow_scroll(false)
                 .allow_boxed_zoom(false)
+                .allow_axis_zoom_drag(false)
                 .show_grid(egui::Vec2b::new(true, false))
                 .set_margin_fraction(egui::Vec2::ZERO)
                 .include_x(-0.5) // Left side margin
