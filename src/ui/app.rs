@@ -74,10 +74,10 @@ mod inspector {
     use crate::{
         backend::{self, Event, RemoteInfo},
         ui::{
+            ContextManager, GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler,
             globals_store::ObjectData,
             graph::MediaType,
             util::{persistence::PersistentView, tool::Windowed},
-            ContextManager, GlobalsStore, Graph, MetadataEditor, ObjectCreator, Profiler,
         },
     };
 
@@ -778,6 +778,10 @@ impl eframe::App for App {
                                         .hint_text("Remote name")
                                         .desired_width(f32::INFINITY)
                                         .show(ui);
+
+                                    if std::env::var_os("PIPEWIRE_REMOTE").is_some() {
+                                        ui.small("The PIPEWIRE_REMOTE environment variable is present. Changing the remote name here may have no effect.");
+                                    }
                                 }
 
                                 #[cfg(feature = "xdg_desktop_portals")]

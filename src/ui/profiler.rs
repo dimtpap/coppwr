@@ -16,7 +16,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, HashMap, VecDeque},
+    collections::{HashMap, VecDeque, hash_map::Entry},
     rc::{Rc, Weak},
 };
 
@@ -39,7 +39,7 @@ use crate::{
 mod data {
     use std::{
         cell::RefCell,
-        collections::{btree_map::Entry, BTreeMap, VecDeque},
+        collections::{BTreeMap, VecDeque, btree_map::Entry},
         rc::Weak,
     };
 
@@ -553,11 +553,7 @@ impl Profiler {
                     }
                 });
 
-            if reset {
-                plot.reset()
-            } else {
-                plot
-            }
+            if reset { plot.reset() } else { plot }
         }
 
         ui.separator();

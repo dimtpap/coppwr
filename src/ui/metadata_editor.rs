@@ -16,7 +16,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     rc::Rc,
 };
 

@@ -30,7 +30,7 @@ use pipewire::{
 
 use crate::{
     backend::{self, ObjectMethod, Request},
-    ui::util::uis::{key_val_display, map_editor, EditableKVList},
+    ui::util::uis::{EditableKVList, key_val_display, map_editor},
 };
 
 fn draw_permissions(ui: &mut egui::Ui, p: &mut Permission) {

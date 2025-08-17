@@ -47,7 +47,6 @@ pub enum Request {
     CreateObject(pw::types::ObjectType, String, Vec<(String, String)>),
     DestroyObject(u32),
     LoadModule {
-        module_dir: Option<String>,
         name: String,
         args: Option<String>,
         props: Option<Vec<(String, String)>>,

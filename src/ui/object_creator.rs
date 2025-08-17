@@ -25,7 +25,7 @@ use crate::{
         globals_store::Global,
         util::{
             tool::Tool,
-            uis::{global_info_button, EditableKVList},
+            uis::{EditableKVList, global_info_button},
         },
     },
 };

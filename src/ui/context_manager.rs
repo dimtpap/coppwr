@@ -53,7 +53,6 @@ pub struct ContextManager {
 
     properties: MapEditor,
 
-    module_dir: String,
     module_name: String,
     module_args: String,
     module_props: EditableKVList,
@@ -109,12 +108,6 @@ impl ContextManager {
             }
             View::ModuleLoader => {
                 ui.add(
-                    egui::TextEdit::singleline(&mut self.module_dir)
-                        .hint_text("Modules directory (Leave empty for default)")
-                        .desired_width(f32::INFINITY),
-                )
-                .on_hover_text("The path of the directory where the module can be found");
-                ui.add(
                     egui::TextEdit::singleline(&mut self.module_name)
                         .hint_text("Name")
                         .desired_width(f32::INFINITY),
@@ -141,11 +134,6 @@ impl ContextManager {
                             .clicked()
                         {
                             sx.send(Request::LoadModule {
-                                module_dir: self
-                                    .module_dir
-                                    .is_empty()
-                                    .not()
-                                    .then(|| self.module_dir.clone()),
                                 name: self.module_name.clone(),
                                 args: self
                                     .module_args
@@ -163,7 +151,6 @@ impl ContextManager {
                         }
                     });
                     if ui.button("Clear").clicked() {
-                        self.module_dir.clear();
                         self.module_name.clear();
                         self.module_args.clear();
                         self.module_props.list.clear();

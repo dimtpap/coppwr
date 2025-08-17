@@ -2,7 +2,7 @@
 name = "coppwr"
 version = "1.6.2"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"

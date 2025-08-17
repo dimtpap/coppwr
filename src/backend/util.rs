@@ -36,23 +36,14 @@ pub fn key_val_to_props(
     props
 }
 
-pub fn connect_override_env(
+pub fn connect(
     context: &pw::context::Context,
     mut context_properties: pw::properties::Properties,
     remote_name: String,
 ) -> Result<pw::core::Core, pw::Error> {
-    let env_remote = std::env::var_os("PIPEWIRE_REMOTE");
-    if env_remote.is_some() {
-        std::env::remove_var("PIPEWIRE_REMOTE");
-    }
-
     context_properties.insert("remote.name", remote_name);
 
     let core = context.connect(Some(context_properties))?;
-
-    if let Some(env_remote) = env_remote {
-        std::env::set_var("PIPEWIRE_REMOTE", env_remote);
-    }
 
     Ok(core)
 }

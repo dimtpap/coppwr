@@ -19,9 +19,10 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::mpsc};
 use crate::backend::connection;
 
 use super::{
+    Connection, Event, RemoteInfo, Request,
     bind::BoundGlobal,
     pw::{self, proxy::ProxyT, types::ObjectType},
-    util, Connection, Event, RemoteInfo, Request,
+    util,
 };
 
 #[cfg(feature = "pw_v0_3_77")]
@@ -171,31 +172,16 @@ pub fn pipewire_thread(
                 registry.destroy_global(id);
             }
             Request::LoadModule {
-                module_dir,
                 name,
                 args,
                 props,
             } => {
                 let props = props.map(|props| util::key_val_to_props(props.into_iter()));
 
-                let prev = std::env::var_os("PIPEWIRE_MODULE_DIR");
-                if let Some(ref module_dir) = module_dir {
-                    std::env::set_var("PIPEWIRE_MODULE_DIR", module_dir);
-                }
-
-                if context
+                if let Err(e) = context
                     .load_module(name.as_str(), args.as_deref(), props)
-                    .is_err()
                 {
-                    eprintln!("Failed to load module: Name: {name} - Directory: {module_dir:?} - Arguments: {args:?}");
-                }
-
-                if module_dir.is_some() {
-                    if let Some(prev) = prev {
-                        std::env::set_var("PIPEWIRE_MODULE_DIR", prev);
-                    } else {
-                        std::env::remove_var("PIPEWIRE_MODULE_DIR");
-                    }
+                    eprintln!("Failed to load module (Name: {name} - Arguments: {args:?}): {e}");
                 }
             }
             Request::GetContextProperties => {

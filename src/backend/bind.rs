@@ -25,7 +25,7 @@ use pipewire::{
     types::ObjectType,
 };
 
-use super::{util, Event, ObjectMethod};
+use super::{Event, ObjectMethod, util};
 
 #[derive(Debug)]
 pub enum Error {

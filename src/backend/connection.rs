@@ -59,7 +59,7 @@ impl std::error::Error for Error {}
 mod connection_impl {
     use pipewire as pw;
 
-    use crate::backend::{util, RemoteInfo};
+    use crate::backend::{RemoteInfo, util};
 
     use super::Error;
 
@@ -72,7 +72,7 @@ mod connection_impl {
             remote: RemoteInfo,
         ) -> Result<Self, Error> {
             let RemoteInfo::Regular(remote) = remote;
-            Ok(Self(util::connect_override_env(
+            Ok(Self(util::connect(
                 context,
                 util::key_val_to_props(context_properties.into_iter()),
                 remote,
@@ -91,14 +91,14 @@ mod connection_impl {
 
     use ashpd::{
         desktop::{
-            screencast::{Screencast, SourceType},
             Session,
+            screencast::{Screencast, SourceType},
         },
         enumflags2::BitFlags,
     };
     use pipewire as pw;
 
-    use crate::backend::{util, RemoteInfo};
+    use crate::backend::{RemoteInfo, util};
 
     use super::Error;
 
@@ -136,7 +136,7 @@ mod connection_impl {
                 multiple: bool,
             ) -> Result<(OwnedFd, Session<'a, Screencast<'b>>), ashpd::Error> {
                 pollster::block_on(async {
-                    use ashpd::desktop::{screencast::CursorMode, PersistMode};
+                    use ashpd::desktop::{PersistMode, screencast::CursorMode};
 
                     let proxy = Screencast::new().await?;
                     let session = proxy.create_session().await?;
@@ -168,7 +168,7 @@ mod connection_impl {
 
             match remote {
                 RemoteInfo::Regular(remote_name) => Ok(Self {
-                    core: util::connect_override_env(context, context_properties, remote_name)?,
+                    core: util::connect(context, context_properties, remote_name)?,
                     session: None,
                 }),
                 RemoteInfo::Screencast { types, multiple } => {
