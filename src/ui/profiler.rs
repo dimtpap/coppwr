@@ -43,7 +43,7 @@ mod data {
         rc::Weak,
     };
 
-    use egui_plot::PlotPoints;
+    use egui_plot::{PlotPoint, PlotPoints};
 
     use crate::{
         backend::pods::profiler::{NodeBlock, Profiling},
@@ -58,31 +58,79 @@ mod data {
         queue.push_back(value);
     }
 
+    fn adjust_queue<T>(queue: &mut VecDeque<T>, max: usize) {
+        if queue.capacity() < max {
+            queue.reserve(max - queue.len());
+        } else if queue.len() > max {
+            queue.drain(0..(queue.len() - max));
+        }
+    }
+
     fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints<'static> {
-        PlotPoints::from_iter(points.enumerate().map(|(i, x)| [i as f64, x]))
+        PlotPoints::Owned(
+            points
+                .enumerate()
+                .map(|(i, x)| PlotPoint { x: i as f64, y: x })
+                .collect(),
+        )
     }
 
-    struct ClientMeasurement {
-        end_date: f64,
-        scheduling_latency: f64,
-        duration: f64,
+    struct ClientMeasurements {
+        end_date: VecDeque<f64>,
+        scheduling_latency: VecDeque<f64>,
+        duration: VecDeque<f64>,
     }
 
-    impl ClientMeasurement {
-        const fn empty() -> Self {
+    impl ClientMeasurements {
+        fn with_max_profilings(max: usize) -> Self {
             Self {
-                end_date: f64::NAN,
-                scheduling_latency: f64::NAN,
-                duration: f64::NAN,
+                end_date: VecDeque::with_capacity(max),
+                scheduling_latency: VecDeque::with_capacity(max),
+                duration: VecDeque::with_capacity(max),
             }
         }
 
-        fn new(follower: &NodeBlock, driver: &NodeBlock) -> Self {
-            Self {
-                end_date: (follower.finish - driver.signal) as f64 / 1000.,
-                scheduling_latency: (follower.awake - follower.signal) as f64 / 1000.,
-                duration: (follower.finish - follower.awake) as f64 / 1000.,
-            }
+        fn len(&self) -> usize {
+            assert!(
+                self.end_date.len() == self.scheduling_latency.len()
+                    && self.scheduling_latency.len() == self.duration.len()
+            );
+
+            self.end_date.len()
+        }
+
+        fn end_date(&self) -> impl Iterator<Item = f64> {
+            self.end_date.iter().copied()
+        }
+
+        fn scheduling_latency(&self) -> impl Iterator<Item = f64> {
+            self.scheduling_latency.iter().copied()
+        }
+
+        fn duration(&self) -> impl Iterator<Item = f64> {
+            self.duration.iter().copied()
+        }
+
+        fn add_empty(&mut self, max: usize) {
+            pop_front_push_back(&mut self.end_date, max, f64::NAN);
+            pop_front_push_back(&mut self.scheduling_latency, max, f64::NAN);
+            pop_front_push_back(&mut self.duration, max, f64::NAN);
+        }
+
+        fn push(&mut self, max: usize, follower: &NodeBlock, driver: &NodeBlock) {
+            let end_date = (follower.finish - driver.signal) as f64 / 1000.;
+            let scheduling_latency = (follower.awake - follower.signal) as f64 / 1000.;
+            let duration = (follower.finish - follower.awake) as f64 / 1000.;
+
+            pop_front_push_back(&mut self.end_date, max, end_date);
+            pop_front_push_back(&mut self.scheduling_latency, max, scheduling_latency);
+            pop_front_push_back(&mut self.duration, max, duration);
+        }
+
+        fn adjust_queues(&mut self, max: usize) {
+            adjust_queue(&mut self.end_date, max);
+            adjust_queue(&mut self.scheduling_latency, max);
+            adjust_queue(&mut self.duration, max);
         }
     }
 
@@ -90,7 +138,7 @@ mod data {
         last_profiling: Option<NodeBlock>,
 
         title: String,
-        measurements: VecDeque<ClientMeasurement>,
+        measurements: ClientMeasurements,
 
         // Position of last non-empty profiling that was added.
         // When this reaches 0 every profiling is empty indicating
@@ -109,7 +157,7 @@ mod data {
                 last_profiling: None,
 
                 title,
-                measurements: VecDeque::with_capacity(max_profilings),
+                measurements: ClientMeasurements::with_max_profilings(max_profilings),
 
                 last_non_empty_pos: max_profilings,
 
@@ -127,22 +175,14 @@ mod data {
             driver: &NodeBlock,
             max_profilings: usize,
         ) {
-            pop_front_push_back(
-                &mut self.measurements,
-                max_profilings,
-                ClientMeasurement::new(follower, driver),
-            );
+            self.measurements.push(max_profilings, follower, driver);
 
             self.last_profiling = Some(follower.clone());
             self.last_non_empty_pos = self.measurements.len();
         }
 
         fn add_empty_measurement(&mut self, max_profilings: usize) {
-            pop_front_push_back(
-                &mut self.measurements,
-                max_profilings,
-                ClientMeasurement::empty(),
-            );
+            self.measurements.add_empty(max_profilings);
 
             self.last_non_empty_pos -= 1;
 
@@ -158,42 +198,84 @@ mod data {
         }
 
         pub fn end_date(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.end_date))
+            generate_plot_points(self.measurements.end_date())
         }
         pub fn scheduling_latency(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.scheduling_latency))
+            generate_plot_points(self.measurements.scheduling_latency())
         }
         pub fn duration(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.duration))
+            generate_plot_points(self.measurements.duration())
         }
     }
 
-    struct DriverMeasurement {
-        delay: f64,
-        period: f64,
-        estimated: f64,
-        end_date: f64,
+    struct DriverMeasurements {
+        delay: VecDeque<f64>,
+        period: VecDeque<f64>,
+        estimated: VecDeque<f64>,
+        end_date: VecDeque<f64>,
     }
 
-    impl From<&Profiling> for DriverMeasurement {
-        fn from(p: &Profiling) -> Self {
+    impl DriverMeasurements {
+        fn with_max_profilings(max: usize) -> Self {
             Self {
-                delay: (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom),
-
-                period: ((p.driver.signal - p.driver.prev_signal) as f64 / 1000.),
-
-                end_date: ((p.driver.finish - p.driver.signal) as f64 / 1000.),
-
-                estimated: (p.clock.duration * 1_000_000) as f64
-                    / (p.clock.rate_diff * f64::from(p.clock.rate.denom)),
+                delay: VecDeque::with_capacity(max),
+                period: VecDeque::with_capacity(max),
+                estimated: VecDeque::with_capacity(max),
+                end_date: VecDeque::with_capacity(max),
             }
+        }
+
+        fn delay(&self) -> impl Iterator<Item = f64> {
+            self.delay.iter().copied()
+        }
+
+        fn period(&self) -> impl Iterator<Item = f64> {
+            self.period.iter().copied()
+        }
+
+        fn estimated(&self) -> impl Iterator<Item = f64> {
+            self.estimated.iter().copied()
+        }
+
+        fn end_date(&self) -> impl Iterator<Item = f64> {
+            self.end_date.iter().copied()
+        }
+
+        fn push(&mut self, max: usize, p: &Profiling) {
+            let delay = (p.clock.delay * 1_000_000) as f64 / f64::from(p.clock.rate.denom);
+
+            let period = (p.driver.signal - p.driver.prev_signal) as f64 / 1000.;
+
+            let estimated = (p.clock.duration * 1_000_000) as f64
+                / (p.clock.rate_diff * f64::from(p.clock.rate.denom));
+
+            let end_date = (p.driver.finish - p.driver.signal) as f64 / 1000.;
+
+            pop_front_push_back(&mut self.delay, max, delay);
+            pop_front_push_back(&mut self.period, max, period);
+            pop_front_push_back(&mut self.estimated, max, estimated);
+            pop_front_push_back(&mut self.end_date, max, end_date);
+        }
+
+        fn clear(&mut self) {
+            self.delay.clear();
+            self.period.clear();
+            self.estimated.clear();
+            self.end_date.clear();
+        }
+
+        fn adjust_queues(&mut self, max: usize) {
+            adjust_queue(&mut self.delay, max);
+            adjust_queue(&mut self.period, max);
+            adjust_queue(&mut self.estimated, max);
+            adjust_queue(&mut self.end_date, max);
         }
     }
 
     pub struct Driver {
         last_profiling: Option<Profiling>,
 
-        measurements: VecDeque<DriverMeasurement>,
+        measurements: DriverMeasurements,
         followers: BTreeMap<i32, Client>,
 
         // Stored weakly as these objects live for as long as there
@@ -207,7 +289,7 @@ mod data {
             Self {
                 last_profiling: None,
 
-                measurements: VecDeque::with_capacity(max_profilings),
+                measurements: DriverMeasurements::with_max_profilings(max_profilings),
                 followers: BTreeMap::new(),
 
                 global,
@@ -220,11 +302,7 @@ mod data {
             max_profilings: usize,
             global_getter: &impl Fn(i32) -> Option<Weak<RefCell<Global>>>,
         ) {
-            pop_front_push_back(
-                &mut self.measurements,
-                max_profilings,
-                DriverMeasurement::from(&profiling),
-            );
+            self.measurements.push(max_profilings, &profiling);
 
             // Add measurements to registered followers and delete those that have no non-empty measurements
             self.followers.retain(|id, follower| {
@@ -283,34 +361,26 @@ mod data {
         }
 
         pub fn adjust_queues(&mut self, max_profilings: usize) {
-            fn adjust_queue<T>(queue: &mut VecDeque<T>, max: usize) {
-                if queue.capacity() < max {
-                    queue.reserve(max - queue.len());
-                } else if queue.len() > max {
-                    queue.drain(0..(queue.len() - max));
-                }
-            }
-
-            adjust_queue(&mut self.measurements, max_profilings);
+            self.measurements.adjust_queues(max_profilings);
             for follower in self.followers.values_mut() {
-                adjust_queue(&mut follower.measurements, max_profilings);
+                follower.measurements.adjust_queues(max_profilings);
             }
         }
 
         pub fn delay(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.delay))
+            generate_plot_points(self.measurements.delay())
         }
 
         pub fn period(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.period))
+            generate_plot_points(self.measurements.period())
         }
 
         pub fn estimated(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.estimated))
+            generate_plot_points(self.measurements.estimated())
         }
 
         pub fn end_date(&self) -> PlotPoints<'_> {
-            generate_plot_points(self.measurements.iter().map(|m| m.end_date))
+            generate_plot_points(self.measurements.end_date())
         }
 
         pub fn clients(&self) -> impl Iterator<Item = &Client> {
