@@ -324,6 +324,7 @@ mod data {
                         if client.global.upgrade().is_none() {
                             if let Some(global) = global_getter(follower.id) {
                                 client.global = global;
+                                client.title = format!("{}/{}", follower.name, follower.id);
                             }
                         }
                     }
