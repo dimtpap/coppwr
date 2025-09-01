@@ -264,10 +264,12 @@ mod inspector {
                             ObjectType::Factory => {
                                 self.object_creator.tool.remove_factory(id);
                             }
+                            ObjectType::Node | ObjectType::Port | ObjectType::Link => {
+                                self.graph.remove_item(id);
+                            }
                             _ => {}
                         }
                     }
-                    self.graph.remove_item(id);
                 }
                 Event::GlobalInfo(id, info) => {
                     let Some(global) = self.globals.get_global(id) else {
