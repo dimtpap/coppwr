@@ -580,6 +580,10 @@ impl Profiler {
             self.pause = !self.pause;
         }
 
+        if ui.ctx().will_discard() {
+            return;
+        }
+
         fn profiler_plot(
             ui: &mut egui::Ui,
             heading: &str,
@@ -942,6 +946,10 @@ impl Profiler {
                             });
                         });
                     });
+
+                    if ui.ctx().will_discard() {
+                        return keep;
+                    }
 
                     egui::CollapsingHeader::new("Chart").id_salt(id).show(ui, |ui| {
                         draw_chart(driver, self.refresh_this_frame.unwrap_or(false), ui);
