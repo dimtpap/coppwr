@@ -145,7 +145,7 @@ mod inspector {
         }
 
         pub fn views_menu_buttons(
-            &mut self,
+            &self,
             ui: &mut egui::Ui,
             dock_state: &mut egui_dock::DockState<View>,
         ) {
@@ -405,7 +405,7 @@ mod inspector {
                     self.globals.show(ui, &self.handle.sx);
                 }
                 View::Graph => {
-                    self.graph.show(ui, &mut self.handle.sx);
+                    self.graph.show(ui, &self.handle.sx);
                 }
             }
         }
@@ -415,6 +415,7 @@ mod inspector {
 use inspector::{Inspector, PersistentData};
 
 /// Represents the PipeWire connection state.
+#[allow(clippy::large_enum_variant)]
 enum State {
     Connected(Inspector),
     Unconnected {
@@ -746,7 +747,7 @@ impl eframe::App for App {
                         let mainloop_properties = &mut *mainloop_properties;
                         |ui| {
                             ui.with_layout(
-                                ui.layout().clone().with_cross_align(egui::Align::Center),
+                                (*ui.layout()).with_cross_align(egui::Align::Center),
                                 |ui| {
                                     ui.heading("Connect to PipeWire");
                                 },

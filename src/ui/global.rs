@@ -112,78 +112,76 @@ impl ObjectData {
     }
 
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender, id: u32) {
-        match self {
-            Self::Client {
-                permissions,
-                user_permissions,
-                ..
-            } => {
-                ui.collapsing("Permissions", |ui| {
-                    if ui.small_button("Get permissions").clicked() {
-                        sx.send(Request::CallObjectMethod(
-                            id,
-                            ObjectMethod::ClientGetPermissions {
-                                index: 0,
-                                num: u32::MAX,
-                            },
-                        ))
-                        .ok();
+        if let Self::Client {
+            permissions,
+            user_permissions,
+            ..
+        } = self
+        {
+            ui.collapsing("Permissions", |ui| {
+                if ui.small_button("Get permissions").clicked() {
+                    sx.send(Request::CallObjectMethod(
+                        id,
+                        ObjectMethod::ClientGetPermissions {
+                            index: 0,
+                            num: u32::MAX,
+                        },
+                    ))
+                    .ok();
+                }
+
+                let Some(permissions) = permissions else {
+                    return;
+                };
+
+                ui.group(|ui| {
+                    for p in permissions.iter_mut() {
+                        ui.horizontal(|ui| {
+                            draw_permissions(ui, p);
+                        });
                     }
 
-                    let Some(permissions) = permissions else {
-                        return;
-                    };
+                    ui.separator();
 
-                    ui.group(|ui| {
-                        for p in permissions.iter_mut() {
-                            ui.horizontal(|ui| {
-                                draw_permissions(ui, p);
-                            });
-                        }
+                    ui.label("Add permissions");
 
-                        ui.separator();
-
-                        ui.label("Add permissions");
-
-                        user_permissions.retain_mut(|p| {
-                            ui.horizontal(|ui| {
-                                draw_permissions(ui, p);
-                                !ui.small_button("Delete").clicked()
-                            })
-                            .inner
-                        });
-
-                        if ui.button("Add").clicked() {
-                            user_permissions.push(Permission::new(0, PermissionFlags::empty()));
-                        }
+                    user_permissions.retain_mut(|p| {
+                        ui.horizontal(|ui| {
+                            draw_permissions(ui, p);
+                            !ui.small_button("Delete").clicked()
+                        })
+                        .inner
                     });
 
-                    if ui.small_button("Update permissions").clicked() {
-                        let mut all_permissions =
-                            Vec::with_capacity(permissions.len() + user_permissions.len());
-
-                        all_permissions.append(&mut permissions.clone());
-                        all_permissions.append(user_permissions);
-
-                        sx.send(Request::CallObjectMethod(
-                            id,
-                            ObjectMethod::ClientUpdatePermissions(all_permissions),
-                        ))
-                        .ok();
-
-                        // Request the permissions instantly to update the UI
-                        sx.send(Request::CallObjectMethod(
-                            id,
-                            ObjectMethod::ClientGetPermissions {
-                                index: 0,
-                                num: u32::MAX,
-                            },
-                        ))
-                        .ok();
+                    if ui.button("Add").clicked() {
+                        user_permissions.push(Permission::new(0, PermissionFlags::empty()));
                     }
                 });
-            }
-            _ => {}
+
+                if ui.small_button("Update permissions").clicked() {
+                    let mut all_permissions =
+                        Vec::with_capacity(permissions.len() + user_permissions.len());
+
+                    all_permissions.append(&mut permissions.clone());
+                    all_permissions.append(user_permissions);
+
+                    sx.send(Request::CallObjectMethod(
+                        id,
+                        ObjectMethod::ClientUpdatePermissions(all_permissions),
+                    ))
+                    .ok();
+
+                    // Request the permissions instantly to update the UI
+                    sx.send(Request::CallObjectMethod(
+                        id,
+                        ObjectMethod::ClientGetPermissions {
+                            index: 0,
+                            num: u32::MAX,
+                        },
+                    ))
+                    .ok();
+                }
+            });
         }
     }
 }
@@ -478,11 +476,11 @@ impl Global {
         self.info = info;
     }
 
-    pub fn object_data(&self) -> &ObjectData {
+    pub const fn object_data(&self) -> &ObjectData {
         &self.object_data
     }
 
-    pub fn object_data_mut(&mut self) -> &mut ObjectData {
+    pub const fn object_data_mut(&mut self) -> &mut ObjectData {
         &mut self.object_data
     }
 

@@ -52,18 +52,14 @@ impl Port {
             _ => panic!("Global referenced by a graph pin should be a port"),
         };
 
-        let color = if let Some(media_type) = media_type {
-            match *media_type {
-                MediaType::Audio => egui::Color32::BLUE,
-                MediaType::Video => egui::Color32::YELLOW,
-                MediaType::Application => egui::Color32::RED,
-                MediaType::Binary => egui::Color32::GREEN,
-                MediaType::Image => egui::Color32::ORANGE,
-                _ => egui::Color32::GRAY,
-            }
-        } else {
-            egui::Color32::GRAY
-        };
+        let color = media_type.map_or(egui::Color32::GRAY, |media_type| match *media_type {
+            MediaType::Audio => egui::Color32::BLUE,
+            MediaType::Video => egui::Color32::YELLOW,
+            MediaType::Application => egui::Color32::RED,
+            MediaType::Binary => egui::Color32::GREEN,
+            MediaType::Image => egui::Color32::ORANGE,
+            _ => egui::Color32::GRAY,
+        });
 
         PinInfo::circle().with_fill(color)
     }

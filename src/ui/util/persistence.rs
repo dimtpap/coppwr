@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-/// Trait for views that would like to save some state between reconnections  
+/// Trait for views that would like to save some state between reconnections
 /// AKA the [Memento Pattern](https://en.wikipedia.org/wiki/Memento_pattern)
 pub trait PersistentView {
     #[cfg(feature = "persistence")]

@@ -768,7 +768,7 @@ impl Profiler {
                 .show_grid(egui::Vec2b::new(true, false))
                 .set_margin_fraction(egui::Vec2::ZERO)
                 .include_x(-0.5) // Left side margin
-                .include_x(if !update_bound { prev_bound } else { 0. })
+                .include_x(if update_bound { 0. } else { prev_bound })
                 .include_y(-0.8) // 0.8 Y margin
                 .include_y(y_labels.len() as f64 - 0.2) // 0.8 Y margin
                 .y_grid_spacer({
