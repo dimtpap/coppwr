@@ -35,7 +35,7 @@ xdg_desktop_portals = ["dep:ashpd", "dep:pollster", "dep:futures-util"]
 persistence = ["dep:serde", "egui_dock/serde", "eframe/persistence"]
 
 [profile.release]
-lto = true
+lto = "thin"
 strip = true
 
 [[bin]]
