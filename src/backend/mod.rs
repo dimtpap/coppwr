@@ -163,7 +163,7 @@ impl Drop for Handle {
             eprintln!("Error sending stop request to PipeWire");
         }
         if let Some(Err(e)) = self.thread.take().map(std::thread::JoinHandle::join) {
-            eprintln!("The PipeWire thread has paniced: {e:?}");
+            eprintln!("The PipeWire thread has panicked: {e:?}");
         }
     }
 }

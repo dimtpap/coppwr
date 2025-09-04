@@ -236,9 +236,9 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
                             }
 
                             ui.with_layout(layout, |ui| {
-                                // Text should wrap when sizing. Otherwise the followring is possible
+                                // Text should wrap when sizing. Otherwise the following is possible
                                 // 1. Node appears and some collapsing header is open, showing some wide text
-                                // 2. The wide text causes the calculcated width to be larger than needed
+                                // 2. The wide text causes the calculated width to be larger than needed
                                 // 3. The collapsing header is closed, but because of 2. the node stays wide
                                 if !ui.is_sizing_pass() {
                                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);

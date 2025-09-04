@@ -42,7 +42,7 @@ fn main() {
         },
         Box::new(|cc| {
             #[cfg(not(feature = "xdg_desktop_portals"))]
-            // Explicitely set current theme to fallback theme
+            // Explicitly set current theme to fallback theme
             // since system theme detection will not be available
             cc.egui_ctx.options_mut(|o| {
                 if o.theme_preference == egui::ThemePreference::System {

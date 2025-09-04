@@ -348,12 +348,12 @@ mod data {
             self.last_profiling = Some(profiling);
         }
 
-        pub const fn last_profling(&self) -> Option<&Profiling> {
+        pub const fn last_profiling(&self) -> Option<&Profiling> {
             self.last_profiling.as_ref()
         }
 
         pub fn name(&self) -> Option<&str> {
-            self.last_profling().map(|p| p.driver.name.as_str())
+            self.last_profiling().map(|p| p.driver.name.as_str())
         }
 
         pub fn clear(&mut self) {
@@ -551,7 +551,7 @@ impl Profiler {
         });
 
         egui::CollapsingHeader::new("Last profiling info").default_open(true).show(ui, |ui| {
-            if let Some(last) = driver.last_profling() {
+            if let Some(last) = driver.last_profiling() {
                 let info = &last.info;
                 let followers = last.followers.len();
                 ui.label(format!(
@@ -732,7 +732,9 @@ impl Profiler {
             for (i, nb) in driver
                 .clients()
                 .map(|f| f.last_profiling())
-                .chain(std::iter::once(driver.last_profling().map(|lp| &lp.driver))) // NodeBlock of the driver
+                .chain(std::iter::once(
+                    driver.last_profiling().map(|lp| &lp.driver),
+                )) // NodeBlock of the driver
                 .flatten()
                 .enumerate()
             {
@@ -906,10 +908,10 @@ impl Profiler {
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             self.drivers.retain(|id, driver| {
-                if let Some(p) = driver.last_profling() {
+                if let Some(p) = driver.last_profiling() {
                     let keep = ui.horizontal(|ui| {
                         let keep = !ui.small_button("Delete").clicked();
-                        if let Some(p) = driver.last_profling() {
+                        if let Some(p) = driver.last_profiling() {
                             ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
                         } else {
                             ui.label(format!("Driver ID: {id}"));
