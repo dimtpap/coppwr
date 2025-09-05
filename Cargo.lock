@@ -1000,7 +1000,7 @@ dependencies = [
 [[package]]
 name = "egui-snarl"
 version = "0.7.1"
-source = "git+https://github.com/dimtpap/egui-snarl.git?rev=22e7341e710194c9dca9e4f98792af5325d4cefc#22e7341e710194c9dca9e4f98792af5325d4cefc"
+source = "git+https://github.com/dimtpap/egui-snarl.git?rev=0d51e7a24e1849114c8806dc6351cebc58dbabcc#0d51e7a24e1849114c8806dc6351cebc58dbabcc"
 dependencies = [
  "egui",
  "slab",

@@ -492,12 +492,12 @@ impl Graph {
                             .show_unindented(ui, |ui| {
                                 ui.label(
                                     "Reset view: Double click\n\
-                                    Pan: Click & Drag\n\
-                                    Select nodes: Shift + Click & Drag\n\
-                                    Deselect nodes: Ctrl+Shift + Click & Drag\n\
-                                    Zoom: Ctrl & Scroll\n\
-                                    Start linking: Click & Drag from port\n\
-                                    Destroy link: Right click on link",
+                                    Pan: Click & drag\n\
+                                    Select nodes: Secondary click & drag\n\
+                                    Deselect nodes: Shift + secondary click & drag\n\
+                                    Zoom: Ctrl & scroll\n\
+                                    Start linking: Click & drag from port\n\
+                                    Destroy link: Click on link",
                                 );
                             });
                     });

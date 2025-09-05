@@ -20,7 +20,7 @@ eframe = "0.32.1"
 egui = {version = "0.32.1", features = ["rayon"]}
 egui_plot = "0.33.0"
 egui_dock = "0.17.0"
-egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "22e7341e710194c9dca9e4f98792af5325d4cefc"} 
+egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "0d51e7a24e1849114c8806dc6351cebc58dbabcc"} 
 serde = {version = "1.0", optional = true}
 ashpd = {version = "0.11.0", optional = true, default-features = false, features = ["async-std"]} # Default is tokio which requires depending on it
 pollster = {version = "0.4.0", optional = true}
