@@ -206,13 +206,16 @@ pub fn pipewire_thread(
             let send = send.clone();
             move |info| {
                 #[cfg(feature = "pw_v0_3_77")]
-                if REMOTE_VERSION.get().is_none() {
-                    let mut version = info.version().split('.').filter_map(|v| v.parse().ok());
+                {
+                    let mut rv = REMOTE_VERSION.lock().unwrap();
+                    if rv.is_none() {
+                        let mut version = info.version().split('.').filter_map(|v| v.parse().ok());
 
-                    if let (Some(major), Some(minor), Some(patch)) =
-                        (version.next(), version.next(), version.next())
-                    {
-                        REMOTE_VERSION.set((major, minor, patch)).ok();
+                        if let (Some(major), Some(minor), Some(patch)) =
+                            (version.next(), version.next(), version.next())
+                        {
+                            *rv = Some((major, minor, patch));
+                        }
                     }
                 }
 

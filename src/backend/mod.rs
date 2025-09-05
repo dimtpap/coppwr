@@ -88,10 +88,10 @@ pub enum Event {
 }
 
 #[cfg(feature = "pw_v0_3_77")]
-static REMOTE_VERSION: std::sync::OnceLock<(u32, u32, u32)> = std::sync::OnceLock::new();
+static REMOTE_VERSION: std::sync::Mutex<Option<(u32, u32, u32)>> = std::sync::Mutex::new(None);
 #[cfg(feature = "pw_v0_3_77")]
-pub fn remote_version<'a>() -> Option<&'a (u32, u32, u32)> {
-    REMOTE_VERSION.get()
+pub fn remote_version() -> Option<(u32, u32, u32)> {
+    REMOTE_VERSION.lock().ok().and_then(|mg| *mg)
 }
 
 pub enum RemoteInfo {
@@ -159,6 +159,9 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
+        REMOTE_VERSION.clear_poison();
+        *REMOTE_VERSION.lock().unwrap() = None;
+
         if self.sx.send(Request::Stop).is_err() {
             eprintln!("Error sending stop request to PipeWire");
         }
