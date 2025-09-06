@@ -508,7 +508,7 @@ impl Graph {
     }
 
     pub fn add_node(&mut self, global: &Rc<RefCell<Global>>) {
-        let pos = if let Some(name) = global.borrow().name() {
+        let pos = if let Some(name) = global.borrow().props().get("node.name") {
             self.restored_positions
                 .as_mut()
                 .and_then(|rp| rp.get_mut(name))
@@ -683,7 +683,12 @@ impl Graph {
     }
 }
 
-#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "persistence",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(default)
+)]
+#[derive(Default)]
 pub struct PersistentData {
     positions: HashMap<String, VecDeque<egui::Pos2>>,
     transform: TSTransform,
@@ -706,7 +711,7 @@ impl PersistentView for Graph {
         for node_info in self.snarl.nodes_info() {
             let node = &node_info.value;
 
-            if let Some(name) = node.global.borrow().name() {
+            if let Some(name) = node.global.borrow().props().get("node.name") {
                 positions
                     .entry(name.clone())
                     .or_default()
