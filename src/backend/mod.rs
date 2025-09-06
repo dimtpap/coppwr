@@ -159,8 +159,11 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        REMOTE_VERSION.clear_poison();
-        *REMOTE_VERSION.lock().unwrap() = None;
+        #[cfg(feature = "pw_v0_3_77")]
+        {
+            REMOTE_VERSION.clear_poison();
+            *REMOTE_VERSION.lock().unwrap() = None;
+        }
 
         if self.sx.send(Request::Stop).is_err() {
             eprintln!("Error sending stop request to PipeWire");
