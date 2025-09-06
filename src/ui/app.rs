@@ -642,7 +642,8 @@ impl eframe::App for App {
                         inspector.views_menu_buttons(ui, &mut self.dock_state);
                         inspector.tools_menu_buttons(ui);
 
-                        ui.menu_button("Settings", |ui| {
+                        let res =  ui.button("Settings");
+                        egui::Popup::menu(&res).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
                             ui.horizontal(|ui| {
                                 ui.label("🔁 Update Rate").on_hover_text(
                                     "How often to refresh the UI with new data from PipeWire. Lower values result in higher CPU usage.",
