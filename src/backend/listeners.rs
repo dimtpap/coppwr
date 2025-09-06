@@ -218,7 +218,7 @@ pub fn link(link: pw::link::Link, id: u32, on_event: impl Fn(Event) + 'static) -
                 .to_owned();
                 let infos = Box::new([
                     ("Input Node ID", info.input_node_id().to_string()),
-                    ("Intput Port ID", info.input_port_id().to_string()),
+                    ("Input Port ID", info.input_port_id().to_string()),
                     ("Output Node ID", info.output_node_id().to_string()),
                     ("Output Port ID", info.output_port_id().to_string()),
                     ("State", state),
