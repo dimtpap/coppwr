@@ -374,7 +374,7 @@ impl Graph {
             transform: TSTransform::IDENTITY,
 
             restored_positions: None,
-            restored_transform: None,
+            restored_transform: Some(TSTransform::IDENTITY),
         }
     }
 
@@ -402,11 +402,27 @@ impl Graph {
         };
 
         if !self.unpositioned.is_empty() {
-            const NODE_SPACING: egui::Vec2 = egui::vec2(250f32, 150f32);
+            const NODE_SPACING: egui::Vec2 = egui::vec2(300f32, 200f32);
 
-            let mut next_sources_pos = egui::pos2(-NODE_SPACING.x, 0.);
-            let mut next_others_pos = egui::Pos2::ZERO;
-            let mut next_sinks_pos = egui::pos2(NODE_SPACING.x, 0.);
+            let screen_pos_to_graph = |pos| {
+                (pos + self.transform.translation - ui.max_rect().center().to_vec2())
+                    / self.transform.scaling
+            };
+
+            let mut next_sources_pos = screen_pos_to_graph(egui::pos2(
+                ui.max_rect().left() + ui.style().spacing.window_margin.leftf(),
+                ui.max_rect().top() + 150.,
+            ));
+
+            let mut next_others_pos = screen_pos_to_graph(egui::pos2(
+                ui.max_rect().width() / 2.,
+                ui.max_rect().top() + 150.,
+            ));
+
+            let mut next_sinks_pos = screen_pos_to_graph(egui::pos2(
+                ui.max_rect().width() - 200.,
+                ui.max_rect().top() + 150.,
+            ));
 
             for (node_id, pos, _) in self.snarl.nodes_pos_ids() {
                 if self.unpositioned.contains(&node_id) {
@@ -699,6 +715,7 @@ impl PersistentView for Graph {
 
     fn with_data(data: &Self::Data) -> Self {
         Self {
+            transform: data.transform,
             restored_positions: Some(data.positions.clone()),
             restored_transform: Some(data.transform),
             ..Self::new()
