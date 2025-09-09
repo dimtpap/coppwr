@@ -20,6 +20,7 @@ use eframe::egui;
 
 use crate::{
     backend::{self, Request},
+    interning::Istr,
     ui::util::{
         tool::Tool,
         uis::{EditableKVList, MapEditor},
@@ -67,7 +68,7 @@ impl Tool for ContextManager {
 }
 
 impl ContextManager {
-    pub fn set_context_properties(&mut self, properties: BTreeMap<String, String>) {
+    pub fn set_context_properties(&mut self, properties: BTreeMap<Istr, String>) {
         self.properties.map = properties;
     }
 

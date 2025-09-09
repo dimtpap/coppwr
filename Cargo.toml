@@ -15,16 +15,24 @@ categories = ["gui", "multimedia"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Pipewire
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "605d15996f3258b3e1cc34e445dfbdf16a366c7e"}
+
+# GUI
 eframe = "0.32.1"
 egui = {version = "0.32.1", features = ["rayon"]}
 egui_plot = "0.33.0"
 egui_dock = "0.17.0"
 egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "0d51e7a24e1849114c8806dc6351cebc58dbabcc"} 
-serde = {version = "1.0", optional = true}
+
+# Portals
 ashpd = {version = "0.11.0", optional = true, default-features = false, features = ["async-std"]} # Default is tokio which requires depending on it
 pollster = {version = "0.4.0", optional = true}
 futures-util = {version = "0.3.31", optional = true}
+
+# Utilities
+serde = {version = "1.0", optional = true}
+internment = "0.8.6"
 
 [features]
 default = ["xdg_desktop_portals", "persistence"]

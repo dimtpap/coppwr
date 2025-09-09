@@ -23,7 +23,7 @@ use std::{
 use eframe::egui;
 use pipewire::types::ObjectType;
 
-use crate::{backend, ui::util::uis::KvMatcher};
+use crate::{backend, interning::Istr, ui::util::uis::KvMatcher};
 
 #[path = "global.rs"]
 mod global;
@@ -74,7 +74,7 @@ impl GlobalsStore {
         &mut self,
         id: u32,
         object_type: ObjectType,
-        props: Option<BTreeMap<String, String>>,
+        props: Option<BTreeMap<Istr, String>>,
     ) -> &Rc<RefCell<Global>> {
         use std::collections::hash_map::Entry;
 
@@ -127,7 +127,7 @@ impl GlobalsStore {
         self.globals.remove(&id)
     }
 
-    pub fn set_global_props(&mut self, id: u32, props: BTreeMap<String, String>) {
+    pub fn set_global_props(&mut self, id: u32, props: BTreeMap<Istr, String>) {
         use std::collections::btree_map::Entry;
 
         if let Some(global) = self.globals.get(&id) {

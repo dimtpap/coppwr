@@ -31,6 +31,7 @@ use pipewire::{
 
 use crate::{
     backend::{self, ObjectMethod, Request},
+    interning::Istr,
     ui::util::uis::{EditableKVList, key_val_display, map_editor},
 };
 
@@ -195,7 +196,7 @@ pub struct Global {
     subobjects: Vec<Weak<RefCell<Global>>>,
 
     info: Option<Box<[(&'static str, String)]>>,
-    props: BTreeMap<String, String>,
+    props: BTreeMap<Istr, String>,
 
     object_data: ObjectData,
 }
@@ -204,7 +205,7 @@ impl Global {
     pub fn new(
         id: u32,
         object_type: pw::types::ObjectType,
-        props: Option<BTreeMap<String, String>>,
+        props: Option<BTreeMap<Istr, String>>,
     ) -> Self {
         let mut this = Self {
             id,
@@ -343,7 +344,11 @@ impl Global {
                         ui.separator();
 
                         if ui.button("Update properties").clicked() {
-                            self.props.extend(std::mem::take(&mut user_properties.list));
+                            self.props.extend(
+                                std::mem::take(&mut user_properties.list)
+                                    .into_iter()
+                                    .map(|(k, v)| (k.into(), v)),
+                            );
 
                             sx.send(Request::CallObjectMethod(
                                 self.id,
@@ -459,11 +464,11 @@ impl Global {
         self.subobjects.push(subobject);
     }
 
-    pub const fn props(&self) -> &BTreeMap<String, String> {
+    pub const fn props(&self) -> &BTreeMap<Istr, String> {
         &self.props
     }
 
-    pub fn set_props(&mut self, props: BTreeMap<String, String>) {
+    pub fn set_props(&mut self, props: BTreeMap<Istr, String>) {
         self.props = props;
         self.update();
     }

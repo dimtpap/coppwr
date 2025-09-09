@@ -18,7 +18,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use eframe::egui;
 
-use crate::{backend, ui::globals_store::Global};
+use crate::{backend, interning::Istr, ui::globals_store::Global};
 
 pub fn global_info_button(
     ui: &mut egui::Ui,
@@ -91,7 +91,7 @@ pub fn map_editor(
     ui: &mut egui::Ui,
     min_scrolled_height: f32,
     max_height: f32,
-    map: &mut BTreeMap<String, String>,
+    map: &mut BTreeMap<Istr, String>,
     user_additions: &mut EditableKVList,
 ) {
     key_val_table(ui, min_scrolled_height, max_height, |ui| {
@@ -156,7 +156,7 @@ impl EditableKVList {
 /// Like [`map_editor`] but it stores the map in itself.
 #[derive(Default)]
 pub struct MapEditor {
-    pub map: BTreeMap<String, String>,
+    pub map: BTreeMap<Istr, String>,
     pub user_additions: EditableKVList,
 }
 
@@ -173,8 +173,11 @@ impl MapEditor {
 
     /// Moves user additions in the map
     pub fn apply(&mut self) {
-        self.map
-            .extend(std::mem::take(&mut self.user_additions.list));
+        self.map.extend(
+            std::mem::take(&mut self.user_additions.list)
+                .into_iter()
+                .map(|(k, v)| (k.into(), v)),
+        );
     }
 }
 
