@@ -31,7 +31,7 @@ use crate::{
 };
 
 struct Factory {
-    name: String,
+    name: Box<str>,
     object_type: ObjectType,
     global: Rc<RefCell<Global>>,
 }

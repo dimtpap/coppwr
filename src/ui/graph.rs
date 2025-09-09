@@ -38,7 +38,7 @@ use crate::{
 
 struct Port {
     id: u32,
-    name: String,
+    name: Box<str>,
     global: Rc<RefCell<Global>>,
 }
 
@@ -77,7 +77,7 @@ impl Node {
     fn new(global: Rc<RefCell<Global>>) -> Self {
         let name = global.borrow().name().cloned().unwrap_or_default();
         Self {
-            user_label: name,
+            user_label: name.into_string(),
             inputs: Vec::new(),
             outputs: Vec::new(),
             resize: false,
@@ -317,7 +317,7 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
         self.sx
             .send(Request::CreateObject(
                 ObjectType::Link,
-                "link-factory".to_owned(),
+                "link-factory".into(),
                 vec![
                     (
                         "link.output.port".to_owned(),
@@ -567,7 +567,8 @@ impl Graph {
                 "{} ({})",
                 global.borrow().name().cloned().unwrap_or_default(),
                 global.borrow().id()
-            ),
+            )
+            .into_boxed_str(),
             global: Rc::clone(global),
         });
 
@@ -599,7 +600,8 @@ impl Graph {
                 "{} ({})",
                 global.borrow().name().cloned().unwrap_or_default(),
                 global.borrow().id()
-            ),
+            )
+            .into_boxed_str(),
             global: Rc::clone(global),
         });
 

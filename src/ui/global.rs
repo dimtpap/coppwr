@@ -190,12 +190,12 @@ impl ObjectData {
 /// A PipeWire object
 pub struct Global {
     id: u32,
-    name: Option<String>,
+    name: Option<Box<str>>,
     parent: Option<u32>,
 
     subobjects: Vec<Weak<RefCell<Global>>>,
 
-    info: Option<Box<[(&'static str, String)]>>,
+    info: Option<Box<[(&'static str, Box<str>)]>>,
     props: BTreeMap<Istr, String>,
 
     object_data: ObjectData,
@@ -270,7 +270,7 @@ impl Global {
             }
         }
 
-        self.name = name.cloned();
+        self.name = name.cloned().map(String::into_boxed_str);
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, draw_subobjects: bool, sx: &backend::Sender) {
@@ -452,7 +452,7 @@ impl Global {
         self.id
     }
 
-    pub const fn name(&self) -> Option<&String> {
+    pub fn name(&self) -> Option<&Box<str>> {
         self.name.as_ref()
     }
 
@@ -473,11 +473,11 @@ impl Global {
         self.update();
     }
 
-    pub fn info(&self) -> Option<&[(&'static str, String)]> {
+    pub fn info(&self) -> Option<&[(&'static str, Box<str>)]> {
         self.info.as_deref()
     }
 
-    pub fn set_info(&mut self, info: Option<Box<[(&'static str, String)]>>) {
+    pub fn set_info(&mut self, info: Option<Box<[(&'static str, Box<str>)]>>) {
         self.info = info;
     }
 

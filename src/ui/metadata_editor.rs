@@ -57,7 +57,7 @@ impl Property {
 }
 
 struct Metadata {
-    properties: BTreeMap<String, Property>,
+    properties: BTreeMap<Box<str>, Property>,
     user_properties: Vec<(String, Property)>,
     global: Rc<RefCell<Global>>,
 }
@@ -89,7 +89,7 @@ impl MetadataEditor {
         &mut self,
         global: &Rc<RefCell<Global>>,
         subject: u32,
-        key: String,
+        key: Box<str>,
         type_: Option<String>,
         value: String,
     ) {
@@ -135,7 +135,7 @@ impl MetadataEditor {
     fn show(&mut self, ui: &mut egui::Ui, sx: &backend::Sender) {
         for (id, metadata) in &mut self.metadatas {
             ui.group(|ui| {
-                ui.heading(metadata.global.borrow().name().map_or("", String::as_str));
+                ui.heading(metadata.global.borrow().name().map_or("", Box::as_ref));
                 ui.horizontal(|ui| {
                     global_info_button(ui, Some(&metadata.global), sx);
 
@@ -157,14 +157,14 @@ impl MetadataEditor {
                                 if ui.small_button("Clear").clicked() {
                                     sx.send(Request::CallObjectMethod(
                                         *id,
-                                        prop.clear_request(key.clone()),
+                                        prop.clear_request(key.clone().into_string()),
                                     ))
                                     .ok();
                                 }
                                 if ui.small_button("Set").clicked() {
                                     sx.send(Request::CallObjectMethod(
                                         *id,
-                                        prop.set_request(key.clone()),
+                                        prop.set_request(key.clone().into_string()),
                                     ))
                                     .ok();
                                 }

@@ -292,7 +292,7 @@ mod inspector {
                     {
                         let global_borrow = global.borrow();
                         match *global_borrow.object_type() {
-                            ObjectType::Port => match info[0].1.as_str() {
+                            ObjectType::Port => match info[0].1.as_ref() {
                                 "Input" => {
                                     self.graph.add_input_port(global);
                                 }

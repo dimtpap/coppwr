@@ -171,7 +171,7 @@ impl BoundGlobal {
                 if let Global::Metadata(ref metadata) = self.global {
                     metadata.set_property(
                         subject,
-                        key.as_str(),
+                        key.as_ref(),
                         type_.as_deref(),
                         value.as_deref(),
                     );

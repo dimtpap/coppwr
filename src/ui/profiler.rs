@@ -137,7 +137,7 @@ mod data {
     pub struct Client {
         last_profiling: Option<NodeBlock>,
 
-        title: String,
+        title: Box<str>,
         measurements: ClientMeasurements,
 
         // Position of last non-empty profiling that was added.
@@ -152,7 +152,7 @@ mod data {
     }
 
     impl Client {
-        fn new(title: String, max_profilings: usize, global: Weak<RefCell<Global>>) -> Self {
+        fn new(title: Box<str>, max_profilings: usize, global: Weak<RefCell<Global>>) -> Self {
             Self {
                 last_profiling: None,
 
@@ -324,14 +324,15 @@ mod data {
                         if client.global.upgrade().is_none() {
                             if let Some(global) = global_getter(follower.id) {
                                 client.global = global;
-                                client.title = format!("{}/{}", follower.name, follower.id);
+                                client.title =
+                                    format!("{}/{}", follower.name, follower.id).into_boxed_str();
                             }
                         }
                     }
                     Entry::Vacant(e) => {
                         if let Some(global) = global_getter(follower.id) {
                             e.insert(Client::new(
-                                format!("{}/{}", follower.name, follower.id),
+                                format!("{}/{}", follower.name, follower.id).into_boxed_str(),
                                 max_profilings,
                                 global,
                             ))

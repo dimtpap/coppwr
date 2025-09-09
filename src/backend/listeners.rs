@@ -28,11 +28,11 @@ pub fn module(module: pw::module::Module, id: u32, on_event: impl Fn(Event) + 's
         .add_listener_local()
         .info({
             move |info| {
-                let name = ("Name", info.name().to_owned());
-                let filename = ("Filename", info.filename().to_owned());
+                let name = ("Name", info.name().into());
+                let filename = ("Filename", info.filename().into());
 
-                let infos: Box<[(&str, String)]> = if let Some(args) = info.args() {
-                    Box::new([name, filename, ("Arguments", args.to_owned())])
+                let infos: Box<[(&str, Box<str>)]> = if let Some(args) = info.args() {
+                    Box::new([name, filename, ("Arguments", args.into())])
                 } else {
                     Box::new([name, filename])
                 };
@@ -58,8 +58,8 @@ pub fn factory(factory: pw::factory::Factory, id: u32, on_event: impl Fn(Event) 
         .info({
             move |info| {
                 let infos = Box::new([
-                    ("Type", info.type_().to_string()),
-                    ("Version", info.version().to_string()),
+                    ("Type", info.type_().to_str().into()),
+                    ("Version", info.version().to_string().into()),
                 ]);
 
                 on_event(Event::GlobalInfo(id, infos));
@@ -135,12 +135,16 @@ pub fn node(node: pw::node::Node, id: u32, on_event: impl Fn(Event) + 'static) -
                     pw::node::NodeState::Running => "Running",
                     pw::node::NodeState::Error(e) => e,
                 }
-                .to_owned();
+                .into();
+
                 let infos = Box::new([
-                    ("Max Input Ports", info.max_input_ports().to_string()),
-                    ("Max Output Ports", info.max_output_ports().to_string()),
-                    ("Input Ports", info.n_input_ports().to_string()),
-                    ("Output Ports", info.n_output_ports().to_string()),
+                    ("Max Input Ports", info.max_input_ports().to_string().into()),
+                    (
+                        "Max Output Ports",
+                        info.max_output_ports().to_string().into(),
+                    ),
+                    ("Input Ports", info.n_input_ports().to_string().into()),
+                    ("Output Ports", info.n_output_ports().to_string().into()),
                     ("State", state),
                 ]);
 
@@ -171,7 +175,7 @@ pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + Clone + 's
                     pw::spa::utils::Direction::Output => "Output",
                     _ => "Invalid",
                 }
-                .to_owned();
+                .into();
 
                 on_event(Event::GlobalInfo(id, Box::new([("Direction", direction)])));
 
@@ -215,12 +219,13 @@ pub fn link(link: pw::link::Link, id: u32, on_event: impl Fn(Event) + 'static) -
                     pw::link::LinkState::Unlinked => "Unlinked",
                     pw::link::LinkState::Error(e) => e,
                 }
-                .to_owned();
+                .into();
+
                 let infos = Box::new([
-                    ("Input Node ID", info.input_node_id().to_string()),
-                    ("Input Port ID", info.input_port_id().to_string()),
-                    ("Output Node ID", info.output_node_id().to_string()),
-                    ("Output Port ID", info.output_port_id().to_string()),
+                    ("Input Node ID", info.input_node_id().to_string().into()),
+                    ("Input Port ID", info.input_port_id().to_string().into()),
+                    ("Output Node ID", info.output_node_id().to_string().into()),
+                    ("Output Port ID", info.output_port_id().to_string().into()),
                     ("State", state),
                 ]);
 
@@ -271,7 +276,7 @@ pub fn metadata(
                 on_event(Event::MetadataProperty {
                     id,
                     subject,
-                    key: key.map(ToOwned::to_owned),
+                    key: key.map(|k| k.into()),
                     type_: type_.map(ToOwned::to_owned),
                     value: value.map(ToOwned::to_owned),
                 });

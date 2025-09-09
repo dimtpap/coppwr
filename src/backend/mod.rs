@@ -46,7 +46,7 @@ pub enum ObjectMethod {
 
 pub enum Request {
     Stop,
-    CreateObject(pw::types::ObjectType, String, Vec<(String, String)>),
+    CreateObject(pw::types::ObjectType, Box<str>, Vec<(String, String)>),
     DestroyObject(u32),
     LoadModule {
         name: String,
@@ -65,7 +65,7 @@ pub enum Event {
         Option<std::collections::BTreeMap<Istr, String>>,
     ),
     GlobalRemoved(u32),
-    GlobalInfo(u32, Box<[(&'static str, String)]>),
+    GlobalInfo(u32, Box<[(&'static str, Box<str>)]>),
     GlobalProperties(u32, std::collections::BTreeMap<Istr, String>),
     ClientPermissions(
         u32,
@@ -77,7 +77,7 @@ pub enum Event {
     MetadataProperty {
         id: u32,
         subject: u32,
-        key: Option<String>,
+        key: Option<Box<str>>,
         type_: Option<String>,
         value: Option<String>,
     },
