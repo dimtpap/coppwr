@@ -178,7 +178,10 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
         let min_global_width_key = ui.id().with("min_global_width");
         let min_node_width_key = ui.id().with("min_node_width");
 
-        if node.resize {
+        // snarl requests discard when scaling
+        // This fixes some gaps created between the node frame and the global
+        // becuase of the port name text scaling only the height
+        if node.resize || ui.ctx().will_discard() {
             // Redo size calculations
             ui.data_mut(|d| {
                 d.remove_temp::<f32>(min_global_width_key);
