@@ -1,6 +1,6 @@
 [package]
 name = "coppwr"
-version = "1.6.2"
+version = "1.7.0"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
 edition = "2024"
 rust-version = "1.85"

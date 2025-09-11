@@ -59,7 +59,6 @@
     </screenshot>
   </screenshots>
   <keywords>
-    <keyword>AudioVideo</keyword>
     <keyword>Audio</keyword>
     <keyword>Video</keyword>
     <keyword>Utility</keyword>
@@ -67,7 +66,18 @@
   </keywords>
 
   <releases>
-  <release version="1.6.2" date="2025-05-15">
+    <release version="1.7.0" date="2025-09-11">
+      <description>
+        <ul>
+          <li>New rewritten Graph view</li>
+          <li>Dark/Light theme setting and detection</li>
+          <li>Slight performance improvements</li>
+          <li>Fixed clients reusing old names in profiler plots</li>
+          <li>Fixed link permission availability depending on the first connected remote</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.6.2" date="2025-05-15">
       <description>
         <ul>
           <li>Fixed ID field on permissions not changing</li>

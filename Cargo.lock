@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "coppwr"
-version = "1.6.2"
+version = "1.7.0"
 dependencies = [
  "ashpd",
  "eframe",
