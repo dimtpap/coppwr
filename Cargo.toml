@@ -9,18 +9,17 @@ description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
 homepage = "https://dimtpap.ovh/coppwr"
 readme = "README.md"
-keywords =  ["pipewire", "gui"] 
+keywords = ["pipewire", "gui"]
 categories = ["gui", "multimedia"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# PipeWire
-pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "605d15996f3258b3e1cc34e445dfbdf16a366c7e"}
+pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "bc3f3ddcf1d61083257f5f04b800c5a411fc2c4d"}
 
 # egui
-eframe = "0.32.2"
-egui = {version = "0.32.2", features = ["rayon"]}
+eframe = "0.32.3"
+egui = {version = "0.32.3", features = ["rayon"]}
 egui_plot = "0.33.0"
 egui_dock = "0.17.0"
 egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "0d51e7a24e1849114c8806dc6351cebc58dbabcc"} 
@@ -84,7 +83,7 @@ assets = [
 	{ source = "assets/icon/48.png", dest = "/usr/share/icons/hicolor/48x48/apps/io.github.dimtpap.coppwr.png", mode = "644" },
 	{ source = "assets/icon/32.png", dest = "/usr/share/icons/hicolor/32x32/apps/io.github.dimtpap.coppwr.png", mode = "644" },
 ]
-[package.metadata.generate-rpm.requires]
+[package.metadata.generate-rpm.requires]# PipeWire
 pipewire = ">= 0.3"
 [package.metadata.generate-rpm.suggests]
 xdg-desktop-portal = ">= 0.10"

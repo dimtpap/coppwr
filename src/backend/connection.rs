@@ -63,11 +63,11 @@ mod connection_impl {
 
     use super::Error;
 
-    pub struct Connection(pw::core::Core);
+    pub struct Connection(pw::core::CoreRc);
 
     impl Connection {
         pub fn open(
-            context: &pw::context::Context,
+            context: &pw::context::ContextRc,
             context_properties: Vec<(String, String)>,
             remote: RemoteInfo,
         ) -> Result<Self, Error> {
@@ -79,7 +79,7 @@ mod connection_impl {
             )?))
         }
 
-        pub const fn core(&self) -> &pw::core::Core {
+        pub const fn core(&self) -> &pw::core::CoreRc {
             &self.0
         }
     }
@@ -121,13 +121,13 @@ mod connection_impl {
     }
 
     pub struct Connection<'a, 'b> {
-        core: pw::core::Core,
+        core: pw::core::CoreRc,
         session: Option<PortalSession<'a, 'b>>,
     }
 
     impl Connection<'_, '_> {
         pub fn open(
-            context: &pw::context::Context,
+            context: &pw::context::ContextRc,
             context_properties: Vec<(String, String)>,
             remote: RemoteInfo,
         ) -> Result<Self, Error> {
@@ -175,12 +175,12 @@ mod connection_impl {
                     let (fd, session) = open_screencast_remote(types, multiple)?;
 
                     Ok(Self {
-                        core: context.connect_fd(fd, Some(context_properties))?,
+                        core: context.connect_fd_rc(fd, Some(context_properties))?,
                         session: Some(session.into()),
                     })
                 }
                 RemoteInfo::Camera => Ok(Self {
-                    core: context.connect_fd(
+                    core: context.connect_fd_rc(
                         open_camera_remote()?.ok_or(Error::PortalUnavailable)?,
                         Some(context_properties),
                     )?,
@@ -189,7 +189,7 @@ mod connection_impl {
             }
         }
 
-        pub const fn core(&self) -> &pw::core::Core {
+        pub const fn core(&self) -> &pw::core::CoreRc {
             &self.core
         }
     }

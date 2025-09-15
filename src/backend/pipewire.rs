@@ -52,21 +52,21 @@ pub fn pipewire_thread(
     let binds = Rc::new(RefCell::new(HashMap::<u32, BoundGlobal>::new()));
 
     let (mainloop, context, connection, registry): (
-        pw::main_loop::MainLoop,
-        pw::context::Context,
+        pw::main_loop::MainLoopRc,
+        pw::context::ContextRc,
         Connection,
-        Rc<pw::registry::Registry>,
+        pw::registry::RegistryRc,
     ) = {
         let result = (|| -> Result<_, connection::Error> {
             let mainloop = if mainloop_properties.is_empty() {
-                pw::main_loop::MainLoop::new(None)?
+                pw::main_loop::MainLoopRc::new(None)?
             } else {
-                pw::main_loop::MainLoop::new(Some(
+                pw::main_loop::MainLoopRc::new(Some(
                     util::key_val_to_props(mainloop_properties.into_iter()).dict(),
                 ))?
             };
 
-            let context = pw::context::Context::new(&mainloop)?;
+            let context = pw::context::ContextRc::new(&mainloop, None)?;
             if context
                 .load_module("libpipewire-module-profiler", None, None)
                 .is_err()
@@ -76,9 +76,9 @@ pub fn pipewire_thread(
 
             let connection = Connection::open(&context, context_properties, remote)?;
 
-            let registry = connection.core().get_registry()?;
+            let registry = connection.core().get_registry_rc()?;
 
-            Ok((mainloop, context, connection, Rc::new(registry)))
+            Ok((mainloop, context, connection, registry))
         })();
 
         match result {
@@ -99,7 +99,7 @@ pub fn pipewire_thread(
         let mainloop = mainloop.clone();
         let context = context.clone();
         let core = core.clone();
-        let registry = Rc::clone(&registry);
+        let registry = registry.clone();
 
         let locals = Rc::clone(&locals);
         let binds = Rc::clone(&binds);
@@ -254,7 +254,7 @@ pub fn pipewire_thread(
         .add_listener_local()
         .global({
             let send = send.clone();
-            let registry = Rc::clone(&registry);
+            let registry = registry.clone();
             let binds = Rc::clone(&binds);
             move |global| {
                 if global.id == 0 {

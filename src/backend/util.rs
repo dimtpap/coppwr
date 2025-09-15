@@ -28,8 +28,8 @@ where
 
 pub fn key_val_to_props(
     kv: impl Iterator<Item = (impl Into<Vec<u8>>, impl Into<Vec<u8>>)>,
-) -> pw::properties::Properties {
-    let mut props = pw::properties::Properties::new();
+) -> pw::properties::PropertiesBox {
+    let mut props = pw::properties::PropertiesBox::new();
     for (k, v) in kv {
         props.insert(k, v);
     }
@@ -37,13 +37,13 @@ pub fn key_val_to_props(
 }
 
 pub fn connect(
-    context: &pw::context::Context,
-    mut context_properties: pw::properties::Properties,
+    context: &pw::context::ContextRc,
+    mut context_properties: pw::properties::PropertiesBox,
     remote_name: String,
-) -> Result<pw::core::Core, pw::Error> {
+) -> Result<pw::core::CoreRc, pw::Error> {
     context_properties.insert("remote.name", remote_name);
 
-    let core = context.connect(Some(context_properties))?;
+    let core = context.connect_rc(Some(context_properties))?;
 
     Ok(core)
 }
