@@ -16,7 +16,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{HashMap, VecDeque, hash_map::Entry},
+    collections::{HashMap, hash_map::Entry},
     rc::{Rc, Weak},
 };
 
@@ -28,7 +28,10 @@ use crate::{
         self,
         pods::profiler::{Clock, Info, NodeBlock, Profiling},
     },
-    ui::{globals_store::Global, util::uis::global_info_button},
+    ui::{
+        globals_store::Global,
+        util::{RingBuf, uis::global_info_button},
+    },
 };
 
 #[allow(
@@ -39,7 +42,7 @@ use crate::{
 mod data {
     use std::{
         cell::RefCell,
-        collections::{BTreeMap, VecDeque, btree_map::Entry},
+        collections::{BTreeMap, btree_map::Entry},
         rc::Weak,
     };
 
@@ -47,24 +50,8 @@ mod data {
 
     use crate::{
         backend::pods::profiler::{NodeBlock, Profiling},
-        ui::globals_store::Global,
+        ui::{globals_store::Global, util::RingBuf},
     };
-
-    fn pop_front_push_back<T>(queue: &mut VecDeque<T>, max: usize, value: T) {
-        if queue.len() + 1 > max {
-            queue.pop_front();
-        }
-
-        queue.push_back(value);
-    }
-
-    fn adjust_queue<T>(queue: &mut VecDeque<T>, max: usize) {
-        if queue.capacity() < max {
-            queue.reserve(max - queue.len());
-        } else if queue.len() > max {
-            queue.drain(0..(queue.len() - max));
-        }
-    }
 
     fn generate_plot_points(points: impl Iterator<Item = f64>) -> PlotPoints<'static> {
         PlotPoints::Owned(
@@ -76,17 +63,17 @@ mod data {
     }
 
     struct ClientMeasurements {
-        end_date: VecDeque<f64>,
-        scheduling_latency: VecDeque<f64>,
-        duration: VecDeque<f64>,
+        end_date: RingBuf<f64>,
+        scheduling_latency: RingBuf<f64>,
+        duration: RingBuf<f64>,
     }
 
     impl ClientMeasurements {
         fn with_max_profilings(max: usize) -> Self {
             Self {
-                end_date: VecDeque::with_capacity(max),
-                scheduling_latency: VecDeque::with_capacity(max),
-                duration: VecDeque::with_capacity(max),
+                end_date: RingBuf::with_capacity(max),
+                scheduling_latency: RingBuf::with_capacity(max),
+                duration: RingBuf::with_capacity(max),
             }
         }
 
@@ -112,9 +99,9 @@ mod data {
         }
 
         fn add_empty(&mut self, max: usize) {
-            pop_front_push_back(&mut self.end_date, max, f64::NAN);
-            pop_front_push_back(&mut self.scheduling_latency, max, f64::NAN);
-            pop_front_push_back(&mut self.duration, max, f64::NAN);
+            self.end_date.push_back(max, f64::NAN);
+            self.scheduling_latency.push_back(max, f64::NAN);
+            self.duration.push_back(max, f64::NAN);
         }
 
         fn push(&mut self, max: usize, follower: &NodeBlock, driver: &NodeBlock) {
@@ -122,15 +109,15 @@ mod data {
             let scheduling_latency = (follower.awake - follower.signal) as f64 / 1000.;
             let duration = (follower.finish - follower.awake) as f64 / 1000.;
 
-            pop_front_push_back(&mut self.end_date, max, end_date);
-            pop_front_push_back(&mut self.scheduling_latency, max, scheduling_latency);
-            pop_front_push_back(&mut self.duration, max, duration);
+            self.end_date.push_back(max, end_date);
+            self.scheduling_latency.push_back(max, scheduling_latency);
+            self.duration.push_back(max, duration);
         }
 
         fn adjust_queues(&mut self, max: usize) {
-            adjust_queue(&mut self.end_date, max);
-            adjust_queue(&mut self.scheduling_latency, max);
-            adjust_queue(&mut self.duration, max);
+            self.end_date.resize(max);
+            self.scheduling_latency.resize(max);
+            self.duration.resize(max);
         }
     }
 
@@ -209,19 +196,19 @@ mod data {
     }
 
     struct DriverMeasurements {
-        delay: VecDeque<f64>,
-        period: VecDeque<f64>,
-        estimated: VecDeque<f64>,
-        end_date: VecDeque<f64>,
+        delay: RingBuf<f64>,
+        period: RingBuf<f64>,
+        estimated: RingBuf<f64>,
+        end_date: RingBuf<f64>,
     }
 
     impl DriverMeasurements {
         fn with_max_profilings(max: usize) -> Self {
             Self {
-                delay: VecDeque::with_capacity(max),
-                period: VecDeque::with_capacity(max),
-                estimated: VecDeque::with_capacity(max),
-                end_date: VecDeque::with_capacity(max),
+                delay: RingBuf::with_capacity(max),
+                period: RingBuf::with_capacity(max),
+                estimated: RingBuf::with_capacity(max),
+                end_date: RingBuf::with_capacity(max),
             }
         }
 
@@ -251,10 +238,10 @@ mod data {
 
             let end_date = (p.driver.finish - p.driver.signal) as f64 / 1000.;
 
-            pop_front_push_back(&mut self.delay, max, delay);
-            pop_front_push_back(&mut self.period, max, period);
-            pop_front_push_back(&mut self.estimated, max, estimated);
-            pop_front_push_back(&mut self.end_date, max, end_date);
+            self.delay.push_back(max, delay);
+            self.period.push_back(max, period);
+            self.estimated.push_back(max, estimated);
+            self.end_date.push_back(max, end_date);
         }
 
         fn clear(&mut self) {
@@ -265,10 +252,10 @@ mod data {
         }
 
         fn adjust_queues(&mut self, max: usize) {
-            adjust_queue(&mut self.delay, max);
-            adjust_queue(&mut self.period, max);
-            adjust_queue(&mut self.estimated, max);
-            adjust_queue(&mut self.end_date, max);
+            self.delay.resize(max);
+            self.period.resize(max);
+            self.estimated.resize(max);
+            self.end_date.resize(max);
         }
     }
 
@@ -403,7 +390,7 @@ pub struct Profiler {
     pause: bool,
 
     /// Temporarily holds incoming data until the update interval passes
-    buffer: VecDeque<Profiling>,
+    buffer: RingBuf<Profiling>,
 
     // Used for updating last profilings of nodes periodically instead of on every new profiling.
     // This is useful for not drawing new data on every egui update, such as mouse movement
@@ -424,7 +411,7 @@ impl Profiler {
             selected_driver_id: None,
             pause: false,
 
-            buffer: VecDeque::new(),
+            buffer: RingBuf::new(),
 
             last_profs_update: std::time::Instant::now(),
             refresh_this_frame: None,
@@ -477,18 +464,8 @@ impl Profiler {
             return;
         }
 
-        let skip = if profilings.len() >= self.max_profilings {
-            self.buffer.clear();
-            profilings.len() - self.max_profilings
-        } else if profilings.len() + self.buffer.len() > self.max_profilings {
-            self.buffer
-                .drain(0..usize::min(self.buffer.len(), profilings.len()));
-            0
-        } else {
-            0
-        };
-
-        self.buffer.extend(profilings.into_iter().skip(skip));
+        self.buffer
+            .extend(self.max_profilings, profilings.into_iter());
     }
 
     pub fn show_profiler(

@@ -15,5 +15,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pub mod persistence;
+mod ringbuf;
 pub mod tool;
 pub mod uis;
+
+pub use ringbuf::RingBuf;
