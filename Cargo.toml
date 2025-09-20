@@ -15,6 +15,7 @@ categories = ["gui", "multimedia"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# PipeWire
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "bc3f3ddcf1d61083257f5f04b800c5a411fc2c4d"}
 
 # egui
@@ -83,7 +84,7 @@ assets = [
 	{ source = "assets/icon/48.png", dest = "/usr/share/icons/hicolor/48x48/apps/io.github.dimtpap.coppwr.png", mode = "644" },
 	{ source = "assets/icon/32.png", dest = "/usr/share/icons/hicolor/32x32/apps/io.github.dimtpap.coppwr.png", mode = "644" },
 ]
-[package.metadata.generate-rpm.requires]# PipeWire
+[package.metadata.generate-rpm.requires]
 pipewire = ">= 0.3"
 [package.metadata.generate-rpm.suggests]
 xdg-desktop-portal = ">= 0.10"
