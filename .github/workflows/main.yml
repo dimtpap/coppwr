@@ -96,6 +96,8 @@ jobs:
         run: cargo install cargo-deb cargo-generate-rpm
       - name: Build
         run: cargo build --release --verbose --all-features
+      - name: Test
+        run: cargo test --release --verbose --all-features --bins
       - uses: actions/upload-artifact@v4
         name: Upload binary
         with:
