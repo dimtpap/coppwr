@@ -1,6 +1,22 @@
+// Copyright 2023-2025 Dimitris Papaioannou <dimtpap@protonmail.com>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3 as published by
+// the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-only
+
 use std::{collections::VecDeque, ops::RangeBounds};
 
-// A ring buffer that drops the oldest items (those at the front) when filled up
+/// A ring buffer that drops the oldest items (those at the front) when filled up
 #[derive(Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RingBuf<T>(VecDeque<T>);
 
@@ -53,7 +69,6 @@ impl<T> RingBuf<T> {
             self.clear();
             skip = iter.len() - max;
         } else if self.len() + iter.len() > max {
-            // Make space for the new items
             _ = self.drain(0..(self.len() + iter.len() - max));
         }
 
