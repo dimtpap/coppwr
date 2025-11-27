@@ -596,7 +596,7 @@ impl eframe::App for App {
             // since the first update comes too early
         );
 
-        let window_size = ctx.input(|i| i.screen_rect()).size();
+        let window_size = ctx.input(|i| i.content_rect()).size();
 
         match &mut self.state {
             State::Connected(inspector) => {
