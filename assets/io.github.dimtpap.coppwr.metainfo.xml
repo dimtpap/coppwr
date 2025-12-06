@@ -66,6 +66,13 @@
   </keywords>
 
   <releases>
+    <release version="1.7.1" date="2025-12-06">
+      <description>
+        <ul>
+          <li>Reduced jitteryness when zooming in the Graph view</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.0" date="2025-09-11">
       <description>
         <ul>

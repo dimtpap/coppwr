@@ -776,7 +776,7 @@ checksum = "9885fa71e26b8ab7855e2ec7cae6e9b380edff76cd052e07c683a0319d51b3a2"
 
 [[package]]
 name = "coppwr"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "ashpd",
  "eframe",
