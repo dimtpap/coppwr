@@ -46,7 +46,7 @@ makepkg -i
 Debian and RPM packages are available from the [releases](https://github.com/dimtpap/coppwr/releases/latest).
 ## Building
 ### Requirements
-- Rust and Cargo version `1.85` or later - https://www.rust-lang.org/tools/install
+- Rust and Cargo version `1.88` or later - https://www.rust-lang.org/tools/install
 - bindgen [requirements](https://rust-lang.github.io/rust-bindgen/requirements.html)
 - PipeWire library headers/PipeWire development packages
 
