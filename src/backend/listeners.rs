@@ -37,15 +37,14 @@ pub fn module(module: pw::module::Module, id: u32, on_event: impl Fn(Event) + 's
                     Box::new([name, filename])
                 };
 
-                on_event(Event::GlobalInfo(id, infos));
+                let props = info
+                    .change_mask()
+                    .contains(pw::module::ModuleChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask()
-                        .contains(pw::module::ModuleChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                on_event(Event::GlobalInfo(id, infos, props));
             }
         })
         .register();
@@ -62,15 +61,14 @@ pub fn factory(factory: pw::factory::Factory, id: u32, on_event: impl Fn(Event) 
                     ("Version", info.version().to_string()),
                 ]);
 
-                on_event(Event::GlobalInfo(id, infos));
+                let props = info
+                    .change_mask()
+                    .contains(pw::factory::FactoryChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask()
-                        .contains(pw::factory::FactoryChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                on_event(Event::GlobalInfo(id, infos, props));
             }
         })
         .register();
@@ -82,13 +80,14 @@ pub fn device(device: pw::device::Device, id: u32, on_event: impl Fn(Event) + 's
         .add_listener_local()
         .info({
             move |info| {
-                if let (true, Some(props)) = (
-                    info.change_mask()
-                        .contains(pw::device::DeviceChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                let props = info
+                    .change_mask()
+                    .contains(pw::device::DeviceChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
+
+                on_event(Event::GlobalInfo(id, Box::new([]), props));
             }
         })
         .register();
@@ -105,13 +104,14 @@ pub fn client(
         .info({
             let on_event = on_event.clone();
             move |info| {
-                if let (true, Some(props)) = (
-                    info.change_mask()
-                        .contains(pw::client::ClientChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                let props = info
+                    .change_mask()
+                    .contains(pw::client::ClientChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
+
+                on_event(Event::GlobalInfo(id, Box::new([]), props));
             }
         })
         .permissions({
@@ -144,14 +144,14 @@ pub fn node(node: pw::node::Node, id: u32, on_event: impl Fn(Event) + 'static) -
                     ("State", state),
                 ]);
 
-                on_event(Event::GlobalInfo(id, infos));
+                let props = info
+                    .change_mask()
+                    .contains(pw::node::NodeChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask().contains(pw::node::NodeChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                on_event(Event::GlobalInfo(id, infos, props));
             }
         })
         .register();
@@ -173,14 +173,18 @@ pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + Clone + 's
                 }
                 .to_owned();
 
-                on_event(Event::GlobalInfo(id, Box::new([("Direction", direction)])));
+                let props = info
+                    .change_mask()
+                    .contains(pw::port::PortChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask().contains(pw::port::PortChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                on_event(Event::GlobalInfo(
+                    id,
+                    Box::new([("Direction", direction)]),
+                    props,
+                ));
             }
         })
         .param(move |_, _, _, _, pod| {
@@ -224,14 +228,14 @@ pub fn link(link: pw::link::Link, id: u32, on_event: impl Fn(Event) + 'static) -
                     ("State", state),
                 ]);
 
-                on_event(Event::GlobalInfo(id, infos));
+                let props = info
+                    .change_mask()
+                    .contains(pw::link::LinkChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask().contains(pw::link::LinkChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    on_event(Event::GlobalProperties(id, dict_to_map(props)));
-                }
+                on_event(Event::GlobalInfo(id, infos, props));
             }
         })
         .register();
