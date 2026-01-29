@@ -227,14 +227,14 @@ pub fn pipewire_thread(
                     ("Cookie", info.cookie().to_string()),
                 ]);
 
-                send(Event::GlobalInfo(0, infos));
+                let props = info
+                    .change_mask()
+                    .contains(pw::core::ChangeMask::PROPS)
+                    .then_some(info.props())
+                    .flatten()
+                    .map(util::dict_to_map);
 
-                if let (true, Some(props)) = (
-                    info.change_mask().contains(pw::core::ChangeMask::PROPS),
-                    info.props(),
-                ) {
-                    send(Event::GlobalProperties(0, util::dict_to_map(props)));
-                }
+                send(Event::GlobalInfo(0, infos, props));
             }
         })
         .error({

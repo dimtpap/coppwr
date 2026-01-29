@@ -283,7 +283,11 @@ mod inspector {
                         }
                     }
                 }
-                Event::GlobalInfo(id, info) => {
+                Event::GlobalInfo(id, info, props) => {
+                    if let Some(props) = props {
+                        self.globals.set_global_props(id, props);
+                    }
+
                     let Some(global) = self.globals.get_global(id) else {
                         return;
                     };
@@ -325,9 +329,6 @@ mod inspector {
                     }
 
                     global.borrow_mut().set_info(Some(info));
-                }
-                Event::GlobalProperties(id, props) => {
-                    self.globals.set_global_props(id, props);
                 }
                 Event::PortMediaType { id, media_type } => {
                     let Some(port) = self.globals.get_global(id) else {

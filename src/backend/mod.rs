@@ -63,8 +63,11 @@ pub enum Event {
         Option<std::collections::BTreeMap<String, String>>,
     ),
     GlobalRemoved(u32),
-    GlobalInfo(u32, Box<[(&'static str, String)]>),
-    GlobalProperties(u32, std::collections::BTreeMap<String, String>),
+    GlobalInfo(
+        u32,
+        Box<[(&'static str, String)]>,
+        Option<std::collections::BTreeMap<String, String>>,
+    ),
     ClientPermissions(
         u32,
         // Let's keep this as similar to PipeWire's message as possible
