@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::{HashMap, HashSet, VecDeque},
     rc::Rc,
@@ -67,6 +68,7 @@ impl Port {
 
 struct Node {
     user_label: String,
+    initial_auto_pos: Option<egui::Pos2>,
     inputs: Vec<Port>,
     outputs: Vec<Port>,
     resize: bool,
@@ -78,6 +80,7 @@ impl Node {
         let name = global.borrow().name().cloned().unwrap_or_default();
         Self {
             user_label: name,
+            initial_auto_pos: None,
             inputs: Vec::new(),
             outputs: Vec::new(),
             resize: false,
@@ -347,6 +350,23 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
     fn drop_outputs(&mut self, _pin: &OutPin, _snarl: &mut Snarl<Node>) {}
 }
 
+// Used to tiebreak saved positions of nodes with the same names.
+#[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone)]
+struct UserNodePosInfo {
+    target_object: Option<String>,
+    pos: egui::Pos2,
+}
+
+impl From<egui::Pos2> for UserNodePosInfo {
+    fn from(pos: egui::Pos2) -> Self {
+        Self {
+            target_object: None,
+            pos,
+        }
+    }
+}
+
 pub struct Graph {
     snarl: Snarl<Node>,
     nodes: HashMap<u32, NodeId>,
@@ -354,14 +374,69 @@ pub struct Graph {
     ports: HashSet<u32>,
 
     unpositioned: HashSet<NodeId>,
+    user_positions: HashMap<String, VecDeque<UserNodePosInfo>>,
 
     transform: TSTransform,
-
-    restored_positions: Option<HashMap<String, VecDeque<egui::Pos2>>>,
     restored_transform: Option<TSTransform>,
 }
 
 impl Graph {
+    /// If target_object is a serial, this will find the name of the node with that serial.
+    /// If target_object is a node name, this just returns it.
+    fn to_target_name<'a>(
+        &self,
+        target_object: Option<impl Into<Cow<'a, str>>>,
+    ) -> Option<Cow<'a, str>> {
+        let mut target_object = target_object.map(Into::into);
+
+        if let Some(target_serial) = target_object.as_deref().and_then(|t| t.parse::<u32>().ok()) {
+            target_object = self.nodes.iter().find_map(|(_, &n)| {
+                let node = self.snarl.get_node_info(n).unwrap().value.global.borrow();
+                let Some(name) = node.props().get("node.name") else {
+                    return None;
+                };
+                let serial = node.id();
+
+                (serial == target_serial).then(|| Cow::Owned(name.clone()))
+            })
+        }
+
+        target_object
+    }
+
+    fn find_user_position<'a>(
+        &mut self,
+        name: &str,
+        target_object: Option<impl Into<Cow<'a, str>>>,
+    ) -> Option<egui::Pos2> {
+        let target_object = self.to_target_name(target_object);
+
+        if let Some(positions) = self.user_positions.get_mut(name) {
+            positions
+                .iter()
+                .position(|info| info.target_object.as_deref() == target_object.as_deref())
+                .and_then(|i| positions.remove(i))
+                .or_else(|| positions.pop_back())
+                .map(|i| i.pos)
+        } else {
+            None
+        }
+    }
+
+    fn save_user_position<'a>(
+        &mut self,
+        name: String,
+        target_object: Option<impl Into<Cow<'a, str>>>,
+        pos: egui::Pos2,
+    ) {
+        let target_object = self.to_target_name(target_object).map(Cow::into_owned);
+
+        self.user_positions
+            .entry(name)
+            .or_default()
+            .push_back(UserNodePosInfo { target_object, pos })
+    }
+
     pub fn new() -> Self {
         Self {
             snarl: Snarl::new(),
@@ -370,10 +445,10 @@ impl Graph {
             ports: HashSet::new(),
 
             unpositioned: HashSet::new(),
+            user_positions: HashMap::new(),
 
             transform: TSTransform::IDENTITY,
 
-            restored_positions: None,
             restored_transform: Some(TSTransform::IDENTITY),
         }
     }
@@ -476,6 +551,7 @@ impl Graph {
                 };
 
                 node.pos = *new_pos;
+                node.value.initial_auto_pos = Some(*new_pos);
 
                 new_pos.y += NODE_SPACING.y;
             }
@@ -524,18 +600,21 @@ impl Graph {
     }
 
     pub fn add_node(&mut self, global: &Rc<RefCell<Global>>) {
-        let pos = if let Some(name) = global.borrow().props().get("node.name") {
-            self.restored_positions
-                .as_mut()
-                .and_then(|rp| rp.get_mut(name))
-                .and_then(VecDeque::pop_front)
-                .unwrap_or(egui::Pos2::ZERO)
-        } else {
-            egui::Pos2::ZERO
-        };
+        let global_ref = global.borrow();
+
+        if self.nodes.contains_key(&global_ref.id()) {
+            return;
+        }
+
+        let props = global_ref.props();
+        let name = props.get("node.name");
+
+        let pos = name
+            .and_then(|name| self.find_user_position(name, props.get("target.object")))
+            .unwrap_or(egui::Pos2::ZERO);
 
         let node_id = self.snarl.insert_node(pos, Node::new(Rc::clone(global)));
-        self.nodes.insert(global.borrow().id(), node_id);
+        self.nodes.insert(global_ref.id(), node_id);
 
         if pos == egui::Pos2::ZERO {
             self.unpositioned.insert(node_id);
@@ -693,7 +772,32 @@ impl Graph {
                     true
                 }
             });
-            self.unpositioned.remove(&node_id);
+
+            if !self.unpositioned.remove(&node_id) {
+                let node_info = self
+                    .snarl
+                    .get_node_info(node_id)
+                    .expect("Removed a node for which there was no snarl info");
+
+                // Save only if its position was restored or the user moved this
+                if node_info
+                    .value
+                    .initial_auto_pos
+                    .is_none_or(|ip| ip != node_info.pos)
+                {
+                    let global_ref = node_info.value.global.borrow();
+                    let props = global_ref.props();
+
+                    if let Some(name) = props.get("node.name").map(ToOwned::to_owned) {
+                        let target_object = props.get("target.object").cloned();
+
+                        drop(global_ref);
+
+                        self.save_user_position(name, target_object, node_info.pos);
+                    }
+                }
+            }
+
             self.snarl.remove_node(node_id);
         }
     }
@@ -706,7 +810,7 @@ impl Graph {
 )]
 #[derive(Default)]
 pub struct PersistentData {
-    positions: HashMap<String, VecDeque<egui::Pos2>>,
+    positions: HashMap<String, VecDeque<UserNodePosInfo>>,
     transform: TSTransform,
 }
 
@@ -715,25 +819,36 @@ impl PersistentView for Graph {
 
     fn with_data(data: &Self::Data) -> Self {
         Self {
-            transform: data.transform,
-            restored_positions: Some(data.positions.clone()),
+            user_positions: data.positions.clone(),
             restored_transform: Some(data.transform),
             ..Self::new()
         }
     }
 
     fn save_data(&self) -> Option<Self::Data> {
-        let mut positions: HashMap<String, VecDeque<egui::Pos2>> = HashMap::new();
+        let mut positions: HashMap<String, VecDeque<UserNodePosInfo>> = HashMap::new();
 
         for node_info in self.snarl.nodes_info() {
             let node = &node_info.value;
+            let global = node.global.borrow();
+            let target_object = self.to_target_name(global.props().get("target.object"));
 
-            if let Some(name) = node.global.borrow().props().get("node.name") {
+            if let Some(name) = global.props().get("node.name") {
                 positions
                     .entry(name.clone())
                     .or_default()
-                    .push_back(node_info.pos);
+                    .push_back(UserNodePosInfo {
+                        target_object: target_object.map(Cow::into_owned),
+                        pos: node_info.pos,
+                    });
             }
+        }
+
+        for (name, infos) in &self.user_positions {
+            positions
+                .entry(name.clone())
+                .or_default()
+                .extend(infos.iter().cloned());
         }
 
         if positions.is_empty() {

@@ -252,10 +252,6 @@ mod inspector {
                         ObjectType::Metadata => {
                             self.metadata_editor.tool.add_metadata(global);
                         }
-                        ObjectType::Node => {
-                            self.graph.add_node(global);
-                        }
-
                         _ => {}
                     }
                 }
@@ -296,6 +292,9 @@ mod inspector {
                     {
                         let global_borrow = global.borrow();
                         match *global_borrow.object_type() {
+                            ObjectType::Node => {
+                                self.graph.add_node(global);
+                            }
                             ObjectType::Port => match info[0].1.as_str() {
                                 "Input" => {
                                     self.graph.add_input_port(global);
