@@ -53,7 +53,7 @@ impl Port {
         };
 
         let color = media_type.map_or(egui::Color32::GRAY, |media_type| match *media_type {
-            MediaType::Audio => egui::Color32::BLUE,
+            MediaType::Audio => egui::Color32::BLUE,//from_rgb(5, 90, 240),
             MediaType::Video => egui::Color32::YELLOW,
             MediaType::Application => egui::Color32::RED,
             MediaType::Binary => egui::Color32::GREEN,

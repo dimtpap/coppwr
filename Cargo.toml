@@ -19,14 +19,14 @@ categories = ["gui", "multimedia"]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "bc3f3ddcf1d61083257f5f04b800c5a411fc2c4d"}
 
 # egui
-eframe = "0.33.2"
-egui = {version = "0.33.2", features = ["rayon"]}
+eframe = "0.33.3"
+egui = {version = "0.33.3", features = ["rayon"]}
 egui_plot = "0.34.0"
 egui_dock = "0.18.0"
 egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "a0b529e23131fc5c00d995c479047557be646bb3"} 
 
 # Portals
-ashpd = {version = "0.12.0", optional = true, default-features = false, features = ["async-std"]}
+ashpd = {version = "0.12.1", optional = true, default-features = false, features = ["async-std"]}
 pollster = {version = "0.4.0", optional = true}
 futures-util = {version = "0.3.31", optional = true}
 
