@@ -3,7 +3,7 @@ name = "coppwr"
 version = "1.7.1"
 authors = ["Dimitris Papaioannou <dimtpap@protonmail.com>"]
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.92"
 license = "GPL-3.0-only"
 description = "Low level control GUI for the PipeWire multimedia server"
 repository = "https://github.com/dimtpap/coppwr"
@@ -19,16 +19,20 @@ categories = ["gui", "multimedia"]
 pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewire-rs.git", rev = "bc3f3ddcf1d61083257f5f04b800c5a411fc2c4d"}
 
 # egui
-eframe = "0.33.3"
-egui = {version = "0.33.3", features = ["rayon"]}
-egui_plot = "0.34.0"
-egui_dock = "0.18.0"
-egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "a0b529e23131fc5c00d995c479047557be646bb3"} 
+
+# Use glow instead of the default wgpu for now.
+# https://github.com/gfx-rs/wgpu/issues/4751
+# https://github.com/emilk/egui/pull/8089
+eframe = {version = "0.34.1", default-features = false, features = ["accesskit", "default_fonts", "glow", "wayland", "x11"]}
+egui = {version = "0.34.1", features = ["rayon"]}
+egui_plot = "0.35.0"
+egui_dock = "0.19.0"
+egui-snarl = {version = "*", git = "https://github.com/dimtpap/egui-snarl.git", rev = "9ba6e4b67f0a61eaf203c1a3fad861b0e1f12503"}
 
 # Portals
-ashpd = {version = "0.12.1", optional = true, default-features = false, features = ["async-std"]}
+ashpd = {version = "0.13.9", optional = true, default-features = false, features = ["async-io", "settings", "screencast", "camera"]}
 pollster = {version = "0.4.0", optional = true}
-futures-util = {version = "0.3.31", optional = true}
+futures-util = {version = "0.3.32", optional = true}
 
 # Utilities
 serde = {version = "1.0", optional = true}

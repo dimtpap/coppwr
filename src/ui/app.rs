@@ -578,6 +578,7 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        // fn on_exit(&mut self) {
         // Switch to stop backend
         // Not using Default to avoid allocations
         self.state = State::Unconnected {
@@ -587,7 +588,7 @@ impl eframe::App for App {
         };
     }
 
-    fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // egui won't update until there is interaction so data shown may be out of date
         ctx.request_repaint_after(
             self.settings.update_rate + Duration::from_millis(20),
@@ -596,7 +597,16 @@ impl eframe::App for App {
             // since the first update comes too early
         );
 
-        let window_size = ctx.input(|i| i.content_rect()).size();
+        if let State::Connected(inspector) = &mut self.state {
+            if inspector.process_events_or_stop() {
+                self.disconnect();
+                return;
+            }
+        }
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+        let window_size = ui.input(|i| i.content_rect()).size();
 
         match &mut self.state {
             State::Connected(inspector) => {
@@ -618,13 +628,8 @@ impl eframe::App for App {
                     }
                 }
 
-                if inspector.process_events_or_stop() {
-                    self.disconnect();
-                    return;
-                }
-
                 let mut disconnect = false;
-                egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+                egui::Panel::top("menu_bar").show_inside(ui, |ui| {
                     egui::MenuBar::new().ui(ui, |ui| {
                         ui.menu_button("File", |ui| {
                             disconnect = ui
@@ -635,7 +640,7 @@ impl eframe::App for App {
                             ui.separator();
 
                             if ui.button("❌ Quit").clicked() {
-                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                ui.send_viewport_cmd(egui::ViewportCommand::Close);
                             }
                         });
 
@@ -668,7 +673,7 @@ impl eframe::App for App {
 
                             ui.label("🎨 Theme");
 
-                            let mut theme_preference = ctx.options(|o| o.theme_preference);
+                            let mut theme_preference = ui.options(|o| o.theme_preference);
 
                             let mut changed = false;
 
@@ -698,7 +703,7 @@ impl eframe::App for App {
                             }
 
                             if changed {
-                                ctx.set_theme(theme_preference);
+                                ui.set_theme(theme_preference);
                             }
                         });
 
@@ -721,13 +726,13 @@ impl eframe::App for App {
                     .pivot(egui::Align2::CENTER_CENTER)
                     .default_pos([window_size.x / 2f32, window_size.y / 2f32])
                     .open(&mut self.about_open)
-                    .show(ctx, Self::about_ui);
+                    .show(ui, Self::about_ui);
 
-                inspector.tool_windows(ctx);
+                inspector.tool_windows(ui);
 
                 egui::CentralPanel::default()
-                    .frame(egui::Frame::new().fill(ctx.style().visuals.panel_fill)) // No margins
-                    .show(ctx, |ui| {
+                    .frame(egui::Frame::new().fill(ui.style().visuals.panel_fill)) // No margins
+                    .show_inside(ui, |ui| {
                         egui_dock::DockArea::new(&mut self.dock_state)
                             .show_inside(ui, &mut Viewer(inspector, &self.settings));
                     });
@@ -738,13 +743,13 @@ impl eframe::App for App {
                 context_properties,
             } => {
                 let mut connect = false;
-                egui::CentralPanel::default().show(ctx, |_| {});
+                egui::CentralPanel::default().show_inside(ui, |_| {});
                 egui::Modal::new("connect_prompt".into())
                     .area(
                         egui::Modal::default_area("connect_prompt_area".into())
                             .default_size([300., 200.]),
                     )
-                    .show(ctx, {
+                    .show(ui, {
                         let mainloop_properties = &mut *mainloop_properties;
                         |ui| {
                             ui.with_layout(

@@ -102,11 +102,11 @@ mod connection_impl {
 
     use super::Error;
 
-    enum PortalSession<'a, 'b> {
-        Screencast(Session<'a, Screencast<'b>>),
+    enum PortalSession {
+        Screencast(Session<Screencast>),
     }
 
-    impl PortalSession<'_, '_> {
+    impl PortalSession {
         fn close(&self) -> Result<(), ashpd::Error> {
             match self {
                 Self::Screencast(s) => pollster::block_on(s.close()),
@@ -114,47 +114,59 @@ mod connection_impl {
         }
     }
 
-    impl<'a, 'b> From<Session<'a, Screencast<'b>>> for PortalSession<'a, 'b> {
-        fn from(value: Session<'a, Screencast<'b>>) -> Self {
+    impl From<Session<Screencast>> for PortalSession {
+        fn from(value: Session<Screencast>) -> Self {
             Self::Screencast(value)
         }
     }
 
-    pub struct Connection<'a, 'b> {
+    pub struct Connection {
         core: pw::core::CoreRc,
-        session: Option<PortalSession<'a, 'b>>,
+        session: Option<PortalSession>,
     }
 
-    impl Connection<'_, '_> {
+    impl Connection {
         pub fn open(
             context: &pw::context::ContextRc,
             context_properties: Vec<(String, String)>,
             remote: RemoteInfo,
         ) -> Result<Self, Error> {
-            fn open_screencast_remote<'a, 'b>(
+            fn open_screencast_remote(
                 types: BitFlags<SourceType>,
                 multiple: bool,
-            ) -> Result<(OwnedFd, Session<'a, Screencast<'b>>), ashpd::Error> {
+            ) -> Result<(OwnedFd, Session<Screencast>), ashpd::Error> {
                 pollster::block_on(async {
-                    use ashpd::desktop::{PersistMode, screencast::CursorMode};
+                    use ashpd::desktop::{
+                        CreateSessionOptions, PersistMode,
+                        screencast::{
+                            CursorMode, OpenPipeWireRemoteOptions, SelectSourcesOptions,
+                            StartCastOptions,
+                        },
+                    };
 
                     let proxy = Screencast::new().await?;
-                    let session = proxy.create_session().await?;
+                    let session = proxy
+                        .create_session(CreateSessionOptions::default())
+                        .await?;
 
                     proxy
                         .select_sources(
                             &session,
-                            CursorMode::Hidden,
-                            types,
-                            multiple,
-                            None,
-                            PersistMode::DoNot,
+                            SelectSourcesOptions::default()
+                                .set_cursor_mode(CursorMode::Hidden)
+                                .set_sources(types)
+                                .set_multiple(multiple)
+                                .set_persist_mode(PersistMode::DoNot),
                         )
                         .await?;
 
-                    proxy.start(&session, None).await?;
+                    proxy
+                        .start(&session, None, StartCastOptions::default())
+                        .await?;
 
-                    let fd = proxy.open_pipe_wire_remote(&session).await?;
+                    let fd = proxy
+                        .open_pipe_wire_remote(&session, OpenPipeWireRemoteOptions::default())
+                        .await?;
 
                     Ok((fd, session))
                 })
@@ -194,7 +206,7 @@ mod connection_impl {
         }
     }
 
-    impl Drop for Connection<'_, '_> {
+    impl Drop for Connection {
         fn drop(&mut self) {
             if let Some(Err(e)) = self.session.as_ref().map(PortalSession::close) {
                 eprintln!("Error when closing portal session: {e}");
