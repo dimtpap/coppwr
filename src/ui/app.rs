@@ -295,27 +295,31 @@ mod inspector {
                             ObjectType::Node => {
                                 self.graph.add_node(global);
                             }
-                            ObjectType::Port if let Some(info) = &info => {
-                                match info[0].1.as_str() {
-                                    "Input" => {
-                                        self.graph.add_input_port(global);
+                            ObjectType::Port => {
+                                if let Some(info) = &info {
+                                    match info[0].1.as_str() {
+                                        "Input" => {
+                                            self.graph.add_input_port(global);
+                                        }
+                                        "Output" => self.graph.add_output_port(global),
+                                        _ => {}
                                     }
-                                    "Output" => self.graph.add_output_port(global),
-                                    _ => {}
                                 }
                             }
-                            ObjectType::Link if let Some(info) = &info => {
-                                if let (
-                                    Some(output_node),
-                                    Some(output_port),
-                                    Some(input_node),
-                                    Some(input_port),
-                                ) = (
-                                    info[2].1.parse().ok(),
-                                    info[3].1.parse().ok(),
-                                    info[0].1.parse().ok(),
-                                    info[1].1.parse().ok(),
-                                ) {
+                            ObjectType::Link => {
+                                if let Some(info) = &info
+                                    && let (
+                                        Some(output_node),
+                                        Some(output_port),
+                                        Some(input_node),
+                                        Some(input_port),
+                                    ) = (
+                                        info[2].1.parse().ok(),
+                                        info[3].1.parse().ok(),
+                                        info[0].1.parse().ok(),
+                                        info[1].1.parse().ok(),
+                                    )
+                                {
                                     self.graph.add_link(
                                         output_node,
                                         output_port,
@@ -325,6 +329,7 @@ mod inspector {
                                     );
                                 }
                             }
+
                             _ => {}
                         }
                     }
