@@ -308,11 +308,11 @@ mod data {
                     Entry::Occupied(mut e) => {
                         let client = e.get_mut();
 
-                        if client.global.upgrade().is_none() {
-                            if let Some(global) = global_getter(follower.id) {
-                                client.global = global;
-                                client.title = format!("{}/{}", follower.name, follower.id);
-                            }
+                        if client.global.upgrade().is_none()
+                            && let Some(global) = global_getter(follower.id)
+                        {
+                            client.global = global;
+                            client.title = format!("{}/{}", follower.name, follower.id);
                         }
                     }
                     Entry::Vacant(e) => {

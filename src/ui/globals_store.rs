@@ -152,15 +152,15 @@ impl GlobalsStore {
     }
 
     fn satisfies_filters(&self, global: &Global) -> bool {
-        if self.group_subobjects {
-            if let ObjectType::Node | ObjectType::Port = *global.object_type() {
-                let mut parent = self.parent_of(global);
-                while let Some(global) = parent.map(|g| g.borrow()) {
-                    if self.satisfies_filters(&global) {
-                        return false;
-                    }
-                    parent = self.parent_of(&global);
+        if self.group_subobjects
+            && let ObjectType::Node | ObjectType::Port = *global.object_type()
+        {
+            let mut parent = self.parent_of(global);
+            while let Some(global) = parent.map(|g| g.borrow()) {
+                if self.satisfies_filters(&global) {
+                    return false;
                 }
+                parent = self.parent_of(&global);
             }
         }
 

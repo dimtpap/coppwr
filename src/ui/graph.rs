@@ -257,12 +257,12 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
             })
             .body_returned;
 
-        if let Some(global_width) = global_width {
-            if min_global_width.is_none() {
-                ui.data_mut(|d| {
-                    d.insert_temp(min_global_width_key, global_width);
-                });
-            }
+        if let Some(global_width) = global_width
+            && min_global_width.is_none()
+        {
+            ui.data_mut(|d| {
+                d.insert_temp(min_global_width_key, global_width);
+            });
         }
     }
 
@@ -424,9 +424,7 @@ impl Graph {
                     .value
                     .global
                     .borrow();
-                let Some(name) = node.props().get("node.name") else {
-                    return None;
-                };
+                let name = node.props().get("node.name")?;
 
                 let serial = node
                     .props()
@@ -472,7 +470,7 @@ impl Graph {
         self.user_positions
             .entry(name)
             .or_default()
-            .push_back(UserNodePosInfo { target_object, pos })
+            .push_back(UserNodePosInfo { target_object, pos });
     }
 
     pub fn new() -> Self {

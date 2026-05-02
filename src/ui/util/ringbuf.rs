@@ -21,7 +21,7 @@ use std::{collections::VecDeque, ops::RangeBounds};
 pub struct RingBuf<T>(VecDeque<T>);
 
 impl<T> RingBuf<T> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(VecDeque::new())
     }
 
@@ -47,11 +47,11 @@ impl<T> RingBuf<T> {
             self.resize(max - 1);
         }
 
-        self.0.push_back(value)
+        self.0.push_back(value);
     }
 
     pub fn clear(&mut self) {
-        self.0.clear()
+        self.0.clear();
     }
 
     pub fn drain(&mut self, range: impl RangeBounds<usize>) -> impl Iterator<Item = T> {

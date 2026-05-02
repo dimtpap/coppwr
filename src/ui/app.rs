@@ -369,12 +369,11 @@ mod inspector {
                     }
                 },
                 Event::ClientPermissions(id, _, perms) => {
-                    if let Some(global) = self.globals.get_global(id) {
-                        if let ObjectData::Client { permissions, .. } =
+                    if let Some(global) = self.globals.get_global(id)
+                        && let ObjectData::Client { permissions, .. } =
                             global.borrow_mut().object_data_mut()
-                        {
-                            *permissions = Some(perms);
-                        }
+                    {
+                        *permissions = Some(perms);
                     }
                 }
                 Event::ContextProperties(properties) => {
@@ -604,11 +603,10 @@ impl eframe::App for App {
             // since the first update comes too early
         );
 
-        if let State::Connected(inspector) = &mut self.state {
-            if inspector.process_events_or_stop() {
-                self.disconnect();
-                return;
-            }
+        if let State::Connected(inspector) = &mut self.state
+            && inspector.process_events_or_stop()
+        {
+            self.disconnect();
         }
     }
 

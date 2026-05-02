@@ -26,8 +26,9 @@ use crate::{
     },
 };
 
-#[derive(PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
 enum View {
+    #[default]
     PropertiesEditor,
     ModuleLoader,
 }
@@ -38,12 +39,6 @@ impl View {
             Self::PropertiesEditor => "Properties editor",
             Self::ModuleLoader => "Module loader",
         }
-    }
-}
-
-impl Default for View {
-    fn default() -> Self {
-        Self::PropertiesEditor
     }
 }
 
