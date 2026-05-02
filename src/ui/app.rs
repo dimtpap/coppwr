@@ -295,14 +295,16 @@ mod inspector {
                             ObjectType::Node => {
                                 self.graph.add_node(global);
                             }
-                            ObjectType::Port => match info[0].1.as_str() {
-                                "Input" => {
-                                    self.graph.add_input_port(global);
+                            ObjectType::Port if let Some(info) = &info => {
+                                match info[0].1.as_str() {
+                                    "Input" => {
+                                        self.graph.add_input_port(global);
+                                    }
+                                    "Output" => self.graph.add_output_port(global),
+                                    _ => {}
                                 }
-                                "Output" => self.graph.add_output_port(global),
-                                _ => {}
-                            },
-                            ObjectType::Link => {
+                            }
+                            ObjectType::Link if let Some(info) = &info => {
                                 if let (
                                     Some(output_node),
                                     Some(output_port),
@@ -327,7 +329,7 @@ mod inspector {
                         }
                     }
 
-                    global.borrow_mut().set_info(Some(info));
+                    global.borrow_mut().set_info(info);
                 }
                 Event::PortMediaType { id, media_type } => {
                     let Some(port) = self.globals.get_global(id) else {

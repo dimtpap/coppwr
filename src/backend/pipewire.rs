@@ -234,7 +234,7 @@ pub fn pipewire_thread(
                     .flatten()
                     .map(util::dict_to_map);
 
-                send(Event::GlobalInfo(0, infos, props));
+                send(Event::GlobalInfo(0, Some(infos), props));
             }
         })
         .error({

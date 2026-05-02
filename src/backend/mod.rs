@@ -65,7 +65,7 @@ pub enum Event {
     GlobalRemoved(u32),
     GlobalInfo(
         u32,
-        Box<[(&'static str, String)]>,
+        Option<Box<[(&'static str, String)]>>,
         Option<std::collections::BTreeMap<String, String>>,
     ),
     ClientPermissions(

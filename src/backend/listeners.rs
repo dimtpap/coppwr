@@ -44,7 +44,7 @@ pub fn module(module: pw::module::Module, id: u32, on_event: impl Fn(Event) + 's
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, infos, props));
+                on_event(Event::GlobalInfo(id, Some(infos), props));
             }
         })
         .register();
@@ -68,7 +68,7 @@ pub fn factory(factory: pw::factory::Factory, id: u32, on_event: impl Fn(Event) 
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, infos, props));
+                on_event(Event::GlobalInfo(id, Some(infos), props));
             }
         })
         .register();
@@ -87,7 +87,7 @@ pub fn device(device: pw::device::Device, id: u32, on_event: impl Fn(Event) + 's
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, Box::new([]), props));
+                on_event(Event::GlobalInfo(id, None, props));
             }
         })
         .register();
@@ -111,7 +111,7 @@ pub fn client(
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, Box::new([]), props));
+                on_event(Event::GlobalInfo(id, None, props));
             }
         })
         .permissions({
@@ -151,7 +151,7 @@ pub fn node(node: pw::node::Node, id: u32, on_event: impl Fn(Event) + 'static) -
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, infos, props));
+                on_event(Event::GlobalInfo(id, Some(infos), props));
             }
         })
         .register();
@@ -182,7 +182,7 @@ pub fn port(port: pw::port::Port, id: u32, on_event: impl Fn(Event) + Clone + 's
 
                 on_event(Event::GlobalInfo(
                     id,
-                    Box::new([("Direction", direction)]),
+                    Some(Box::new([("Direction", direction)])),
                     props,
                 ));
             }
@@ -235,7 +235,7 @@ pub fn link(link: pw::link::Link, id: u32, on_event: impl Fn(Event) + 'static) -
                     .flatten()
                     .map(dict_to_map);
 
-                on_event(Event::GlobalInfo(id, infos, props));
+                on_event(Event::GlobalInfo(id, Some(infos), props));
             }
         })
         .register();
