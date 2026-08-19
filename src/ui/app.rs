@@ -620,6 +620,10 @@ impl eframe::App for App {
                 impl egui_dock::TabViewer for Viewer<'_, '_> {
                     type Tab = View;
 
+                    fn id(&mut self, tab: &mut Self::Tab) -> egui::Id {
+                        tab.as_str().into()
+                    }
+
                     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
                         self.0.show_view(ui, *tab, self.1);
                     }
@@ -634,7 +638,7 @@ impl eframe::App for App {
                 }
 
                 let mut disconnect = false;
-                egui::Panel::top("menu_bar").show_inside(ui, |ui| {
+                egui::Panel::top("menu_bar").show(ui, |ui| {
                     egui::MenuBar::new().ui(ui, |ui| {
                         ui.menu_button("File", |ui| {
                             disconnect = ui
@@ -737,7 +741,7 @@ impl eframe::App for App {
 
                 egui::CentralPanel::default()
                     .frame(egui::Frame::new().fill(ui.style().visuals.panel_fill)) // No margins
-                    .show_inside(ui, |ui| {
+                    .show(ui, |ui| {
                         egui_dock::DockArea::new(&mut self.dock_state)
                             .show_inside(ui, &mut Viewer(inspector, &self.settings));
                     });
@@ -748,7 +752,7 @@ impl eframe::App for App {
                 context_properties,
             } => {
                 let mut connect = false;
-                egui::CentralPanel::default().show_inside(ui, |_| {});
+                egui::CentralPanel::default().show(ui, |_| {});
                 egui::Modal::new("connect_prompt".into())
                     .area(
                         egui::Modal::default_area("connect_prompt_area".into())

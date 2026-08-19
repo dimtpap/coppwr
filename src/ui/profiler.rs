@@ -21,7 +21,7 @@ use std::{
 };
 
 use eframe::egui;
-use egui_plot::{self, Plot, PlotPoints};
+use egui_plot::{self, HoverPosition, Plot, PlotPoints};
 
 use crate::{
     backend::{
@@ -580,12 +580,16 @@ impl Profiler {
                 .legend(egui_plot::Legend::default())
                 .allow_zoom(egui::emath::Vec2b::new(true, false))
                 .allow_drag(egui::emath::Vec2b::new(true, false))
-                .label_formatter(|name, value| {
-                    if name.is_empty() {
-                        String::new()
-                    } else {
-                        format!("{name}: {:.3}us\nProcess cycle: {:.0}", value.y, value.x)
-                    }
+                .label_formatter(|hover_pos| match hover_pos {
+                    HoverPosition::NearDataPoint {
+                        plot_name,
+                        position,
+                        ..
+                    } => Some(format!(
+                        "{plot_name}: {:.3}us\nProcess cycle: {:.0}",
+                        position.y, position.x
+                    )),
+                    HoverPosition::Elsewhere { .. } => None,
                 })
                 .x_axis_formatter(move |x, _| {
                     let x = x.value;
@@ -773,7 +777,12 @@ impl Profiler {
                         String::new()
                     }
                 })
-                .label_formatter(|_, p| format!("{:.0} us", p.x))
+                .label_formatter(|hover_pos| match hover_pos {
+                    HoverPosition::NearDataPoint { position, .. } => {
+                        Some(format!("{:.0} us", position.x))
+                    }
+                    _ => None,
+                })
                 .legend(
                     egui_plot::Legend::default()
                         .position(egui_plot::Corner::LeftTop)

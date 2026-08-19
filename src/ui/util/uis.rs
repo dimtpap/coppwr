@@ -199,7 +199,7 @@ mod kv_matcher {
             }
         }
 
-        fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl std::hash::Hash) -> bool {
+        fn show_selector(&mut self, ui: &mut egui::Ui, id_source: impl egui::AsIdSalt) -> bool {
             const fn as_user_str(mode: &StringMatchMode) -> &'static str {
                 match mode {
                     StringMatchMode::Substring => "contains",
