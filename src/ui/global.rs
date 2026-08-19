@@ -192,7 +192,7 @@ pub struct Global {
     name: Option<String>,
     parent: Option<u32>,
 
-    subobjects: Vec<Weak<RefCell<Global>>>,
+    subobjects: Vec<Weak<RefCell<Self>>>,
 
     info: Option<Box<[(&'static str, String)]>>,
     props: BTreeMap<String, String>,

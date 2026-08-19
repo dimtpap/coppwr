@@ -567,7 +567,7 @@ impl App {
 impl eframe::App for App {
     #[cfg(feature = "persistence")]
     fn auto_save_interval(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(60 * 2)
+        std::time::Duration::from_mins(2)
     }
 
     #[cfg(feature = "persistence")]
@@ -611,7 +611,7 @@ impl eframe::App for App {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
-        let window_size = ui.input(|i| i.content_rect()).size();
+        let window_size = ui.input(egui::InputState::content_rect).size();
 
         match &mut self.state {
             State::Connected(inspector) => {

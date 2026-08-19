@@ -723,7 +723,7 @@ impl Profiler {
                 busy.push(Bar::new(i as f64, (nb.finish - nb.awake) as f64 / 1000.).horizontal());
 
                 let label = if nb.name.len() <= 15 {
-                    format!("{} ({})", &nb.name, nb.id)
+                    format!("{} ({})", nb.name, nb.id)
                 } else {
                     format!("{}... ({})", &nb.name[0..15], nb.id)
                 };
@@ -781,7 +781,7 @@ impl Profiler {
                     HoverPosition::NearDataPoint { position, .. } => {
                         Some(format!("{:.0} us", position.x))
                     }
-                    _ => None,
+                    HoverPosition::Elsewhere { .. } => None,
                 })
                 .legend(
                     egui_plot::Legend::default()
@@ -898,7 +898,7 @@ impl Profiler {
                     let keep = ui.horizontal(|ui| {
                         let keep = !ui.small_button("Delete").clicked();
                         if let Some(p) = driver.last_profiling() {
-                            ui.label(format!("Driver: {} (ID: {id})", &p.driver.name));
+                            ui.label(format!("Driver: {} (ID: {id})", p.driver.name));
                         } else {
                             ui.label(format!("Driver ID: {id}"));
                         }

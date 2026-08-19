@@ -405,8 +405,8 @@ pub struct Graph {
 }
 
 impl Graph {
-    /// If target_object is a serial, this will find the name of the node with that serial.
-    /// If target_object is a node name, this just returns it.
+    /// If `target_object` is a serial, this will find the name of the node with that serial.
+    /// If `target_object` is a node name, this just returns it.
     fn to_target_name<'a>(&self, target_object: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
         let target_object = target_object.into();
 

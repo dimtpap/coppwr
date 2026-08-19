@@ -53,7 +53,7 @@ impl SystemThemeListener {
                     ColorScheme::PreferLight => {
                         ctx.options_mut(|o| o.fallback_theme = egui::Theme::Light);
                     }
-                    _ => {}
+                    ColorScheme::NoPreference => {}
                 }
             }
 
