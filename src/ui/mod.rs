@@ -30,4 +30,5 @@ use object_creator::ObjectCreator;
 use profiler::Profiler;
 
 mod app;
+mod inspector;
 pub use app::App as CoppwrApp;
