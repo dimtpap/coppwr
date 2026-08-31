@@ -22,7 +22,6 @@ pipewire = {version = "*", git = "https://gitlab.freedesktop.org/dimtpap/pipewir
 
 # Use glow instead of the default wgpu for now.
 # https://github.com/gfx-rs/wgpu/issues/4751
-# https://github.com/emilk/egui/pull/8089
 eframe = {version = "0.36.1", default-features = false, features = ["accesskit", "default_fonts", "glow", "wayland", "x11"]}
 egui = {version = "0.36.1", features = ["rayon"]}
 egui_plot = "0.37.0"
