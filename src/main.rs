@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod backend;
+mod desktop_integration;
 mod ui;
 
 #[cfg(feature = "xdg_desktop_portals")]
@@ -47,6 +48,15 @@ fn main() {
             cc.egui_ctx.options_mut(|o| {
                 if o.theme_preference == egui::ThemePreference::System {
                     o.theme_preference = o.fallback_theme.into()
+                }
+            });
+
+            std::thread::spawn({
+                let ctx = cc.egui_ctx.clone();
+                move || {
+                    if let Err(e) = desktop_integration::add_fallback_fonts(&ctx) {
+                        eprintln!("Failed to add fallback fonts: {e}");
+                    }
                 }
             });
 
