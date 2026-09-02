@@ -137,13 +137,13 @@ impl egui_snarl::ui::SnarlViewer<Node> for Viewer<'_, '_> {
 
     fn current_transform(
         &mut self,
-        trasnform: &mut egui::emath::TSTransform,
+        transform: &mut egui::emath::TSTransform,
         _snarl: &mut Snarl<Node>,
     ) {
         if let Some(initial_transform) = self.transform.take() {
-            *trasnform = initial_transform;
+            *transform = initial_transform;
         } else {
-            self.transform = Some(*trasnform);
+            self.transform = Some(*transform);
         }
     }
 

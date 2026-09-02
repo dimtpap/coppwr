@@ -45,7 +45,7 @@ pub fn pipewire_thread(
         _ = sx.send(event);
     };
 
-    // Proxies created by core.create_object are kept seperate from proxies created
+    // Proxies created by core.create_object are kept separate from proxies created
     // by registry binding because they've not been bound yet and need to be kept alive
     // until they become available in the registry and object listeners can be added on them
     let locals = Rc::new(RefCell::new(HashMap::new()));
