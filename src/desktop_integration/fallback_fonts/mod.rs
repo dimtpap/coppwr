@@ -14,9 +14,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{ffi::OsStr, io, os::unix::ffi::OsStrExt as _};
+use std::{borrow::Cow, ffi::OsStr, io, os::unix::ffi::OsStrExt as _};
 
-use egui::epaint::text::{FontData, FontFamily, FontInsert, FontPriority, InsertFontFamily};
+use egui::{
+    FontTweak,
+    epaint::text::{FontData, FontFamily, FontInsert, FontPriority, InsertFontFamily},
+};
 use read_fonts::{FontRef, ReadError, TableProvider as _, tables::name::NameId};
 
 mod fontconfig;
@@ -78,7 +81,11 @@ fn add_font(ctx: &egui::Context, font: &FontRef<'static>) -> Result<(), Error> {
 
     let fi = FontInsert {
         name,
-        data: FontData::from_static(font.data().as_bytes()),
+        data: FontData {
+            font: Cow::Borrowed(font.data().as_bytes()),
+            index: font.ttc_index().unwrap_or(0),
+            tweak: FontTweak::default(),
+        },
         families: vec![InsertFontFamily {
             family: width,
             priority: FontPriority::Lowest,
