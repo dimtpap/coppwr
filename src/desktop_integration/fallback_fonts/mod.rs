@@ -120,7 +120,7 @@ pub fn add_fallback_fonts(ctx: &egui::Context) -> Result<(), Error> {
 
     let mut config = fc::Config::default();
     config.substitute(&mut pattern, fc::MatchKind::PATTERN);
-    config.set_default_substitute(&mut pattern);
+    pattern.default_substitute();
 
     let s = config
         .font_sort(&mut pattern, true)

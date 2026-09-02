@@ -173,6 +173,12 @@ impl Pattern {
             .unwrap()
         }
     }
+
+    pub fn default_substitute(&mut self) {
+        unsafe {
+            ffi::FcDefaultSubstitute(self.as_raw_ptr().cast_mut());
+        }
+    }
 }
 
 impl Deref for Pattern {
@@ -206,12 +212,6 @@ impl Config {
     pub fn substitute(&mut self, p: &mut Pattern, kind: MatchKind) -> ffi::FcBool {
         unsafe {
             ffi::FcConfigSubstitute(self.as_raw_ptr(), p.as_raw_ptr().cast_mut(), kind.as_raw())
-        }
-    }
-
-    pub fn set_default_substitute(&mut self, pattern: &mut Pattern) {
-        unsafe {
-            ffi::FcConfigSetDefaultSubstitute(self.as_raw_ptr(), pattern.as_raw_ptr().cast_mut());
         }
     }
 

@@ -85,13 +85,14 @@ unsafe extern "C" {
     ) -> FcResult;
     pub unsafe fn FcPatternDestroy(p: *mut FcPattern);
 
-    pub unsafe fn FcConfigSetDefaultSubstitute(config: *mut FcConfig, pattern: *mut FcPattern);
     pub unsafe fn FcConfigSubstitute(
         config: *mut FcConfig,
         p: *mut FcPattern,
         kind: FcMatchKind,
     ) -> FcBool;
     pub unsafe fn FcConfigDestroy(config: *mut FcConfig);
+
+    pub unsafe fn FcDefaultSubstitute(pattern: *mut FcPattern);
 
     pub unsafe fn FcFontSort(
         config: *mut FcConfig,
