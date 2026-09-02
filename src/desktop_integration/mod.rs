@@ -17,5 +17,9 @@
 //! Items for better integrating with the host environment.
 
 mod fallback_fonts;
-
 pub use fallback_fonts::add_fallback_fonts;
+
+#[cfg(feature = "xdg_desktop_portals")]
+pub mod system_theme_listener;
+#[cfg(feature = "xdg_desktop_portals")]
+pub use system_theme_listener::SystemThemeListener;

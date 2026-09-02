@@ -18,9 +18,6 @@ mod backend;
 mod desktop_integration;
 mod ui;
 
-#[cfg(feature = "xdg_desktop_portals")]
-mod system_theme_listener;
-
 use crate::ui::CoppwrApp;
 
 fn main() {

@@ -23,7 +23,7 @@ use egui_dock::DockState;
 use ashpd::{desktop::screencast::SourceType, enumflags2::BitFlags};
 
 #[cfg(feature = "xdg_desktop_portals")]
-use crate::system_theme_listener::{StopCause, SystemThemeListener};
+use crate::desktop_integration::{SystemThemeListener, system_theme_listener::StopCause};
 
 use crate::{
     backend::RemoteInfo,
